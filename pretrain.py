@@ -10,7 +10,7 @@ from torch import optim
 from torch.utils.data import DataLoader
 from transformers import AutoTokenizer
 
-from dataset import PretrainDataset
+from dataset import build_pretrain_dataset
 from evaluate import evaluate_lm
 from losses import masked_cross_entropy
 from model import Whetstone
@@ -131,9 +131,9 @@ def main():
 
     wandb = init_wandb_if_needed(args, run_name=f"pretrain-bs{args.batch_size}")
 
-    ds = PretrainDataset(args.data_path, tokenizer, max_length=args.max_seq_len)
+    ds = build_pretrain_dataset(args.data_path, tokenizer, max_length=args.max_seq_len)
     loader = DataLoader(ds, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers)
-    val_loader = build_val_loader(PretrainDataset, args, tokenizer)
+    val_loader = build_val_loader(build_pretrain_dataset, args, tokenizer)
     args.total_steps = max(1, args.epochs * len(loader) // args.accumulation_steps)
 
     with RunRecorder.start(
