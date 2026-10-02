@@ -98,7 +98,7 @@ def measure(tokenizer, texts: Sequence[str]) -> Fertility:
     for text in texts:
         if not text:
             continue
-        ids = tokenizer(text, add_special_tokens=False).input_ids
+        ids = tokenizer(text, add_special_tokens=False, verbose=False).input_ids
         documents += 1
         chars += len(text)
         tokens += len(ids)

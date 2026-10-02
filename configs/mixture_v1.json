@@ -20,11 +20,14 @@
     {
       "name": "zh_web",
       "weight": 0.3,
-      "note": "FineWeb2-HQ Chinese: ODC-By, already MinHash-deduplicated upstream",
+      "note": "FineWeb2-HQ Chinese: ODC-By, already MinHash-deduplicated upstream. Rows carry a 768-float embedding, so read only the text column",
       "hf": {
         "path": "epfml/FineWeb2-HQ",
         "name": "cmn_Hani",
-        "split": "train"
+        "split": "train",
+        "columns": [
+          "text"
+        ]
       },
       "text_field": "text",
       "filters": {
@@ -44,7 +47,10 @@
       "hf": {
         "path": "HuggingFaceFW/fineweb-edu",
         "name": "sample-10BT",
-        "split": "train"
+        "split": "train",
+        "columns": [
+          "text"
+        ]
       },
       "text_field": "text",
       "filters": {
@@ -66,7 +72,10 @@
       "hf": {
         "path": "bigcode/starcoderdata",
         "data_dir": "python",
-        "split": "train"
+        "split": "train",
+        "columns": [
+          "content"
+        ]
       },
       "text_field": "content",
       "filters": {
@@ -85,7 +94,10 @@
       "hf": {
         "path": "HuggingFaceTB/finemath",
         "name": "finemath-4plus",
-        "split": "train"
+        "split": "train",
+        "columns": [
+          "text"
+        ]
       },
       "text_field": "text",
       "filters": {
@@ -100,15 +112,18 @@
     {
       "name": "books",
       "weight": 0.05,
-      "note": "Common Pile Project Gutenberg: public domain. OCR noise is expected",
+      "note": "Common Pile Project Gutenberg: public domain. OCR noise is expected. ~5% of books are not English; 98% are under 1M chars, the cap only drops multi-volume compilations",
       "hf": {
         "path": "common-pile/project_gutenberg",
         "split": "train"
       },
       "text_field": "text",
+      "where": {
+        "metadata.language": "en"
+      },
       "filters": {
         "min_chars": 1000,
-        "max_chars": 400000,
+        "max_chars": 2000000,
         "min_latin_ratio": 0.5,
         "max_digit_ratio": 0.2,
         "max_symbol_ratio": 0.2,
@@ -123,7 +138,10 @@
       "hf": {
         "path": "HuggingFaceTB/smollm-corpus",
         "name": "cosmopedia-v2",
-        "split": "train"
+        "split": "train",
+        "columns": [
+          "text"
+        ]
       },
       "text_field": "text",
       "filters": {

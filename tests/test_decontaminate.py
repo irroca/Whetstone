@@ -21,8 +21,15 @@ GSM_STYLE = (
 
 def test_text_units_splits_cjk_per_character_and_latin_per_word():
     assert text_units("solve 12 + 7 计算结果") == [
-        "solve", "12", "+", "7", "计", "算", "结", "果",
+        "solve", "12", "7", "计", "算", "结", "果",
     ]
+
+
+def test_punctuation_and_symbols_are_not_units():
+    """Each one used to be a unit, so a run of 13 dashes was a "phrase"."""
+    assert text_units("|------|____|...|~~~~|，。！") == []
+    assert text_units(r"\frac{3}{2}") == ["frac", "3", "2"]
+    assert text_units("grpo_advantages café") == ["grpo", "advantages", "café"]
 
 
 def test_ngrams_are_thirteen_units_long_by_default():
@@ -78,6 +85,30 @@ def test_short_eval_item_still_matches_inside_a_longer_page():
     assert len(text_units(question)) < 13
     assert index.gram_sizes == {len(text_units(question))}
     assert index.match(f"Trivia night! {question}, anyway? Nobody agrees on this.") is not None
+
+
+def test_blank_lines_and_table_rules_are_not_contamination():
+    """An MMLU fill-in-the-blank question matched every markdown table in the
+    smoke corpus through its run of underscores and dashes."""
+    question = f"Fill in the blank: {'_' * 20} is the {'-' * 20} capital of France."
+    index = build_eval_index([question])
+    table = f"| city | country |\n|{'-' * 20}|{'-' * 20}|\n| {'_' * 20} | {'_' * 20} |"
+    assert index.match(table) is None
+    assert index.match("Quiz: " + question) is not None
+
+
+def test_shared_latex_syntax_is_not_contamination():
+    """Two formulas with the same brace structure used to share 13 units."""
+    index = build_eval_index([r"so \left( \frac{1}{2} \right) + \left( \frac{1}{3} \right) holds"])
+    page = r"we compute \left( \frac{1}{2} \right) + \left( \frac{1}{5} \right) here"
+    assert index.match(page) is None
+
+
+def test_generic_short_questions_only_match_exactly():
+    """Below MIN_GRAM units a question is too generic to search for as a phrase."""
+    index = build_eval_index(["What is the value of B?"])
+    assert index.match("In this puzzle, what is the value of B? Nobody knows.") is None
+    assert index.match("What is the value of B?") is not None
 
 
 def test_index_does_not_match_unrelated_text():
@@ -136,6 +167,60 @@ def test_lcs_threshold_still_removes_real_contamination():
 
     assert kept == []
     assert report.removed == 1 and report.lcs_rescued == 0
+
+
+def test_lcs_gate_sees_a_leak_deep_inside_a_long_document():
+    """Books run to tens of thousands of units; the leak can sit anywhere."""
+    solution = " ".join(f"step{i}" for i in range(150))
+    book = " ".join(f"chapter{i}" for i in range(2500)) + " " + solution + " the end"
+    index = build_eval_index([solution])
+
+    assert lcs_ratio(book, solution) == pytest.approx(1.0)
+    kept, report = decontaminate([{"text": book}], index, lcs_threshold=0.6)
+    assert kept == [] and report.removed == 1
+
+
+def test_lcs_gate_ignores_item_words_scattered_across_a_page():
+    """A shared phrase plus the item's other words strewn far apart down the
+    page is a coincidence, not a copy: only the aligned stretch counts."""
+    shared = "the area of the triangle with vertices x1 y1 x2 y2 x3 y3 is"
+    rest = [f"term{i}" for i in range(20)]
+    item = shared + " " + " ".join(rest)
+    filler = " ".join(f"note{i}" for i in range(50))
+    page = filler + " " + shared + " " + " ".join(f"{filler} {word}" for word in rest)
+    index = build_eval_index([item])
+
+    assert index.match(page) is not None
+    assert lcs_ratio(page, item) < 0.6
+    kept, report = decontaminate([{"text": page}], index, lcs_threshold=0.6)
+    assert report.lcs_rescued == 1 and len(kept) == 1
+
+
+def test_lcs_gate_sees_a_leak_deep_inside_a_long_document():
+    """Books run to tens of thousands of units; the leak can sit anywhere."""
+    solution = " ".join(f"step{i}" for i in range(150))
+    book = " ".join(f"chapter{i}" for i in range(2500)) + " " + solution + " the end"
+    index = build_eval_index([solution])
+
+    assert lcs_ratio(book, solution) == pytest.approx(1.0)
+    kept, report = decontaminate([{"text": book}], index, lcs_threshold=0.6)
+    assert kept == [] and report.removed == 1
+
+
+def test_lcs_gate_ignores_item_words_scattered_across_a_page():
+    """A shared phrase plus the item's other words strewn far apart down the
+    page is a coincidence, not a copy: only the aligned stretch counts."""
+    shared = "the area of the triangle with vertices x1 y1 x2 y2 x3 y3 is"
+    rest = [f"term{i}" for i in range(20)]
+    item = shared + " " + " ".join(rest)
+    filler = " ".join(f"note{i}" for i in range(50))
+    page = filler + " " + shared + " " + " ".join(f"{filler} {word}" for word in rest)
+    index = build_eval_index([item])
+
+    assert index.match(page) is not None
+    assert lcs_ratio(page, item) < 0.6
+    kept, report = decontaminate([{"text": page}], index, lcs_threshold=0.6)
+    assert report.lcs_rescued == 1 and len(kept) == 1
 
 
 def test_decontaminate_covers_every_schema():
@@ -199,6 +284,25 @@ def test_very_short_eval_answers_give_weak_protection(tmp_path):
 
     assert index.match("the answer to everything is 42, as everyone knows") is None
     assert index.match("a sufficiently long and distinctive benchmark question here") is not None
+
+
+def test_short_answers_match_exactly_but_long_ones_as_phrases(tmp_path):
+    """Short answers were most of the false positives on real data (MMLU's
+    "1,2,3" matched 76 of 4.8k documents). A long answer is still distinctive."""
+    long_answer = "petition the government for a redress of grievances and assemble peaceably in public"
+    path = tmp_path / "eval.jsonl"
+    write_jsonl(str(path), [
+        {"question": "a sufficiently long and distinctive benchmark question here", "answer": "1,2,3"},
+        {"question": "another sufficiently long and distinctive benchmark question", "answer": "The end of the Cold War"},
+        {"question": "a third sufficiently long and distinctive benchmark question", "answer": long_answer},
+    ])
+
+    index = load_eval_index([str(path)])
+
+    assert index.match("Steps 1,2,3 of the recipe are easy.") is None
+    assert index.match("This essay is about the end of the Cold War and what followed.") is None
+    assert index.match("The end of the Cold War") is not None
+    assert index.match(f"The First Amendment lets people {long_answer}, it says.") is not None
 
 
 def test_load_eval_index_can_target_one_field(tmp_path):
