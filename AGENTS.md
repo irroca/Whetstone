@@ -41,7 +41,14 @@ rather than duplicating commands here.
 ### Environment / running caveats (non-obvious)
 
 - **Python 3.12+ and a venv are required** (the system Python on macOS is 3.9, which
-  `transformers` 5.x will not run on). `uv venv --python 3.12 && uv pip install -r requirements.txt`.
+ `transformers` 5.x will not run on). `uv venv --python 3.12 && uv pip install -r requirements.txt`.
+- **The HF `datasets` library is required by the data pipeline** (`prepare`, `fetch_evals`) and is
+ in `requirements.txt`, imported lazily so tests stay offline. If it is missing, `import datasets`
+ silently resolves to the repo's git-ignored `datasets/` data directory as a namespace package,
+ and fails with `cannot import name 'load_dataset' from 'datasets' (unknown location)`.
+- **No HF token is configured by default**, and `bigcode/starcoderdata` (the `code` source) and
+ `big_math` are gated: accept the terms on the dataset page, then `hf auth login`. Everything
+ else in `configs/mixture_v1.json` and `fetch_evals --decontamination_only` is open.
 - **Always set `HF_HUB_OFFLINE=1`.** The tokenizer is committed, but `transformers` still phones
   home to check for updates on every load: the suite takes 47s without it and 16s with it, of
   which only ~4s is CPU.
@@ -53,11 +60,25 @@ rather than duplicating commands here.
   create one (see `build_autocast_scaler`) — that is intended, not a missing feature.
 - **Use bf16, not fp16, on MPS.** Measured on an M5 Pro, fp16 autocast moved a 100M model's loss
   from -0.3278 to +0.0018 while bf16 held at -0.3276.
-- **Two things will break at real scale and have not been fixed** (details and suggested designs
-  in `docs/status.md` §3): `dataset.py` reads an entire JSONL into a Python list, and
-  `model.py` materializes the full `(B, heads, q_len, kv_len)` attention score matrix instead of
-  using `F.scaled_dot_product_attention`. Both are fine for the CPU tests and for fixtures; both
-  are blocking for a ~100M model on a 30GB corpus.
+- **At real scale, pretraining reads a pre-tokenized `.bin`, not JSONL.**
+ `python3 -m datatools.tokenize_corpus <jsonl> --tokenizer <dir> --out <prefix>` writes
+ `<prefix>.bin` (documents packed as `bos + text + eos`, `uint16` up to a 65536 vocab),
+ `<prefix>.idx` (`uint64` document offsets) and `<prefix>.meta.json`. `pretrain.py` goes through
+ `dataset.build_pretrain_dataset`, which picks `MemmapPretrainDataset` for a `.bin` path and the
+ old `PretrainDataset` (whole file in a list, tokenized per item) otherwise, for train and val.
+ **`PretrainDataset` keeps only the first `max_seq_len` tokens of each document**: on the smoke
+ corpus at 512 it trains on 28% of the tokens and 1% of the book tokens, which rewrites the
+ mixture (books 6.4% → 0.2%). Mixture ablations are only meaningful on `.bin` data.
+ - The memmap dataset **raises** on a tokenizer fingerprint mismatch and on a `.bin` whose size
+ disagrees with its meta (a truncated copy). Both are intended: ids from another vocabulary
+ train silently on garbage. Retraining the tokenizer means re-running `tokenize_corpus`.
+ - Windows are `max_seq_len` tokens at stride `max_seq_len - 1`, so every token is a target
+ exactly once per epoch and `X`/`Y` stay `max_seq_len - 1` long, like the JSONL reader. A test
+ asserts the stored documents equal what `PretrainDataset` feeds the model; keep them equal.
+ - `SFTDataset` / `PreferenceDataset` still load whole files, which is fine at SFT scale.
+- **One thing will still break at real scale** (`docs/status.md` §3): `model.py` materializes
+ the full `(B, heads, q_len, kv_len)` attention score matrix instead of using
+ `F.scaled_dot_product_attention`. Fine for the CPU tests; blocking at `--max_seq_len 2048`.
 - **No datasets or checkpoints are committed.** Training scripts expect JSONL under `datasets/`,
   which is git-ignored along with `results*/` and `*.pth`. Build real data with
   `datatools.prepare`, or generate synthetic task data with `envs.generate_data`; the committed
@@ -105,18 +126,45 @@ rather than duplicating commands here.
     flag**. `record_text` joins a record for stats/dedup/split; `record_parts` keeps the pieces
     separate for decontamination (the joined form inserts `=>` and role prefixes that never occur
     in natural text and would block n-gram matches); `prompt_text` isolates the input side.
-  - **The whole pipeline is streaming.** Mixture weights are in tokens while corpora are published
-    in documents and bytes, so `prepare` tokenizes as it pulls and stops when a source's share is
-    met. At 10B tokens the corpus is ~30GB; don't add a stage that materializes it.
+ - **The whole pipeline is streaming.** Mixture weights are in tokens while corpora are published
+ in documents and bytes, so `prepare` tokenizes as it pulls and stops when a source's share is
+ met. At 10B tokens the corpus is ~30GB; don't add a stage that materializes it.
+ - **Run `prepare --probe 3` before a real `prepare`.** Sources are pulled serially, so a broken
+ source (gated repo, wrong config name, renamed field) otherwise only fails after every source
+ before it has finished. The probe reports all of them at once and exits 1 if any is not `ok`.
+ - `to_record` **projects** each row onto its schema's fields and drops every upstream column;
+ `prepare_source` then adds a `source` tag (needed to split merged val data per language). Do
+ not go back to passing rows through: FineWeb2-HQ ships a 768-float embedding per document,
+ which made the Chinese slice 9.3x the size of its text.
+ - `hf.columns` (parquet sources only; Gutenberg is `jsonl.gz`) limits which columns are
+ downloaded. Parquet streams whole row groups, so without it zh_web also downloads every
+ embedding before the first row comes out. Projection alone is not enough: fsspec reads 5MiB
+ past every read, straight into the dropped embedding column, so `hf_load_options` sets a 64KB
+ read-ahead for projected sources (per 1000-row group: 25.6MB unprojected, 8.7MB projected
+ with the default read-ahead, 3.8MB now). `SourceSpec` rejects a `columns` list that omits
+ `text_field` or a `where` root, since that would reject every row. `where` matches upstream
+ metadata by dotted path (books keep `metadata.language == "en"`; ~5% of Gutenberg is not).
   - `datatools/minhash.py` is a self-contained MinHash+LSH implementation on numpy (no
     `datasketch`); its permutation coefficients are bounded so uint64 arithmetic never wraps —
     don't "simplify" that away. LSH proposes candidates and every candidate is verified against
     the full signature, so banding only trades recall for speed. It holds ~1KB per document, so
     near-dedup is bounded to 1–2M docs and is deliberately **not** part of `prepare`'s pass.
   - `datatools/decontaminate.py` is the real contamination check (13-gram + optional LCS 0.6,
-    following SmolLM2); `dedup --against` is only exact prompt equality. CJK is split per
-    character and latin per word, and eval items shorter than `n` are indexed at their own length.
-    Very short answers (< `MIN_GRAM` units) fall back to exact matching — a known, tested limit.
+ following SmolLM2); `dedup --against` is only exact prompt equality. CJK is split per
+ character and other letter/digit runs per word; **punctuation and symbols are not units**.
+ Questions/solutions shorter than `n` are indexed at their own length down to `MIN_GRAM` (8);
+ **answers shorter than `n` only match exactly**. Both rules came from auditing the first real
+ smoke corpus: with punctuation units and own-length answers, 3.9% of documents were removed and
+ nearly all were false positives (MMLU's `1,2,3`, MATH's `\frac{3}{2}`, a run of dashes matching
+ every markdown table). `finalize` reports the eval items that removed the most documents
+ (`manifest.json` → `split.top_matches`, also printed): one item removing many documents is
+ the signature of a generic phrase, not a leak. Check it before loosening either rule.
+ The LCS gate is computed **at the shared n-grams** (the shorter text aligned against the
+ longer, ±`LCS_CONTEXT` units), not over the whole page: a whole-page LCS lets a short item
+ collect its words by chance, and the old 2000-unit truncation never compared a leak past
+ that point in a book. On the smoke corpus both remaining 13-gram hits (a formula sheet
+ sharing a determinant with a MATH-500 problem; the Declaration of Independence quoted by an
+ MMLU question) score 0.51 / 0.59 and are kept.
   - `prepare`'s report is meant to be trustworthy: `fill < 100%` plus `ran out of data` means a
     source was silently down-weighted, and `kept%` excludes records pulled into the tokenization
     batch but never emitted. Don't regress either.
@@ -152,8 +200,8 @@ rather than duplicating commands here.
  `add_common_train_args` so all five scripts stay in sync. A stage that genuinely has no use for a
  shared flag passes `skip=(...)` rather than defining its own (`grpo.py` skips `--epochs`,
  `--accumulation_steps`, `--num_workers` because it is driven by `--rl_steps` over env-sampled
- prompts with no DataLoader). `--device` defaults to `"cuda" if torch.cuda.is_available() else
- "cpu"` everywhere (train scripts, `eval_ppl.py`, `chat.py`).
+ prompts with no DataLoader). `--device` defaults to `resolve_device()` (cuda > mps > cpu)
+ everywhere (train scripts, `eval_ppl.py`, `chat.py`).
 - **`--resume_from` does not guarantee identical batch order.** Each script's `DataLoader` uses
   `shuffle=True` with no fixed per-epoch seed, so resuming mid-epoch skips the same *number* of
   batches (via `start_step`) but not necessarily the *same* data. This is a known limitation

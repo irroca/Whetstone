@@ -92,15 +92,25 @@ datatools/   envs/   configs/   tests/   docs/   tokenizer/
 # 1. 拉评测集（去污染要用；不做这步去污染就是空转）
 python3 -m datatools.fetch_evals --decontamination_only --update_spec configs/mixture_v1.json
 
-# 2. 按配比构建语料（拉取 → 过滤 → 去重 → 去污染 → 划分 → manifest）
+# 2. 每个源只拉几行，把 spec 的问题（gated、config 名、字段改名）一次性全报出来
+python3 -m datatools.prepare configs/mixture_v1.json --probe 3
+
+# 3. 按配比构建语料（拉取 → 过滤 → 去重 → 去污染 → 划分 → manifest）
 python3 -m datatools.prepare configs/mixture_v1.json --out_dir datasets/prepared
 
-# 3. 在清洗后的语料上重训分词器
+# 4. 在清洗后的语料上重训分词器
 python3 train_tokenizer.py --data datasets/prepared/train.jsonl --out tokenizer/v1_32k --vocab_size 32768
 
-# 4. 五个阶段（架构只在第一步声明，后续自动继承）
+# 5. 用第 4 步的分词器预 tokenize 成可 memmap 的二进制（换分词器就要重做这一步）
+python3 -m datatools.tokenize_corpus datasets/prepared/train.jsonl \
+  --tokenizer tokenizer/v1_32k --out datasets/prepared/train
+python3 -m datatools.tokenize_corpus datasets/prepared/val.jsonl \
+  --tokenizer tokenizer/v1_32k --out datasets/prepared/val
+
+# 6. 五个阶段（架构只在第一步声明，后续自动继承）
 python3 pretrain.py --dim 768 --n_layers 12 --n_heads 12 --n_kv_heads 3 \
-  --tokenizer_path tokenizer/v1_32k --data_path datasets/prepared/train.jsonl --save_dir results
+  --tokenizer_path tokenizer/v1_32k --data_path datasets/prepared/train.bin \
+  --val_data_path datasets/prepared/val.bin --save_dir results
 python3 sft.py     --pretrained_path results/pretrain_final.pth --data_path datasets/sft.jsonl
 python3 dpo.py     --policy_path results/sft_final.pth --data_path datasets/preference.jsonl
 python3 grpo.py    --policy_path results/dpo_final.pth --env arithmetic
@@ -186,13 +196,36 @@ checkpoint 加载进 8 层模型，多出来的两层会保持随机初始化且
 **拉取 → 质量过滤 → 精确去重 → 去污染 → 划分 → manifest**：
 
 ```bash
+python3 -m datatools.prepare configs/mixture_v1.json --probe 3          # 每源拉 3 行，检查 spec
 python3 -m datatools.prepare configs/mixture_v1.json --dry_run          # 先看各源会取多少
 python3 -m datatools.prepare configs/mixture_v1.json --out_dir datasets/prepared
 python3 -m datatools.prepare configs/mixture_v1.json --scale 0.001      # 千分之一预算试跑管线
 ```
 
+`prepare` 是逐个源串行拉取的，所以**先 `--probe`**：spec 写错的源要等前面的源全部拉完才会报错。
+probe 对每个源报告状态（`ok` / `ERROR` / `NO TEXT FIELD`）、实际列名、样本文本，以及这几行里
+过滤器会拒掉多少；所有源的问题一次报完，有任何一个源不是 `ok` 就以退出码 1 结束。
+
 整条链路是**流式**的：配比按 token 计，而语料按文档和字节发布，所以只能边 tokenize 边记数、
 取满即停。10B token 是约 30GB 文本，任何一步都不能全量进内存。
+
+spec 里每个源除了 `filters`，还有两个控制「读什么」的字段：
+
+- **`hf.columns`**：只读 parquet 的这几列。不只是省磁盘：parquet 是**按整个行组**流式读的，
+  第一行产出前要先把整个行组拉完。FineWeb2-HQ 每行带一个 768 维的 embedding（质量分类器用的），
+  一个 1000 行的行组不裁列要下载 25.6MB，只读正文是 3.8MB。裁列还得配合小的预读块：fsspec
+  默认每次读取多读 5MiB，正好读进被丢掉的 embedding 列，下载量回到 8.7MB。所以设了 `columns`
+  的源，`prepare` 会自动把预读设成 64KB。`hf.columns` 漏了 `text_field` 或 `where` 用到的列会在加载
+  spec 时直接报错，否则每一行都会被拒、要跑完才看得到 0% fill。JSON 格式的源（古腾堡是
+  `jsonl.gz`）不支持这个参数
+- **`where`**：按上游元数据精确匹配，键是点分路径，值可以是列表（任一命中即可）。文本过滤器
+  看不到这类信息：古腾堡里约 5% 的书是法语/德语/拉丁语，拉丁字母占比照样过线，只能靠
+  `{"metadata.language": "en"}`。拒绝原因记为 `where:metadata.language`，和其他规则一样归因
+
+每条输出记录只保留 schema 本身的字段，**外加一个 `source` 字段**标明它来自哪个配比槽位。
+上游的其余列一律丢弃（以前带 `text` 的行会原样透传，FineWeb2-HQ 的 embedding 让中文这一份比
+正文大了 9.3 倍：81MB 对 8.8MB）。保留 `source` 是为了合并后的 `train/val.jsonl` 还能按来源拆开，
+配比消融比的正是分语言的验证 loss。
 
 输出是 `train/val/holdout.jsonl` 加一个 `manifest.json`，后者记录每源实际取到的 token 和文档数、
 **每条过滤规则各拒绝了多少**、去重和去污染的删除量、以及种子。没有这些，配比消融之间无法对账。
@@ -257,16 +290,28 @@ python3 -m datatools.tokenizer_stats datasets/zh.jsonl --tokenizer ./tok_16k ./t
 
 - 沿用 SmolLM2 的做法：**13-gram 重叠 + 可选 LCS 重叠比例 0.6**。后者用来把巧合撞上的
   13-gram 判回干净
+- **LCS 在共享 n-gram 的位置对齐后再算**，不对整页算：在每个共享 n-gram 处把评测项对齐到
+  文档上，只取对齐的那一段，取最好的一处。对整页算时，短题目的词会从页面各处被零散凑齐；以前还
+  只看文档前 2000 个单元，书里更靠后的泄漏根本没被比对。冒烟语料上两篇 13-gram 命中的分数：
+  一份坐标几何公式表和一道 MATH-500 题共享三角形面积的行列式记号，从 0.57 变为 0.51；《独立宣言》
+  原文被一道问"哪位哲学家影响了它"的 MMLU 题引用，从 0.72 变为 0.59。两篇都不含题目本身
 - **CJK 需要自己的切分**：按空格切词的 13-gram 在中文里不存在。`text_units` 把每个汉字当
-  一个单元、拉丁/数字连续段当一个词，于是 13-gram 在英文是 13 个词、在中文是 13 个字，
+  一个单元、其他字母/数字连续段当一个词，于是 13-gram 在英文是 13 个词、在中文是 13 个字，
   两者都约等于一个句子片段
+- **标点和符号不算单元**（与 GPT-3 的污染分析一致）。以前每个标点都是一个单元，冒烟语料上
+  一道 MMLU 题里的一串 `-` 命中了所有 markdown 表格，LaTeX 的 `{ } \ $` 让任何公式骨架都成了
+  「短语」，《双城记》开头的一句引文也能删掉一篇文档
 - 评测项**逐字段单独建索引**，而不是拼成一条。拼接会插入 `=>`、role 前缀这种自然文本里
   不存在的分隔符，反而让只引用了题干的网页漏过去
-- 短于 13 个单元的评测项按**自身长度**建索引——否则一道 10 个词的题永远匹配不上只会产生
-  13 单元窗口的长网页
-- **已知限制**：极短答案（如 `42`，少于 5 个单元）只能靠精确相等匹配。把任何出现 `42`
-  的文档都判为污染会把语料删空，所以保护主要来自题干。这条在测试里被显式断言，
-  是已知性质而不是意外
+- 题干和解答短于 13 个单元时按**自身长度**建索引——否则一道 10 个词的题永远匹配不上只会产生
+  13 单元窗口的长网页。但少于 8 个单元（`MIN_GRAM`）的只做精确匹配：`What is the value of B?`、
+  `Which of the following is true?` 这种长度的题干太泛，当短语搜会到处命中
+- **答案短于 13 个单元时只做精确匹配**。答案单独出现不构成泄漏，能让人认出一道题的是题干。
+  这条来自真实数据：按自身长度索引答案时，MMLU 的 `1,2,3` 在 4.8k 篇冒烟文档里命中 76 篇、
+  MATH 的 `\frac{3}{2}` 命中 35 篇、TAL 的 `等腰三角形` 也在其列，去污染删掉了 3.9% 的文档，
+  逐条核对后几乎全是误杀。改完后同一份语料只剩上面那 2 篇 13-gram 命中，LCS 复核后删除 0 篇
+- **已知限制**：短答案（如 `42`）和不足 8 个单元的题干只能靠精确相等匹配，保护主要来自
+  较长的题干和解答。这条在测试里被显式断言，是已知性质而不是意外
 
 `split` 按**内容哈希**划分而不是按位置或打乱的下标，换来两个对消融很重要的性质：重跑结果一致，
 以及语料增长时已有文档不会被重新洗牌（验证曲线跨数据版本仍可比）。`holdout` 是任何阶段都不训的那份。
@@ -328,6 +373,44 @@ python3 -m datatools.tokenizer_stats --probe --tokenizer tokenizer/v1_32k tokeni
 **词表大小和模型规模必须一起定**：嵌入层是 `vocab_size × dim`，32k 词表在 29M 模型上占
 39.5% 的参数，在 ~100M（`dim=768, n_layers=12`）上占 25.3%。这也是本项目把模型定在 100M 的原因。
 语料方案（候选清单、许可证坑、配比与消融计划）见 [`docs/corpus-plan.md`](docs/corpus-plan.md)。
+
+### 预 tokenize（`tokenize_corpus`）
+
+`PretrainDataset` 直接读 JSONL：整个文件先 `json.loads` 进一个 Python list（30GB 语料放不下），
+每个样本每个 epoch 都重新 tokenize 一次，而且**每篇文档只取前 `max_seq_len` 个 token**。正式预训练
+改读预先 tokenize 好的二进制：
+
+```bash
+python3 -m datatools.tokenize_corpus datasets/prepared/train.jsonl \
+  --tokenizer tokenizer/v1_32k --out datasets/prepared/train
+python3 pretrain.py --data_path datasets/prepared/train.bin --val_data_path datasets/prepared/val.bin ...
+```
+
+产出三个文件：`train.bin`（所有文档首尾相接的 token，每篇包成 `bos + text + eos`）、`train.idx`
+（每篇文档起点的 `uint64` 偏移，打包后文档边界还在）、`train.meta.json`（dtype、计数、每个 `source`
+的 token 数、分词器指纹）。`pretrain.py` 按扩展名选读取器：`.bin` 走 `MemmapPretrainDataset`，
+其他走原来的 `PretrainDataset`，验证集同理。几个性质：
+
+- **文档的 token 不变，训练时用到的 token 变了**：存下来的每篇文档与 `PretrainDataset` 的 tokenize
+  结果（去掉 padding 后）逐个相同，`eval_ppl.py` 用的也是同一种包裹方式，测试里逐篇断言了这一点。
+  但 JSONL 读取器每篇只取前 `L` 个 token，打包后则全部参与训练。冒烟语料上（`L = 512`）JSONL
+  读取器只用到 28% 的 token：书籍 1%、数学 26%、中文 28%、英文 31%、合成教科书 47%。实际配比
+  因此被改写，书籍从 6.4% 掉到 0.2%。换成 `.bin` 不只是工程优化，配比消融也只有在 `.bin` 上才作数
+- **常数内存、不在循环里 tokenize**：同一份冒烟语料（23.7MB JSONL，单进程、batch 8），JSONL
+  读取器建数据集后常驻内存多 38MB（约为文件的 1.6 倍，按比例外推 30GB 语料要 48GB），每秒产出
+  67 万个 loss token；memmap 是 1MB 和 3856 万，快 58 倍
+- **`uint16`**：词表不超过 65536 就用 2 字节，32k 词表下 10B token 是 20GB；更大的词表自动换 `uint32`
+- **窗口**：第 `i` 个样本取 token `[i·(L−1), i·(L−1)+L)`，`L = --max_seq_len`。相邻窗口共享一个
+  token，所以除第一个 token 和末尾凑不满一个窗口的几个 token 外，**每个 token 每个 epoch 恰好当一次
+  预测目标**，`X`/`Y` 长度仍是
+  `L−1`，与 JSONL 读取器一致。打包后没有 padding，loss mask 全 1。文档之间不做注意力隔离
+  （GPT-2 / nanoGPT 的标准做法）
+- **拒绝错配**：`.bin` 里的 token id 只在生成它的词表下有意义，换了词表任何形状检查都发现不了。
+  `meta.json` 记录了词表指纹（按 id 排序的词表 + bos/eos id 的哈希，不依赖分词器文件的序列化格式），
+  对不上直接报错。文件大小与 `meta.json` 不符也报错——上传到租用 GPU 机器时中断的拷贝，
+  否则会悄悄只训前半份
+- **原子写入**：三个文件先写临时名，全部完成后再改名，被 kill 的任务不会留下一份看起来完整的语料
+- 常数内存，DataLoader worker 各自 memmap 文件（pickle 时不带数组，否则每个 worker 都要拷贝整个语料）
 
 ## 快速跑通（CPU smoke）
 
