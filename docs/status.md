@@ -99,11 +99,17 @@ HF_HUB_OFFLINE=1 python3 -m pytest tests/ -q      # 应为 483 passed
 | [#7](https://github.com/irroca/Whetstone/pull/7) | 交接文档跟上 `main` | 已合并 |
 | [#8](https://github.com/irroca/Whetstone/pull/8) | MPS 设备自动选择 + 训练记录体系 | 已合并 |
 | [#9](https://github.com/irroca/Whetstone/pull/9) | 训练记录与复盘体系（`runlog` + 验证集 + `analyze_runs.py`）| 已合并 |
-| [#10](https://github.com/irroca/Whetstone/pull/10) | memmap 预训练语料 + 数据管线首次真实数据冒烟 | 待合并 |
+| [#10](https://github.com/irroca/Whetstone/pull/10) | memmap 预训练语料 + 数据管线首次真实数据冒烟 | 已合并（squash），但只含前 4 个提交 |
+| [#11](https://github.com/irroca/Whetstone/pull/11) | 消融编排 + 补上 #10 合并后才推的 5 个提交（SDPA、代码源修复）| 待合并 |
 
 **教训**：stacked PR 要么严格按自下而上的顺序合，要么在合之前把上层 PR 的 base 直接改成 `main`。
 `squash` 合并会切断祖先关系，所以一旦顺序错了，后续那个 PR 的内容不会自动跟过来，
 而且再合时会因为历史分叉产生一堆「两边都改了同一文件」的假冲突。
+
+**第二次是同一类事故**：#10 合并之后，又往它的分支推了 5 个提交，GitHub 照样显示「已合并」，
+但这 5 个提交不在 `main` 上。**往已有 PR 推提交之前，先 `gh pr view <n> --json state` 确认它还开着。**
+补救是把这些提交 rebase 到 `main` 上开新 PR：`main` 的 squash 提交和原分支末端的 tree 相同时，
+`git rebase --onto origin/main <原末端>` 不会改变任何一个提交的 tree。
 
 ---
 
