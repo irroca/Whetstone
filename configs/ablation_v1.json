@@ -1,0 +1,40 @@
+{
+  "name": "ablation-v1",
+  "mixture": "configs/mixture_v1.json",
+  "tokens_per_arm": 300000000,
+  "pool_margin": 1.75,
+  "tokenizer_sample_tokens": 100000000,
+  "data_dir": "datasets/ablation_v1",
+  "results_dir": "results/ablation_v1",
+  "model": {
+    "dim": 512,
+    "n_layers": 8,
+    "n_heads": 8,
+    "n_kv_heads": 8
+  },
+  "train": {
+    "max_seq_len": 512,
+    "batch_size": 32,
+    "learning_rate": 0.001,
+    "dtype": "bfloat16",
+    "epochs": 1,
+    "val_every": 1000,
+    "val_batches": 20,
+    "save_step": 1000,
+    "log_step": 50,
+    "seed": 1337
+  },
+  "probes": {
+    "max_tokens_per_source": 500000,
+    "confusion_prompts": 100,
+    "arithmetic_items": 200
+  },
+  "arms": [
+    {"name": "zh00_v32k", "vocab_size": 32768, "shares": {"zh_web": 0.0}},
+    {"name": "zh15_v32k", "vocab_size": 32768, "shares": {"zh_web": 0.15}},
+    {"name": "zh30_v32k", "vocab_size": 32768, "shares": {"zh_web": 0.30}},
+    {"name": "zh45_v32k", "vocab_size": 32768, "shares": {"zh_web": 0.45}},
+    {"name": "zh30_v16k", "vocab_size": 16384, "shares": {"zh_web": 0.30}},
+    {"name": "zh30_v48k", "vocab_size": 49152, "shares": {"zh_web": 0.30}}
+  ]
+}
