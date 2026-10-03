@@ -76,9 +76,16 @@ rather than duplicating commands here.
  exactly once per epoch and `X`/`Y` stay `max_seq_len - 1` long, like the JSONL reader. A test
  asserts the stored documents equal what `PretrainDataset` feeds the model; keep them equal.
  - `SFTDataset` / `PreferenceDataset` still load whole files, which is fine at SFT scale.
-- **One thing will still break at real scale** (`docs/status.md` §3): `model.py` materializes
- the full `(B, heads, q_len, kv_len)` attention score matrix instead of using
- `F.scaled_dot_product_attention`. Fine for the CPU tests; blocking at `--max_seq_len 2048`.
+- **Attention goes through `F.scaled_dot_product_attention`, except on MPS.**
+ - Only a full forward with no cache and no padding mask (`is_causal=True`) and single-token
+ decode (no mask) pass `attn_mask=None`; that is what lets CUDA pick flash attention. Do not
+ pass `is_causal=True` with a cache: SDPA aligns it top-left, so a multi-token continuation
+ would see the wrong keys. Cached continuation and padding build an explicit boolean mask.
+ - `Attention.use_sdpa = False` selects the explicit-score reference; tests compare the two
+ paths on every masking case, plus training gradients.
+ - MPS always takes the explicit path on purpose. Measured on an M5 Pro, torch 2.14, bf16:
+ SDPA was 8% slower (29M proxy, seq 512) and saved only 15% memory at seq 2048, so it
+ still materializes the scores there. On CPU it halves activation memory at seq 2048.
 - **No datasets or checkpoints are committed.** Training scripts expect JSONL under `datasets/`,
   which is git-ignored along with `results*/` and `*.pth`. Build real data with
   `datatools.prepare`, or generate synthetic task data with `envs.generate_data`; the committed
@@ -149,6 +156,10 @@ rather than duplicating commands here.
  grows with file length (indentation, boilerplate): on the smoke corpus it rejected 2% of code
  files under 2k chars and 57% of those over 20k, nearly all ordinary source. Don't re-enable it
  for consistency with the prose sources.
+ - `duplicate_line_ratio` counts only lines with a letter or digit: a lone `"""` or `)` is
+ structure, and counting it rejected docstring-heavy code. Generated code (Django migrations,
+ protobuf) is deliberately **not** filtered: marker-based rules also hit Colab/nbdev exports,
+ which are hand-written.
  - `hf.columns` (parquet sources only; Gutenberg is `jsonl.gz`) limits which columns are
  downloaded. Parquet streams whole row groups, so without it zh_web also downloads every
  embedding before the first row comes out. Projection alone is not enough: fsspec reads 5MiB

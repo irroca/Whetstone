@@ -9,11 +9,11 @@
 
 算法链路（五阶段后训练）和数据管线都已实现，CPU 单测覆盖；语料方案和模型规模已定。
 **数据管线已经在真实语料上跑通了千分之一规模的完整冒烟**（§4 步骤 3，六个源全部含代码），
-暴露并修掉了十一个问题：去污染此前删掉的文档几乎全是误杀，代码源有 15% 的正常源码被一条散文用的
-重复度规则删掉。预训练已经改读预 tokenize 的 memmap 语料（§3.1 完成）。
+暴露并修掉了十二个问题：去污染此前删掉的文档几乎全是误杀，代码源有 15% 的正常源码被一条散文用的
+重复度规则删掉。预训练已经改读预 tokenize 的 memmap 语料（§3.1），注意力换成了 SDPA（§3.2）。
 
-**正式训练还没开始**。剩下挡在前面的：注意力没用 SDPA（§3.2）；消融编排脚本还没写、
-消融 #1 / #5 还没跑（§4 步骤 4）；分词器还没重训（§4 步骤 5）。
+**正式训练还没开始**。剩下挡在前面的：消融编排脚本还没写、消融 #1 / #5 还没跑（§4 步骤 4）；
+分词器还没重训（§4 步骤 5）。
 
 仓库里现有的一切数字都是 29M 玩具规模的**实现验证**，不是能力声明。
 
@@ -28,6 +28,7 @@
 - 架构解析优先级 **显式 CLI > checkpoint 记录 > 库默认值**；`*_final.pth` 旁边写
   `*.config.json` sidecar（因为 `n_heads` 无法从张量形状反推）
 - 真正的跨尺寸蒸馏（teacher / student 各自从自己的 checkpoint 解析架构）
+- 注意力走 `F.scaled_dot_product_attention`（MPS 除外，见 §3.2），显式 score 矩阵的实现留作对照
 
 ### RLVR / GRPO（[PR #4](https://github.com/irroca/Whetstone/pull/4)）
 - `envs/`：可验证奖励环境，accuracy 与 format 双分量分开上报
@@ -133,27 +134,32 @@ HF_HUB_OFFLINE=1 python3 -m pytest tests/ -q      # 应为 399 passed
   验证 loss 6.82 → 5.04。训练 token 数 7,930,209 = 15,519 个窗口 × 511，与"每个 token 恰好当一次
   目标"吻合；运行记录里有两个 `.bin` 的指纹和 manifest 里的配比
 
-### 3.2 【阻塞 8GB 本地卡】注意力显式构造完整 score 矩阵
+### 3.2 ~~【阻塞 8GB 本地卡】注意力显式构造完整 score 矩阵~~（已完成）
 
-`model.py:121` 是 `scores = (xq @ xk.transpose(-2, -1)) / sqrt(head_dim)`，然后 `masked_fill`
-再 `F.softmax(scores.float())`。**没有用 SDPA / FlashAttention**，所以
-`(B, n_heads, q_len, kv_len)` 这个张量会被完整物化，softmax 还会升到 fp32。
+原来每层都物化 `(B, n_heads, q_len, kv_len)` 的 score 张量，softmax 还升到 fp32，8GB 卡上
+seq 2048 会先在这里爆。现在 `model.Attention` 走 `F.scaled_dot_product_attention`：
 
-粗算 ~100M 模型（12 头、12 层）：
+- 不带缓存、没有 padding 的整段前向（训练的热路径）用 `is_causal=True`、不传 mask，CUDA 才能选
+  flash attention；单 token 解码也不传 mask
+- 带缓存的多 token 续写和带 padding 的 batch 构造显式布尔 mask。**续写不能用 `is_causal`**：
+  SDPA 的因果 mask 是左上角对齐的，`q_len < kv_len` 时会让新 token 看不到自己前面的缓存。
+  单测故意把这个条件改坏过，续写的两个用例会失败
+- 显式 score 矩阵的旧实现保留为 `Attention.use_sdpa = False`，单测在 prefill / 解码 / 续写 /
+  padding / 续写 + chunk mask 五种情况 × MHA / GQA 上逐位置对照，另外对照训练梯度
 
-| seq_len | 每层 score 张量（bf16，B=1） | 12 层保留的激活 |
-|---------|---------------------------|----------------|
-| 1024 | 25 MB | ~0.3 GB × B |
-| 2048 | 100 MB | ~1.2 GB × B |
+实测（同一初始化、同一批真实 token，旧实现 vs SDPA）：
 
-8GB 卡上 seq 2048 会先在这里爆。
+| 设备 | 配置 | 旧实现 | SDPA |
+|------|------|--------|------|
+| CPU fp32 | 100M，seq 2048，bs 1，一步前向 + 反向 | 激活 +4.80 GB，2.0 秒 | **+2.33 GB，1.4 秒** |
+| MPS bf16 | 29M 代理，seq 512，bs 8 | 25.6k–26.1k token/s | 23.6k–23.8k token/s |
+| MPS bf16 | 100M，seq 2048，bs 4 | 4,471 token/s，27.6 GB | 4,170 token/s，23.4 GB |
 
-**建议做法**：把 prefill 路径换成 `F.scaled_dot_product_attention`，保留现有的显式 mask 路径
-作为 fallback 和对照（现有单测覆盖了 prefill / decode+cache / 多 token 续写 / GQA /
-padding mask 五种情况，可以直接用来验证两条路径等价）。KV cache 续写时 `q_len` 很小，
-物化开销可以忽略，不急着改。
+loss 在两条路径上一致到小数点后 3–4 位。**MPS 上的 SDPA 训练时仍然物化 score 矩阵**
+（seq 2048 只省 15% 显存），而且慢 7–8%，所以 MPS 一律走显式路径（`model.py` 里按设备判断），
+本机消融的速度不受影响。CUDA 上的收益还没量，租到卡之后和 §3.3 一起量。
 
-注意 `--top_p`、repetition penalty 这些生成逻辑不受影响。
+`--top_p`、repetition penalty 这些生成逻辑不受影响。
 
 ### 3.3 显存与吞吐的实测校准
 
@@ -173,7 +179,7 @@ padding mask 五种情况，可以直接用来验证两条路径等价）。KV c
 - 假设的 30k token/s 对这台 Mac 明显偏乐观。租到卡之后要**重新量一遍**再排时间
 
 还没量的：`--batch_size` / `--max_seq_len` 的 OOM 边界（本机 48GB 统一内存不紧张，
-8GB 的 5060Ti 或租来的卡才是真约束），以及 §3.2 改成 SDPA 之后的提升。
+8GB 的 5060Ti 或租来的卡才是真约束），以及 SDPA 在 CUDA 上的提升（§3.2，CPU 和 MPS 已量）。
 
 顺带可以考虑（不阻塞）：gradient checkpointing、`torch.compile`、fused AdamW。
 
@@ -206,12 +212,12 @@ python3 -m datatools.prepare configs/mixture_v1.json --scale 0.001 --out_dir dat
 |----|------:|-----:|-----:|------:|--------:|------|
 | zh_web | 3.00M | 1895 | 2337 | 81% | 1584 | `too_short` 277，`low_cjk_ratio` 160 |
 | en_web | 2.81M | 1867 | 1877 | 99% | 1504 | — |
-| code | 2.01M | 869 | 926 | 94% | 2308 | `too_short` 26，`too_long` 17，`duplicate_lines` 14 |
-| math | 1.42M | 765 | 845 | 91% | 1853 | `repetitive` 59，`duplicate_lines` 20 |
+| code | 2.00M | 859 | 911 | 94% | 2329 | `too_short` 26，`too_long` 17，`duplicate_lines` 9 |
+| math | 1.42M | 767 | 845 | 91% | 1855 | `repetitive` 59，`duplicate_lines` 18 |
 | books | 0.51M | 7 | 11 | 64% | 72948 | `too_long` 2（钦定版圣经、莎士比亚全集），意大利语《神曲》，《大宪章》判为 `repetitive` |
 | synthetic | 0.30M | 276 | 278 | 99% | 1090 | — |
 
-划分 train 5613 / val 37 / holdout 29；对 45,778 个评测片段做 13-gram 匹配，命中 2 篇（都不是代码），
+划分 train 5605 / val 37 / holdout 29；对 45,778 个评测片段做 13-gram 匹配，命中 2 篇（都不是代码），
 LCS 复核后删除 0 篇。网速好的时候全程 3 分 21 秒，差的时候（几十 KB/s）13 分钟，大头是网络。
 memmap 端到端（§3.1）用的是更早的无代码 800 万 token 版本 `datasets/smoke/`。
 
@@ -247,10 +253,15 @@ memmap 端到端（§3.1）用的是更早的无代码 800 万 token 版本 `dat
    同样 200 万 token 从 1238 篇变成 869 篇（中位数 1840 → 2481 字符），长文件不再被系统性删掉
 11. **`--progress_every` 从不打印或刷屏**：文档按 tokenize 批次（256 篇）一起计数，取模判断对 500
    永远不成立、对 128 每一行都成立（1200 篇刷了 945 行）。改为跨过下一个整数倍时打印
+12. **重复行比例把单独一行的 `"""`、`)`、`},` 也算进去**，docstring 多的代码文件因此显得一半是重复行。
+   改为只统计含字母或数字的行，所有源通用（导航菜单的行都有字，照样抓得到）。在 1557 个代码文件上
+   这条规则的拒绝 27 → 17 篇，数学 20 → 18，其余源已保留的文档没有一篇因此被拒；上表是改完后
+   重跑的结果
 
 **值得在消融里核实的观察（没改）**：中文 `min_chars: 200` 删掉 12% 的文档，`min_cjk_ratio: 0.5`
-删掉 7%。后者可能专删中英混排的技术文章，而这正是代码/数学能力需要的。代码这边，保留的文件里
-2.4% 头部带生成标记（以 Django migration 为主），`duplicate_lines` 对测试文件偏严。都见 §8。
+删掉 7%。后者可能专删中英混排的技术文章，而这正是代码/数学能力需要的，见 §8。代码里 2.4% 的文件
+头部带生成标记（以 Django migration 为主），**决定不过滤**：按标记过滤会误删 Colab / nbdev 导出的
+人写代码，大段重复的生成文件已经被重复行规则拦下。
 
 验收（已满足）：每个源 `fill` ≈ 100%，没有 `ran out of data`；没有哪条规则删掉大半；
 `split.top_matches` 里没有一项删掉大量文档。
@@ -352,7 +363,7 @@ PPO critic、PRM（过程奖励模型）、MoE、多卡并行、推理服务化�
 ```bash
 uv venv --python 3.12 && source .venv/bin/activate
 uv pip install -r requirements.txt
-HF_HUB_OFFLINE=1 python -m pytest tests/ -q     # 419 passed
+HF_HUB_OFFLINE=1 python -m pytest tests/ -q     # 432 passed
 ```
 
 要注意的几点：
@@ -405,16 +416,15 @@ HF_HUB_OFFLINE=1 python -m pytest tests/ -q     # 419 passed
 
 ## 8. 未决的问题
 
-1. ~~§3.1 和 §3.2 谁先做？~~ 3.1 已完成。3.2 可以先用 `--max_seq_len 1024` 绕过，等要上 2048 再改
+1. ~~§3.1 和 §3.2 谁先做？~~ 都已完成
 2. **中文过滤阈值会不会专删技术文章？** 冒烟里 `min_cjk_ratio: 0.5` 删掉 7% 的中文文档，中英混排、
    带代码片段的技术文章最容易落到这条线以下，而它们正对代码/数学能力有用。抽 50 篇被拒的看一眼
    再决定，可以作为消融 #1 的附带项
-3. **代码要不要过滤生成文件？** 关掉重复度规则后，保留的代码里 2.4% 的文件头部带生成标记，大头是
-   Django migration（还有 protobuf、Qt UI、Pulumi）。但按标记一刀切会误删 Colab 和 nbdev 导出的
-   文件，那些其实是人写的代码。倾向于只认具体生成器的标记（`Generated by Django`、
-   `protocol buffer compiler` 之类），正式数据集之前定
-4. **`duplicate_lines` 对代码偏严**：它把单独一行的 `"""`、`)`、`},` 也算作重复行，冒烟里拒掉的 27 篇
-   有一半是测试文件和 docstring 多的文件（超过 1 万字符的文件拒 5.8%）。可以改成忽略很短的行再算
+3. ~~代码要不要过滤生成文件？~~ 不过滤（已定）。2.4% 的文件带生成标记，按标记过滤会误删 Colab /
+   nbdev 导出的人写代码，大段重复的生成文件已经被重复行规则拦下
+4. ~~`duplicate_lines` 对代码偏严~~ 已改：只统计含字母或数字的行（§4 步骤 3 第 12 条）。考虑过再豁免
+   短行，在代码上能多放回 4 篇，但多出来的都是比例卡在 0.50 上下的边界文件，为此给代码单独加一个
+   参数不值
 5. **代码任务的沙箱怎么做？** 阶段 B 的核心设计问题。子进程 + 超时是底线，要不要上容器取决于
    数据源可信度
 6. **租什么卡、租多久？** 取决于 §3.3 的实测结果。如果显存宽裕，`docs/corpus-plan.md` 里
