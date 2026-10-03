@@ -33,7 +33,7 @@ import json
 import os
 import time
 from collections import Counter
-from typing import Optional, Sequence
+from typing import Callable, Iterable, Iterator, Optional, Sequence
 
 import numpy as np
 
@@ -72,38 +72,70 @@ def tokenizer_fingerprint(tokenizer) -> str:
     return hashlib.blake2b(payload.encode("utf-8"), digest_size=16).hexdigest()
 
 
-def tokenize_corpus(
-    paths: Sequence[str],
+def encode_records(
+    records: Iterable[tuple[str, str]],
+    tokenizer,
+    batch_size: int = ENCODE_BATCH,
+    with_text: bool = False,
+) -> Iterator[tuple]:
+    """Batch-encode ``(source, text)`` pairs into ``(source, ids)``, in order.
+
+    ``with_text`` yields ``(source, ids, text)``. Records are pulled a batch
+    ahead of what has been yielded, which a consumer filtering on a running
+    count has to allow for.
+    """
+    def encode(batch: list[tuple[str, str]]) -> Iterator[tuple]:
+        # Whole documents exceed model_max_length by design; windows are cut later.
+        encoded = tokenizer([text for _, text in batch], add_special_tokens=False, verbose=False)["input_ids"]
+        for (source, text), ids in zip(batch, encoded):
+            yield (source, ids, text) if with_text else (source, ids)
+
+    batch: list[tuple[str, str]] = []
+    for record in records:
+        batch.append(record)
+        if len(batch) >= batch_size:
+            yield from encode(batch)
+            batch = []
+    if batch:
+        yield from encode(batch)
+
+
+def write_token_corpus(
+    encoded: Iterable[tuple[str, Sequence[int]]],
     tokenizer,
     out: str,
     tokenizer_path: str = "",
-    max_records: Optional[int] = None,
-    batch_size: int = ENCODE_BATCH,
+    inputs: Optional[list] = None,
+    skipped: Optional[Counter] = None,
     progress_every: int = 0,
+    check: Optional[Callable[[], None]] = None,
 ) -> dict:
-    """Encode every pretrain record in ``paths`` into ``<out>.bin`` and return the meta."""
+    """Store ``(source, ids)`` documents as ``bos + ids + eos`` in ``<out>.bin`` and return the meta.
+
+    ``inputs`` and ``skipped`` may still be filled while ``encoded`` is consumed;
+    they are read once it is exhausted. ``check`` runs before anything is
+    renamed into place, so raising from it leaves no corpus behind.
+    """
     bos, eos = tokenizer.bos_token_id, tokenizer.eos_token_id
     if bos is None or eos is None:
         raise ValueError("tokenizer needs both a bos and an eos token")
     dtype = token_dtype(max(tokenizer.get_vocab().values()))
     bin_path, idx_path, meta_path = token_paths(out)
     os.makedirs(os.path.dirname(bin_path) or ".", exist_ok=True)
+    inputs = inputs if inputs is not None else []
+    skipped = skipped if skipped is not None else Counter()
 
     num_tokens = num_docs = 0
     per_source: dict[str, Counter] = {}
-    skipped: Counter = Counter()
-    inputs = []
     started = time.time()
+    next_progress = progress_every
 
-    def write(batch: list[tuple[str, str]], bin_fh, idx_fh) -> None:
+    def write(batch: list[tuple[str, Sequence[int]]], bin_fh, idx_fh) -> None:
         nonlocal num_tokens, num_docs
-        texts = [text for _, text in batch]
-        # Whole documents exceed model_max_length by design; windows are cut later.
-        encoded = tokenizer(texts, add_special_tokens=False, verbose=False)["input_ids"]
-        lengths = np.fromiter((len(ids) + 2 for ids in encoded), dtype=np.int64, count=len(encoded))
+        lengths = np.fromiter((len(ids) + 2 for _, ids in batch), dtype=np.int64, count=len(batch))
         flat = np.empty(int(lengths.sum()), dtype=dtype)
         starts = np.concatenate(([0], np.cumsum(lengths)[:-1]))
-        for (source, _), ids, start, length in zip(batch, encoded, starts, lengths):
+        for (source, ids), start, length in zip(batch, starts, lengths):
             flat[start] = bos
             flat[start + 1 : start + length - 1] = ids
             flat[start + length - 1] = eos
@@ -118,38 +150,25 @@ def tokenize_corpus(
     tmp_bin, tmp_idx, tmp_meta = (f"{p}.tmp" for p in (bin_path, idx_path, meta_path))
     try:
         with open(tmp_bin, "wb") as bin_fh, open(tmp_idx, "wb") as idx_fh:
-            for path in paths:
-                stats = ReadStats()
-                batch: list[tuple[str, str]] = []
-                default_source = os.path.splitext(os.path.basename(path))[0]
-                for record in read_jsonl(path, stats, max_records=max_records):
-                    if detect_schema(record.data) != PRETRAIN:
-                        skipped["not_pretrain"] += 1
-                        continue
-                    text = str(record.data.get("text", ""))
-                    if not text:
-                        skipped["empty_text"] += 1
-                        continue
-                    batch.append((str(record.data.get("source") or default_source), text))
-                    if len(batch) >= batch_size:
-                        write(batch, bin_fh, idx_fh)
-                        batch = []
-                        if progress_every and num_docs % progress_every < batch_size:
-                            rate = num_tokens / max(time.time() - started, 1e-9)
-                            print(
-                                f"    {num_docs} docs, {num_tokens / 1e6:.1f}M tokens "
-                                f"({rate / 1e6:.2f}M tok/s)",
-                                flush=True,
-                            )
-                if batch:
+            batch: list[tuple[str, Sequence[int]]] = []
+            for document in encoded:
+                batch.append(document)
+                if len(batch) >= ENCODE_BATCH:
                     write(batch, bin_fh, idx_fh)
-                skipped["malformed"] += stats.malformed
-                inputs.append({
-                    "path": path,
-                    "bytes": os.path.getsize(path),
-                    "records_read": stats.parsed,
-                })
+                    batch = []
+                    if progress_every and num_docs >= next_progress:
+                        rate = num_tokens / max(time.time() - started, 1e-9)
+                        print(
+                            f"    {num_docs} docs, {num_tokens / 1e6:.1f}M tokens "
+                            f"({rate / 1e6:.2f}M tok/s)",
+                            flush=True,
+                        )
+                        next_progress = (num_docs // progress_every + 1) * progress_every
+            if batch:
+                write(batch, bin_fh, idx_fh)
             idx_fh.write(np.array([num_tokens], dtype=np.uint64).tobytes())
+        if check is not None:
+            check()
 
         meta = {
             "format": FORMAT,
@@ -179,6 +198,45 @@ def tokenize_corpus(
             if os.path.exists(tmp):
                 os.remove(tmp)
     return meta
+
+
+def tokenize_corpus(
+    paths: Sequence[str],
+    tokenizer,
+    out: str,
+    tokenizer_path: str = "",
+    max_records: Optional[int] = None,
+    batch_size: int = ENCODE_BATCH,
+    progress_every: int = 0,
+) -> dict:
+    """Encode every pretrain record in ``paths`` into ``<out>.bin`` and return the meta."""
+    skipped: Counter = Counter()
+    inputs: list = []
+
+    def records() -> Iterator[tuple[str, str]]:
+        for path in paths:
+            stats = ReadStats()
+            default_source = os.path.splitext(os.path.basename(path))[0]
+            for record in read_jsonl(path, stats, max_records=max_records):
+                if detect_schema(record.data) != PRETRAIN:
+                    skipped["not_pretrain"] += 1
+                    continue
+                text = str(record.data.get("text", ""))
+                if not text:
+                    skipped["empty_text"] += 1
+                    continue
+                yield str(record.data.get("source") or default_source), text
+            skipped["malformed"] += stats.malformed
+            inputs.append({
+                "path": path,
+                "bytes": os.path.getsize(path),
+                "records_read": stats.parsed,
+            })
+
+    return write_token_corpus(
+        encode_records(records(), tokenizer, batch_size), tokenizer, out,
+        tokenizer_path=tokenizer_path, inputs=inputs, skipped=skipped, progress_every=progress_every,
+    )
 
 
 def load_token_meta(path: str) -> dict:
