@@ -1,3 +1,4 @@
+import argparse
 import math
 
 import pytest
@@ -6,6 +7,7 @@ import torch
 from config import LLMConfig
 from evaluate import evaluate_lm, evaluate_preference
 from model import Whetstone
+from train_utils import build_val_loader
 
 VOCAB = 32
 
@@ -72,6 +74,32 @@ def test_evaluate_lm_respects_the_mask():
 
 def test_evaluate_lm_caps_batches():
     assert evaluate_lm(_model(), _lm_batches(10), "cpu", max_batches=2)["batches"] == 2
+
+
+class _GroupedSplit(torch.utils.data.Dataset):
+    """Items 0..49 from one source, then 50..99 from another, like prepare's val.jsonl."""
+
+    def __init__(self, path, tokenizer, max_length):
+        pass
+
+    def __len__(self):
+        return 100
+
+    def __getitem__(self, index):
+        return torch.tensor(index)
+
+
+def test_a_capped_evaluation_samples_the_whole_split_the_same_way_every_time(tmp_path):
+    path = tmp_path / "val.jsonl"
+    path.write_text("")
+    args = argparse.Namespace(val_data_path=str(path), max_seq_len=8, batch_size=10, num_workers=0)
+    loader = build_val_loader(_GroupedSplit, args, tokenizer=None)
+
+    first = [batch.tolist() for batch in loader]
+    assert first == [batch.tolist() for batch in loader]
+    assert sorted(i for batch in first for i in batch) == list(range(100))
+    head = [i for batch in first[:2] for i in batch]
+    assert any(i < 50 for i in head) and any(i >= 50 for i in head)
 
 
 def test_evaluate_lm_restores_training_mode():
