@@ -2,13 +2,84 @@ import torch
 import pytest
 
 from config import LLMConfig
-from model import Whetstone
+from model import Attention, Whetstone
 
 
 def _tiny_model(**kwargs):
     defaults = dict(dim=64, n_layers=2, n_heads=4, n_kv_heads=2, max_seq_len=64, vocab_size=128, dropout=0.0)
     defaults.update(kwargs)
     return Whetstone(LLMConfig(**defaults))
+
+
+def _both_paths(monkeypatch, run):
+    """Run ``run()`` once through SDPA and once through the explicit-score reference."""
+    outputs = []
+    for use_sdpa in (True, False):
+        monkeypatch.setattr(Attention, "use_sdpa", use_sdpa)
+        outputs.append(run())
+    return outputs
+
+
+def _prefill(model, x):
+    return model(x).logits
+
+
+def _decode(model, x):
+    past = model(x[:, :-1], use_cache=True).past_key_values
+    return model(x[:, -1:], past_key_values=past, use_cache=True, start_pos=x.shape[1] - 1).logits
+
+
+def _continue(model, x):
+    past = model(x[:, :5], use_cache=True).past_key_values
+    return model(x[:, 5:], past_key_values=past, use_cache=True, start_pos=5).logits
+
+
+def _padded(model, x):
+    mask = torch.ones_like(x)
+    mask[0, -3:] = 0
+    mask[1, 2] = 0
+    return model(x, attention_mask=mask).logits
+
+
+def _continue_with_chunk_mask(model, x):
+    past = model(x[:, :5], use_cache=True).past_key_values
+    chunk_mask = torch.tensor([[1, 0, 1, 1], [1, 1, 1, 0]])
+    return model(x[:, 5:9], past_key_values=past, use_cache=True, start_pos=5, attention_mask=chunk_mask).logits
+
+
+@torch.no_grad()
+@pytest.mark.parametrize("run", [_prefill, _decode, _continue, _padded, _continue_with_chunk_mask])
+@pytest.mark.parametrize("n_kv_heads", [4, 2])
+def test_sdpa_matches_explicit_scores(monkeypatch, run, n_kv_heads):
+    """Every masking case the explicit path handled must give the same logits through SDPA:
+    the cached continuation in particular, where SDPA's own is_causal would be wrong."""
+    torch.manual_seed(0)
+    model = _tiny_model(n_kv_heads=n_kv_heads).eval()
+    x = torch.randint(0, 128, (2, 9))
+    sdpa, explicit = _both_paths(monkeypatch, lambda: run(model, x))
+    torch.testing.assert_close(sdpa, explicit, rtol=1e-5, atol=1e-5)
+
+
+def test_sdpa_training_gradients_match_explicit_scores(monkeypatch):
+    torch.manual_seed(0)
+    model = _tiny_model().train()
+    x = torch.randint(0, 128, (2, 12))
+
+    def grads():
+        model.zero_grad()
+        model(x).logits.float().logsumexp(-1).mean().backward()
+        return [p.grad.clone() for p in model.parameters()]
+
+    for sdpa, explicit in zip(*_both_paths(monkeypatch, grads)):
+        torch.testing.assert_close(sdpa, explicit, rtol=1e-4, atol=1e-6)
+
+
+@torch.no_grad()
+def test_attention_mask_must_be_two_dimensional():
+    model = _tiny_model().eval()
+    x = torch.randint(0, 128, (1, 6))
+    with pytest.raises(ValueError):
+        model(x, attention_mask=torch.ones(1, 1, 6, 6))
 
 
 @torch.no_grad()
