@@ -69,6 +69,9 @@ def repeat_kv(x: torch.Tensor, n_rep: int) -> torch.Tensor:
 
 # 注意力机制模块
 class Attention(nn.Module):
+     # False 时走显式构造 score 矩阵的参考实现：单测用它逐位置对照 SDPA，MPS 上一律走它
+     use_sdpa = True
+
      def __init__(self, args: LLMConfig):
         super().__init__()
         # 如果未指定KV头数，则默认与heads数相同
@@ -111,48 +114,62 @@ class Attention(nn.Module):
 
         q_len = seq_len
         kv_len = xk.shape[1]
+        offset = kv_len - q_len
+        key_mask = self._key_mask(attention_mask, bsz, q_len, kv_len, past_key_value is not None)
         # 调整查询、键和值的维度，为多头注意力做准备；对于键和值，需重复复制n_rep次
         xq, xk, xv = (
             xq.transpose(1, 2),
             repeat_kv(xk, self.n_rep).transpose(1, 2),
             repeat_kv(xv, self.n_rep).transpose(1, 2)
         )
-        # 计算注意力得分，缩放因子为sqrt(head_dim)
-        scores = (xq @ xk.transpose(-2, -1)) / math.sqrt(self.head_dim)
-        # 因果掩码：query 行 i 对应绝对位置 offset+i，只能看 key<=offset+i
-        # 形状必须是 (q_len, kv_len)，修复 cache 续写时误用 q_len x q_len 的经典 bug
-        offset = kv_len - q_len
-        causal_ok = torch.ones(q_len, kv_len, device=x.device, dtype=torch.bool).tril(diagonal=offset)
-        scores = scores.masked_fill(~causal_ok.view(1, 1, q_len, kv_len), float("-inf"))
-        # optional padding mask on keys: (batch, kv_len) with 1=keep, 0=pad
-        if attention_mask is not None:
-            key_mask = attention_mask
-            if key_mask.dim() == 2:
-                if past_key_value is not None and key_mask.shape[-1] == q_len:
-                    # mask only covers the new chunk; cached past positions are all attendable,
-                    # so left-pad with ones (NOT right-pad, which would misalign the mask onto
-                    # the start of the cached prefix instead of the new chunk).
-                    past_ones = torch.ones(bsz, offset, device=key_mask.device, dtype=key_mask.dtype)
-                    key_mask = torch.cat([past_ones, key_mask], dim=-1)
-                elif key_mask.shape[-1] == kv_len:
-                    pass  # already covers the full key sequence; use as-is
-                else:
-                    raise ValueError(
-                        f"attention_mask last dim ({key_mask.shape[-1]}) must equal kv_len "
-                        f"({kv_len}), or q_len ({q_len}) when a KV cache is present; "
-                        f"got attention_mask.shape={tuple(attention_mask.shape)}"
-                    )
-                scores = scores.masked_fill(key_mask[:, None, None, :] == 0, float("-inf"))
-        # softmax归一化
-        scores = F.softmax(scores.float(), dim=-1).type_as(xq)
-        scores = self.attn_dropout(scores)
-        # 计算注意力输出
-        output = scores @ xv
+        dropout_p = self.attn_dropout.p if self.training else 0.0
+        # MPS 上 SDPA 训练时仍然物化 score 矩阵（seq 2048 只省 15% 显存），而且比显式路径慢 8%
+        use_sdpa = self.use_sdpa and x.device.type != "mps"
+        if use_sdpa and key_mask is None and (offset == 0 or q_len == 1):
+            # 不带缓存的整段前向（q_len == kv_len，is_causal 的左上角对齐恰好正确）和单 token 解码
+            # （能看全部 key）都不需要显式 mask，SDPA 才能选不物化 score 矩阵的 kernel
+            output = F.scaled_dot_product_attention(xq, xk, xv, dropout_p=dropout_p, is_causal=q_len > 1)
+        else:
+            # 因果掩码：query 行 i 对应绝对位置 offset+i，只能看 key<=offset+i
+            # 形状必须是 (q_len, kv_len)，修复 cache 续写时误用 q_len x q_len 的经典 bug
+            mask = torch.ones(q_len, kv_len, device=x.device, dtype=torch.bool).tril(diagonal=offset)
+            mask = mask.view(1, 1, q_len, kv_len)
+            if key_mask is not None:
+                mask = mask & key_mask[:, None, None, :]
+            if use_sdpa:
+                output = F.scaled_dot_product_attention(xq, xk, xv, attn_mask=mask, dropout_p=dropout_p)
+            else:
+                scores = (xq @ xk.transpose(-2, -1)) / math.sqrt(self.head_dim)
+                scores = scores.masked_fill(~mask, float("-inf"))
+                scores = F.softmax(scores.float(), dim=-1).type_as(xq)
+                output = self.attn_dropout(scores) @ xv
 
         # 恢复输出形状并进行输出投影及残差dropout
         output = output.transpose(1, 2).reshape(bsz, seq_len, -1)
         output = self.resid_dropout(self.wo(output))
         return output, past_kv
+
+     @staticmethod
+     def _key_mask(attention_mask, bsz, q_len, kv_len, has_cache):
+        """Padding mask over keys as (batch, kv_len) bool, True = attend; None if not given."""
+        if attention_mask is None:
+            return None
+        if attention_mask.dim() != 2:
+            raise ValueError(f"attention_mask must be (batch, length), got shape {tuple(attention_mask.shape)}")
+        key_mask = attention_mask
+        if has_cache and key_mask.shape[-1] == q_len:
+            # mask only covers the new chunk; cached past positions are all attendable,
+            # so left-pad with ones (NOT right-pad, which would misalign the mask onto
+            # the start of the cached prefix instead of the new chunk).
+            past_ones = torch.ones(bsz, kv_len - q_len, device=key_mask.device, dtype=key_mask.dtype)
+            key_mask = torch.cat([past_ones, key_mask], dim=-1)
+        elif key_mask.shape[-1] != kv_len:
+            raise ValueError(
+                f"attention_mask last dim ({key_mask.shape[-1]}) must equal kv_len "
+                f"({kv_len}), or q_len ({q_len}) when a KV cache is present; "
+                f"got attention_mask.shape={tuple(attention_mask.shape)}"
+            )
+        return key_mask != 0
 
 # 前馈神经网络模块
 class FeedForward(nn.Module):
