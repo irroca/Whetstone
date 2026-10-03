@@ -95,7 +95,13 @@ def train_tokenizer(
     max_records: int | None = None,
 ) -> str:
     tokenizer = Tokenizer(models.BPE())
-    tokenizer.pre_tokenizer = pre_tokenizers.ByteLevel(add_prefix_space=False)
+    # One token per digit, as in Llama and Qwen. Byte-level BPE alone merges digit
+    # runs by frequency ("1987" one token, "2024" as "20|24"), so the same place value
+    # gets a different token in every number and arithmetic has no consistent unit.
+    tokenizer.pre_tokenizer = pre_tokenizers.Sequence([
+        pre_tokenizers.Digits(individual_digits=True),
+        pre_tokenizers.ByteLevel(add_prefix_space=False),
+    ])
     trainer = trainers.BpeTrainer(
         vocab_size=vocab_size,
         special_tokens=SPECIAL_TOKENS,
