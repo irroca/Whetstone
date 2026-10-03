@@ -67,12 +67,16 @@ def ngram_repetition(text: str, ngram: int = 10) -> float:
 
 
 def duplicate_line_ratio(text: str) -> float:
-    """Share of non-blank lines that are exact duplicates of an earlier line.
+    """Share of content lines that are exact duplicates of an earlier line.
 
     Catches navigation menus and boilerplate blocks that survive per-document
-    dedup because each page's *combination* of junk is unique.
+    dedup because each page's *combination* of junk is unique. A line with no
+    letter or digit is structure, not content (code's ``)`` and ``\"\"\"``, a
+    markdown ``---``) and is not counted: otherwise a file with many docstrings
+    reads as half duplicated, while a menu's lines all carry words.
     """
-    lines = [line.strip() for line in text.splitlines() if line.strip()]
+    lines = [line.strip() for line in text.splitlines()]
+    lines = [line for line in lines if any(ch.isalnum() for ch in line)]
     if len(lines) < 2:
         return 0.0
     return 1.0 - len(set(lines)) / len(lines)

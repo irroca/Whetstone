@@ -40,6 +40,18 @@ def test_duplicate_line_ratio_catches_boilerplate_blocks():
     assert duplicate_line_ratio("one line") == 0.0
 
 
+def test_lines_without_letters_or_digits_are_not_counted():
+    """Closing brackets and docstring quotes are structure: counted as lines,
+    every function with a docstring made a code file look duplicated."""
+    functions = [
+        f'def f{i}(x):\n    """\n    Doc {i}.\n    """\n    return g{i}(\n        x + {i},\n    )\n'
+        for i in range(5)
+    ]
+    assert duplicate_line_ratio("\n".join(functions)) == 0.0
+    assert duplicate_line_ratio("---\n***\n---\n……\n") == 0.0
+    assert duplicate_line_ratio("首页\n——\n首页\n") == pytest.approx(0.5)
+
+
 def test_mean_word_length():
     assert mean_word_length("aa bbb cccc") == pytest.approx(3.0)
     assert mean_word_length("磨刀石") == 0.0
