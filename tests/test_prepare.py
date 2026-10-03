@@ -73,6 +73,11 @@ def test_source_rejects_unknown_keys_and_bad_weights():
         SourceSpec.from_dict({"name": "a", "weight": 0.0, "jsonl": "x"})
 
 
+def test_source_rejects_unknown_cleaners():
+    with pytest.raises(ValueError, match="unknown cleaners"):
+        SourceSpec.from_dict({"name": "s", "weight": 1.0, "jsonl": "x", "cleaners": ["nope"]})
+
+
 def test_selected_columns_must_cover_the_text_field_and_where_keys():
     """Projecting away a needed column would reject every row and fill 0%."""
     hf = {"path": "org/books", "columns": ["text"]}
@@ -235,6 +240,42 @@ def test_report_stops_at_the_record_that_filled_the_budget(tmp_path, tokenizer, 
     assert report.seen == 2 * report.documents - 1, "rows up to and including the last kept one"
     assert report.rejected["too_short"] == report.documents - 1
     assert len(pulled) <= report.seen + 2, "over-read is about one document, not a batch"
+
+
+@pytest.mark.parametrize("every,expected", [(500, [512, 1024]), (128, [256, 512, 768, 1024])])
+def test_progress_is_reported_once_per_interval(tmp_path, tokenizer, capsys, every, expected):
+    """Documents are counted a tokenization batch (256) at a time: testing for an
+    exact multiple never fired for 500 and fired on every row for 128."""
+    path = _corpus(tmp_path, "many", 1200)
+    spec = _spec(tmp_path, [{"name": "s", "weight": 1.0, "jsonl": path}], total_tokens=10_000_000)
+
+    prepare_source(spec, spec.sources[0], tokenizer, None, progress_every=every)
+
+    lines = [line for line in capsys.readouterr().out.splitlines() if " docs, " in line]
+    assert [int(line.split(":")[1].split()[0]) for line in lines] == expected
+
+
+def test_cleaned_forks_of_one_file_are_exact_duplicates(tmp_path, tokenizer):
+    """The metadata line is the only difference between two forks' copies."""
+    body = (
+        "def add(a, b):\n    return a + b\n\n\n"
+        "def scale(values, factor):\n    return [v * factor for v in values]\n\n\n"
+        "print(add(1, 2), scale([1, 2, 3], 10))\n"
+    )
+    path = tmp_path / "code.jsonl"
+    write_jsonl(str(path), [
+        {"content": "<reponame>alice/calc<filename>calc.py\n" + body},
+        {"content": "<reponame>bob/calc-fork<filename>calc.py<gh_stars>0\n" + body},
+    ])
+    source = {"name": "code", "weight": 1.0, "jsonl": str(path), "text_field": "content",
+              "cleaners": ["starcoder_metadata"], "filters": {"min_chars": 10}}
+    spec = _spec(tmp_path, [source], total_tokens=10_000_000)
+    out = tmp_path / "out.jsonl"
+
+    report = prepare_source(spec, spec.sources[0], tokenizer, str(out))
+
+    assert report.documents == 1 and report.exact_duplicates == 1
+    assert [r.data["text"] for r in read_jsonl(str(out))] == [body]
 
 
 def test_prepare_source_flags_a_source_that_runs_dry(tmp_path, tokenizer):
