@@ -330,7 +330,18 @@ python3 run_ablation.py configs/ablation_v1.json run    # 全部阶段；被打�
 产物：`results/ablation_v1/report.md`（汇总表）、每组的 `probes.json`、`runs/` 里的完整曲线
 （`analyze_runs.py compare results/ablation_v1/zh*_v32k --metric loss --split val`）。
 
-**进度**：数据池拉取中（2026-10-03 18:36 开始）。
+**进度**（2026-10-03）：数据、分词器、六组语料都已就绪，19:22 开始训练，按实测吞吐（每秒约 2.0 万
+token，每组约 4.1 小时）六组 10-04 晚上训完，然后自动跑评测和汇总。
+
+- 数据池 18:36–19:14（38 分钟，网络是瓶颈）：6 个源 fill 都是 100%；train 489,537 / val 2,544 /
+  holdout 2,466 篇。中文保留率 89%（`too_short` 14,233、`low_cjk_ratio` 7,894），代码 95%，数学 90%，
+  书籍 300 本。去污染删 252 篇，过半是误杀，见 §8 第 7 条
+- 分词器 29–39 秒一个；每组切 3 亿 token 约 1 分钟，六组都在配额上方 0.05% 以内
+- 第一组（zh00_v32k）第 1000 步 val loss 6.12。比同期训练 loss 高很多是预期的：验证集里 31% 是这组
+  没见过的中文
+- **消融从一个固定在 `eea8acb` 的 worktree 里跑**（`../whetstone-ablation-v1`，`datasets/`、
+  `results/` 是指回主仓库的软链接），这样一天里主仓库切分支、改代码都不会让后面几组用上另一份代码。
+  跑完之前别删它；中断了就在那个目录里重跑同一条 `run` 命令续上
 
 ### 步骤 5：正式数据集 + 重训 tokenizer
 ```bash
