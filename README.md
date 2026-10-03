@@ -67,6 +67,7 @@ CPU 单测和 smoke 跑得起来。它在代码上的压缩率只有 2.23 字符
 config.py  model.py  dataset.py  losses.py  train_utils.py  rollout.py   # 核心库
 pretrain.py  sft.py  distill.py  dpo.py  grpo.py                         # 五个训练阶段
 eval_ppl.py  chat.py  analyze_grpo.py  train_tokenizer.py                # 评估与工具
+run_ablation.py  probes.py                                               # 数据消融
 datatools/   envs/   configs/   tests/   docs/   tokenizer/
 ```
 
@@ -82,7 +83,8 @@ datatools/   envs/   configs/   tests/   docs/   tokenizer/
 | `pretrain.py` / `sft.py` / `distill.py` / `dpo.py` / `grpo.py` | 五个阶段的训练入口 |
 | `eval_ppl.py` / `chat.py` | 困惑度评估、交互式生成 |
 | `analyze_runs.py` / `analyze_grpo.py` | 训练记录复盘（全阶段）、RL 指标分析 |
-| `configs/` | 配比 spec（`mixture_v1.json`）|
+| `run_ablation.py` / `probes.py` | 数据消融编排（数据池 → 分词器 → 各组语料 → 训练 → 评测 → 汇总表）；基座模型评测 |
+| `configs/` | 配比 spec（`mixture_v1.json`）、消融 spec（`ablation_v1.json`）|
 | `docs/corpus-plan.md` | 语料候选清单、许可证、配比与消融计划 |
 | `docs/experiments.md` | 实验协议与已记录的跑批结果 |
 
@@ -151,6 +153,8 @@ python analyze_runs.py plot results --out report.html    # 自包含 HTML，内�
 
 - pretrain / SFT / KD：held-out 交叉熵与 PPL，**按 token 加权**而不是按 batch 平均
   （否则一个装着短文档的 batch 会和装着长文档的 batch 等权，数字会随 batch 构成漂移）
+- 验证集按**一个固定的排列**读，不按文件顺序：`--val_batches` 只评估前几个 batch，而 `prepare`
+  写出的划分是按源分组的，按文件顺序读的话前 20 个 batch 全是中文。每次评估看到的仍是同一批样本
 - DPO：**偏好准确率**（policy 排序正确的比例）、隐式奖励 margin，以及 chosen / rejected 各自的
   奖励变化。要看的是准确率——DPO loss 会在模型只是把已有排序变得更尖锐时继续下降，单看 loss 高估进展
 - GRPO：沿用已有的 `evaluate()`（accuracy / format_rate / hack_rate）
@@ -411,6 +415,11 @@ python3 train_tokenizer.py --data datasets/prepared/train.jsonl --out tokenizer/
 python3 -m datatools.tokenizer_stats --probe --tokenizer tokenizer/v1_32k tokenizer/zh_6400
 ```
 
+**数字逐位切分**（和 Llama、Qwen 一样）。只用 byte-level BPE 的话，数字串按频率合并：在冒烟语料上
+训的 32k 词表里 `1987` 是一个 token，`2024` 切成 `20|24`，`12345` 切成 `12|345`。同一个数位在不同的
+数里落在不同的 token 上，算术没有一致的单位可学。
+冒烟语料上 32k 词表的代价是数学 3.47 → 3.19 字符/token（−8%），其余源 0–3%。
+
 **词表大小和模型规模必须一起定**：嵌入层是 `vocab_size × dim`，32k 词表在 29M 模型上占
 39.5% 的参数，在 ~100M（`dim=768, n_layers=12`）上占 25.3%。这也是本项目把模型定在 100M 的原因。
 语料方案（候选清单、许可证坑、配比与消融计划）见 [`docs/corpus-plan.md`](docs/corpus-plan.md)。
@@ -452,6 +461,57 @@ python3 pretrain.py --data_path datasets/prepared/train.bin --val_data_path data
   否则会悄悄只训前半份
 - **原子写入**：三个文件先写临时名，全部完成后再改名，被 kill 的任务不会留下一份看起来完整的语料
 - 常数内存，DataLoader worker 各自 memmap 文件（pickle 时不带数组，否则每个 worker 都要拷贝整个语料）
+
+## 数据消融（`run_ablation.py`）
+
+一条命令把一组消融从拉数据跑到出表：
+
+```bash
+python3 run_ablation.py configs/ablation_v1.json plan   # 各组配比、数据池大小、产物清单；不动任何文件
+python3 run_ablation.py configs/ablation_v1.json run    # 下面六个阶段依次跑
+python3 run_ablation.py configs/ablation_v1.json pool | tokenizers | data | train | probe | report
+python3 run_ablation.py configs/ablation_v1.json train --arms zh30_v32k   # 只训某几组，比如分给两台机器
+```
+
+| 阶段 | 做什么 | 产物 |
+|------|--------|------|
+| `pool` | 从基础配比派生一份 spec，`prepare` 拉一次所有组共用的数据池 | `data_dir/pool/` |
+| `tokenizers` | 从数据池的 train 划分按基础配比取样本，每个词表大小训一个 | `data_dir/tokenizers/v32k/` |
+| `data` | 每个词表 tokenize 一份验证集；每组从数据池切出自己的训练语料 | `data_dir/arms/<组>/train.bin` |
+| `train` | 每组跑一次 `pretrain.py`，spec 里 `train` / `model` 的键原样变成 CLI 参数 | `results_dir/<组>/` |
+| `probe` | 在 holdout 上跑 `probes.py` | `results_dir/<组>/probes.json` |
+| `report` | 汇总成一张表 | `results_dir/report.md` / `report.json` |
+
+每个阶段都跳过产物已经存在的工作，产物先写临时名再改名，所以**被打断后重跑同一条命令就能续上**，
+训到一半的组从它的 `latest_checkpoint.pth` 继续。
+
+spec 里每组只写它和基础配比（`mixture_v1.json`）不一样的地方：
+
+```json
+{"name": "zh15_v32k", "vocab_size": 32768, "shares": {"zh_web": 0.15}}
+```
+
+`shares` 里点名的源取这个占比，其余的源保持基础配比里的相对比例，分掉剩下的份额。
+
+为什么这样切（细节见 `datatools/ablation.py` 的模块文档）：
+
+- **所有组从同一个数据池里切，取每个源的前若干篇**。15% 组的中文是 30% 组的前缀，组与组之间只差
+  「看了多少」，不差「抽到了哪些文档」
+- **配额按各组自己的分词器计数**（含 bos/eos），所以每组训练的 token 数相同，配比就是模型实际看到的
+  配比。数据池是 `prepare` 按 zh_6400 计数的，新词表压缩得更好（冒烟语料上 1.2–1.6 倍），
+  `pool_margin`（默认 1.75）就是为此留的。数据池不够时 `data` 阶段直接报错且不留下文件，不会静默少给
+- 验证集和 holdout 是数据池的划分，所有组共用。改动任何会影响数据池大小的设置（组、每组 token 数、
+  余量、基础配比）之后，`pool` 阶段会拒绝旧的数据池，删掉 `data_dir/pool` 重拉
+
+评测（`probes.py`）：
+
+- **每个源的 bits per byte**：holdout 上的总 NLL 除以文本的 UTF-8 字节数。per-token loss 跨词表不可比
+  （词表大的每个 token 要预测的信息更多），bpb 可比。`bpb mix` 按基础配比加权，每组用同一套权重
+- **语言混淆**：拿中文 holdout 的开头 32 个 token 续写 48 个（temperature 0.7），续写里的汉字不到
+  汉字加拉丁字母总数的一半就算混淆；英文 prompt 反过来
+- **few-shot 加法**：4-shot，一位数、两位数各 100 题，greedy 解码后精确匹配
+- 表里的 val loss 只在同一词表内可比
+- 已知偏差：窗口固定 `max_seq_len` 个 token，词表大的组每个窗口覆盖的文本更多，bpb 对大词表略有利
 
 ## 快速跑通（CPU smoke）
 

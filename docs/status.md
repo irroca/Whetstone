@@ -12,8 +12,8 @@
 暴露并修掉了十二个问题：去污染此前删掉的文档几乎全是误杀，代码源有 15% 的正常源码被一条散文用的
 重复度规则删掉。预训练已经改读预 tokenize 的 memmap 语料（§3.1），注意力换成了 SDPA（§3.2）。
 
-**正式训练还没开始**。剩下挡在前面的：消融编排脚本还没写、消融 #1 / #5 还没跑（§4 步骤 4）；
-分词器还没重训（§4 步骤 5）。
+**正式训练还没开始**。消融 #1（中文占比）和 #5（词表大小）的编排脚本已经写好，正在本机上跑
+（§4 步骤 4，六组共约一天）。跑完按结果定配比和词表，再出正式数据集、重训分词器（§4 步骤 5）。
 
 仓库里现有的一切数字都是 29M 玩具规模的**实现验证**，不是能力声明。
 
@@ -54,6 +54,11 @@
   逐点 `metrics.jsonl`、`summary.json`（失败也写）；`analyze_runs.py` 做 list / show / compare / plot
 - 五个阶段都有 held-out 验证（`--val_data_path`），DPO 看偏好准确率；设备自动选 cuda > mps > cpu
 
+### 数据消融
+- `run_ablation.py`：一个 spec 跑完 数据池 → 分词器 → 各组语料 → 训练 → 评测 → 汇总表，
+  每个阶段可续跑（§4 步骤 4）
+- `probes.py`：每个源的 bits per byte（跨词表可比）、语言混淆率、few-shot 加法
+
 ### 调研与决策（`docs/corpus-plan.md`）
 - 语料候选清单（中英 web / 代码 / 数学 / 书籍 / 可验证任务），含规模、许可证、获取上的坑
 - 三份可引用的公开配比（SmolLM3、SmolLM2、CCI3.0-HQ）
@@ -74,7 +79,7 @@
 
 ```bash
 git clone https://github.com/irroca/Whetstone.git && cd Whetstone
-HF_HUB_OFFLINE=1 python3 -m pytest tests/ -q      # 应为 399 passed
+HF_HUB_OFFLINE=1 python3 -m pytest tests/ -q      # 应为 483 passed
 ```
 
 下面这段记录下来，是因为它是一个很容易再犯一次的坑：
@@ -266,26 +271,60 @@ memmap 端到端（§3.1）用的是更早的无代码 800 万 token 版本 `dat
 验收（已满足）：每个源 `fill` ≈ 100%，没有 `ran out of data`；没有哪条规则删掉大半；
 `split.top_matches` 里没有一项删掉大量文档。
 
-### 步骤 4：消融 #1（中文占比）和 #5（词表大小）
-这两个决定其余所有配置，所以先做。代理模型用现有 29M 默认配置，每组 0.3–0.5B token。
-**每组都要先 `tokenize_corpus` 成 `.bin` 再训**：JSONL 读取器每篇只取前 `max_seq_len` 个 token，
-冒烟语料上实际配比被改写成书籍 0.2%（应为 6.4%），在 JSONL 上做配比消融测的不是配比。
+### 步骤 4：消融 #1（中文占比）和 #5（词表大小）⏳ 正在跑
+这两个决定其余所有配置，所以先做。
 
-- 消融 #1：中文占比 0% / 15% / 30% / 45%（其余按比例缩放）
-- 消融 #5：词表 16k / 32k / 48k
+```bash
+python3 run_ablation.py configs/ablation_v1.json plan   # 各组配比、数据池大小、产物清单；不动任何文件
+python3 run_ablation.py configs/ablation_v1.json run    # 全部阶段；被打断后重跑同一条命令续上
+```
 
-评测不能只看 PPL（跨配比不可比，因为 token 分布不同）。要看：
-中英各自的 holdout PPL（同一 tokenizer 下才可比）、算术任务准确率（复用
-`envs/arithmetic.py` 的评测集）、代码补全执行通过率、**语言混淆率**（中文 prompt 下输出
-英文的比例，双语小模型的典型故障）。
+六组，每组 3 亿 token（按各组自己的分词器计）。代理模型 `--dim 512 --n_layers 8 --n_heads 8`，
+非 embedding 参数 25.7M，三种词表一样；seq 512、batch 32、lr 1e-3、bf16：
 
-记录和对比这一层已经有了：每次训练自动写 `{save_dir}/runs/{run_id}/`（配置 + git commit +
-数据指纹 + 逐点指标 + 失败原因），`analyze_runs.py compare --metric loss --split val` 直接横向比，
-`analyze_runs.py plot --out report.html` 出自包含的曲线报告。验证集指标走
-`--val_data_path` / `--val_every`。
+| 组 | 词表 | zh_web | en_web | code | math | books | synthetic | 本机预计 |
+|----|------|------:|------:|-----:|-----:|------:|---------:|--------:|
+| zh00_v32k | 32k | 0% | 40.0% | 28.6% | 20.0% | 7.1% | 4.3% | 4.0 h |
+| zh15_v32k | 32k | 15% | 34.0% | 24.3% | 17.0% | 6.1% | 3.6% | 4.0 h |
+| zh30_v32k | 32k | 30% | 28.0% | 20.0% | 14.0% | 5.0% | 3.0% | 4.0 h |
+| zh45_v32k | 32k | 45% | 22.0% | 15.7% | 11.0% | 3.9% | 2.4% | 4.0 h |
+| zh30_v16k | 16k | 30% | 28.0% | 20.0% | 14.0% | 5.0% | 3.0% | 3.4 h |
+| zh30_v48k | 48k | 30% | 28.0% | 20.0% | 14.0% | 5.0% | 3.0% | 4.9 h |
 
-**还需要新写**：消融编排脚本（按维度生成各组 mixture spec → 依次跑 → 汇总成一张表）。
-`analyze_runs.py` 负责后半段，前半段还没有。
+预计耗时来自同一代理在 MPS + bf16 上实测的吞吐：32k 2.08 万 token/s（19.2GB），16k 2.43 万，
+48k 1.70 万（24.2GB）。
+
+设计（规则写在 `datatools/ablation.py` 的模块文档里，README「数据消融」一节有用法）：
+
+- **一个数据池，所有组从里面切**：`prepare` 只拉一次，约 7.7 亿个 zh_6400 token（每个源取任何一组
+  需要的最大量，乘 1.75 的余量，再除以 train 划分的占比）。每组取每个源的**前**若干篇，15% 组的中文
+  是 30% 组的前缀
+- **配额按各组自己的分词器计数**，每组训练的 token 数相同。余量 1.75 覆盖的是新词表比 zh_6400
+  压缩得更好（冒烟语料上最多 1.57 倍，代码 / 48k）。不够时切数据那一步报错，不会静默少给
+- **三个分词器在同一份样本上训**：数据池 train 划分里按基础配比取的 1 亿个 zh_6400 token。
+  `train_tokenizer.py` 改成了数字逐位切分（原来 `1987` 是一个 token，`2024` 切成 `20|24`，`12345`
+  切成 `12|345`，算术没有一致的单位）。冒烟语料上 32k 词表的代价：数学 3.47 → 3.19 字符/token，
+  其余源 0–3%
+- **评测在数据池的 holdout 上**：每个源的 bits per byte（跨词表可比）、按基础配比加权的平均、
+  语言混淆率（中文开头续写成英文的比例，以及反过来）、4-shot 一位数 / 两位数加法。
+  代码执行通过率没做：这个规模的基座模型大概率全是 0，区分不出组；代码先看 bpb
+- 已知偏差：窗口固定 512 token，词表大的组每个窗口覆盖的文本更多，bpb 对大词表略有利
+
+搭的时候发现并修掉的问题：
+
+1. **验证集只看了第一个源**：`build_val_loader` 按文件顺序读，`--val_batches 20` 只评估前 20 个
+   batch，而 `prepare` 写出的划分按源分组，那 33 万个 token 全是中文。中文 0% 那组的 val 曲线会完全
+   测在它没训过的语言上。现在验证集按一个固定排列读，每次评估还是同一批样本，但样本取自整个划分。
+   pretrain / SFT / KD / DPO 共用这个函数，一起修好了
+2. **数据池按全部文档定量，但组和分词器样本只读 train 划分**：正式配置里 val + holdout 只占 1%，被
+   余量掩盖了；端到端测试用 20% 时直接切不够。现在目标除以 train 的占比
+3. 端到端测试另外说明了余量为什么必须有：合成的重复代码上，300 词表的小分词器反而比 zh_6400
+   压缩得好 1.34 倍，1.3 的余量不够，报错信息准确指向了「加大 `pool_margin`」
+
+产物：`results/ablation_v1/report.md`（汇总表）、每组的 `probes.json`、`runs/` 里的完整曲线
+（`analyze_runs.py compare results/ablation_v1/zh*_v32k --metric loss --split val`）。
+
+**进度**：数据池拉取中（2026-10-03 18:36 开始）。
 
 ### 步骤 5：正式数据集 + 重训 tokenizer
 ```bash
@@ -363,7 +402,7 @@ PPO critic、PRM（过程奖励模型）、MoE、多卡并行、推理服务化�
 ```bash
 uv venv --python 3.12 && source .venv/bin/activate
 uv pip install -r requirements.txt
-HF_HUB_OFFLINE=1 python -m pytest tests/ -q     # 432 passed
+HF_HUB_OFFLINE=1 python -m pytest tests/ -q     # 483 passed，其中端到端消融测试约 30 秒
 ```
 
 要注意的几点：
@@ -411,6 +450,8 @@ HF_HUB_OFFLINE=1 python -m pytest tests/ -q     # 432 passed
 10. **自己写的脚本流式读 HF parquet、读到一半就退出，会卡死在退出阶段**（pyarrow 25：在途的读请求
    拿不到 GIL，线程池析构永远等下去）。`prepare` 已经规避了；临时脚本结束时先 flush，
    再 `os._exit(0)`
+11. **跨词表别比 loss**。词表大的每个 token 要预测的信息更多，val loss 只在同一词表内可比；
+   消融的结论看 `probes.json` 里每个源的 bits per byte
 
 ---
 

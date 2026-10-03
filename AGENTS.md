@@ -13,7 +13,10 @@ workflow is a set of CLI scripts:
 - `python3 -m datatools.fetch_evals` → `python3 -m datatools.prepare <spec>` → `train_tokenizer.py`
  — the data pipeline, which runs *before* any training. See `docs/corpus-plan.md`.
 - `train_tokenizer.py --data <prepared jsonl> --out <dir> --vocab_size N` — train a BPE tokenizer
- on prepared corpus files. It no longer reads a hardcoded path.
+ on prepared corpus files. It no longer reads a hardcoded path. **Digits are split one per token**
+ (a `Digits` pre-tokenizer before `ByteLevel`), as in Llama and Qwen: byte-level BPE alone made
+ `1987` one token, `2024` `20|24` and `12345` `12|345`, which leaves arithmetic no consistent unit.
+ Keep it.
 - `pretrain.py` → `sft.py` → `distill.py` → `dpo.py` → `grpo.py` — the five-stage training pipeline
  (Pretrain → SFT → real Knowledge Distillation → DPO → GRPO/RLVR). `distill.py` does real KD (frozen
  teacher, CE + temperature-scaled KL on assistant tokens via `losses.kd_loss`), not the old fake
@@ -201,6 +204,23 @@ rather than duplicating commands here.
  `return [x for x in strings if substring in x]` would then flag every file that uses it. **A mixture spec with an
     empty `decontaminate.against` silently checks nothing**, so run `fetch_evals
     --decontamination_only --update_spec <spec>` before `prepare`.
+- **Data ablations run through `run_ablation.py <spec> {plan,run,pool,tokenizers,data,train,probe,report}`**
+ (`configs/ablation_v1.json`; the data side is `datatools/ablation.py`, the evaluations `probes.py`).
+ Every stage skips finished outputs, so a killed run resumes by repeating the command.
+ - Every arm is cut from **one pool** that `prepare` pulls once from a derived spec, taking each
+ source's **first** documents in pool order: the 15% arm's Chinese pages are a prefix of the 30%
+ arm's. Don't sample arms independently; they would then also differ in which pages they drew.
+ - Quotas and `tokens_per_arm` are counted **in the arm's own tokenizer, bos/eos included**, so arms
+ train on equal tokens and a share is what the model sees. `prepare` counts the pool in zh_6400,
+ which compresses worse, hence `pool_margin`; pool targets are also divided by the train fraction,
+ since arms and the tokenizer sample read only `train.jsonl`. A pool too small for a quota makes
+ `cut_corpus` raise and leave no files: that is the intended signal to raise the margin.
+ - Anything that moves the pool targets (arms, `tokens_per_arm`, margin, the mixture) makes
+ `check_pool` refuse the existing pool. Delete `data_dir/pool` and pull again.
+ - Compare arms on **per-source bits per byte** (`probes.bits_per_byte`), not on loss: a larger vocab
+ predicts more information per token, so val loss is comparable only within one vocabulary.
+ - `tests/test_run_ablation.py` runs every stage on tiny local data. It takes ~30s, nearly all of it
+ subprocess startup (`prepare` and two `pretrain.py` runs each import torch and transformers).
 - **Every stage records its run to `{save_dir}/runs/{run_id}/`** via `runlog.RunRecorder`
  (`meta.json` / `metrics.jsonl` / `summary.json`). Review with `analyze_runs.py`
  (`list` / `show` / `compare` / `plot`). No tracker service is involved; `swanlab` stays optional
@@ -216,7 +236,10 @@ rather than duplicating commands here.
     the same row as the step's training metrics files reward/kl/entropy under the held-out split.
 - **Held-out metrics come from `evaluate.py`**, wired through `--val_data_path` / `--val_every` /
  `--val_batches`. `evaluate_lm` is token-weighted, not batch-averaged, so the number does not
- drift with batch composition. For DPO watch `accuracy`, not loss: DPO loss keeps falling while
+ drift with batch composition. `build_val_loader` reads the set in **one fixed permutation**, not
+ file order: `--val_batches` evaluates only the first batches, and `prepare` writes splits grouped
+ by source, so file order measured val loss on zh_web alone. Every evaluation still sees the same
+ batches. For DPO watch `accuracy`, not loss: DPO loss keeps falling while
  the model merely sharpens an ordering it already had.
 - **Common training CLI flags come from `train_utils.add_common_train_args(parser, **overrides)`**
  (`--save_dir`, `--epochs`, `--batch_size`, `--learning_rate`, `--device`, `--use_wandb`,
