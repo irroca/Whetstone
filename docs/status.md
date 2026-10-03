@@ -330,8 +330,14 @@ python3 run_ablation.py configs/ablation_v1.json run    # 全部阶段；被打�
 产物：`results/ablation_v1/report.md`（汇总表）、每组的 `probes.json`、`runs/` 里的完整曲线
 （`analyze_runs.py compare results/ablation_v1/zh*_v32k --metric loss --split val`）。
 
-**进度**（2026-10-03）：数据、分词器、六组语料都已就绪，19:22 开始训练，按实测吞吐（每秒约 2.0 万
-token，每组约 4.1 小时）六组 10-04 晚上训完，然后自动跑评测和汇总。
+**进度**（2026-10-03）：数据、分词器、六组语料都已就绪，19:51 开始训练，按实测吞吐（每秒约 2.0–2.2 万
+token，32k 词表每组约 4.1 小时）六组 10-04 晚上训完，然后自动跑评测和汇总。
+
+- 跑在 `screen` 会话 `whetstone-ablation` 里，不依赖 Cursor：`screen -r whetstone-ablation` 接上去看，
+  `Ctrl-A D` 离开。日志 `results/ablation_v1/run.log`，中断后重跑 `zsh results/ablation_v1/run.sh` 续上
+- 一开始是挂在 agent 的 shell 下跑的，那样退出 Cursor 会连带杀掉训练；训到第 1900 步时停掉，
+  在 `screen` 里从头重跑，没有用续训（续训不保证数据顺序和不中断时一样）。两次第 51 步的 loss
+  都是 9.2713，固定种子下可复现
 
 - 数据池 18:36–19:14（38 分钟，网络是瓶颈）：6 个源 fill 都是 100%；train 489,537 / val 2,544 /
   holdout 2,466 篇。中文保留率 89%（`too_short` 14,233、`low_cjk_ratio` 7,894），代码 95%，数学 90%，
