@@ -9,8 +9,9 @@ token-counted, and written out the moment its share of the budget is met. At
 Stages, in this order:
 
 1. **Pull** — HuggingFace ``streaming=True``, or a local JSONL (used by tests).
-2. **Filter** — per-source thresholds from ``datatools.filters``; every
-   rejection is attributed to the rule that caused it.
+2. **Clean and filter** — the source's named cleaners rewrite the text
+   (``datatools.cleaners``), then per-source thresholds from
+   ``datatools.filters`` apply; every rejection is attributed to its rule.
 3. **Exact dedup** — a running digest set, which is the only dedup that scales
    in a single streaming pass (see the note on near-dedup below).
 4. **Decontaminate** — 13-gram overlap against the eval sets.
@@ -43,13 +44,17 @@ sources at once, instead of killing a long run at whichever source comes first.
 from __future__ import annotations
 
 import argparse
+import atexit
 import hashlib
 import json
 import os
+import sys
+import traceback
 from collections import Counter
 from dataclasses import dataclass, field
 from typing import Any, Iterator, Optional, Sequence
 
+from .cleaners import CLEANERS, clean
 from .decontaminate import DEFAULT_N, EvalIndex, load_eval_index
 from .filters import FilterConfig, reject_reason
 from .records import (
@@ -85,6 +90,7 @@ class SourceSpec:
     jsonl: Optional[str] = None
     hf: Optional[dict] = None
     filters: FilterConfig = field(default_factory=FilterConfig)
+    cleaners: list[str] = field(default_factory=list)
     where: dict = field(default_factory=dict)
     max_records: Optional[int] = None
     note: str = ""
@@ -102,6 +108,11 @@ class SourceSpec:
             raise ValueError(f"source {source.name!r} needs exactly one of 'jsonl' or 'hf'")
         if source.weight <= 0:
             raise ValueError(f"source {source.name!r} must have weight > 0")
+        unknown_cleaners = sorted(set(source.cleaners) - set(CLEANERS))
+        if unknown_cleaners:
+            raise ValueError(
+                f"source {source.name!r}: unknown cleaners {unknown_cleaners}, known: {sorted(CLEANERS)}"
+            )
         columns = (source.hf or {}).get("columns")
         if columns is not None:
             needed = {source.text_field, *(key.split(".")[0] for key in source.where)}
@@ -237,9 +248,10 @@ def to_record(raw: dict, source: SourceSpec) -> Optional[dict]:
 
     Conversation, preference and task rows keep their schema's fields, so such
     a dataset can be mixed in without special-casing. Anything else becomes
-    ``{"text": row[text_field]}``. Upstream columns are never carried along:
-    FineWeb2-HQ ships a 768-float embedding with every document, and keeping it
-    makes the Chinese slice 9.3x larger than its text (81MB for 8.8MB).
+    ``{"text": row[text_field]}``, rewritten by the source's cleaners. Upstream
+    columns are never carried along: FineWeb2-HQ ships a 768-float embedding
+    with every document, and keeping it makes the Chinese slice 9.3x larger
+    than its text (81MB for 8.8MB).
     """
     schema = detect_schema(raw)
     if schema in SCHEMA_FIELDS:
@@ -247,7 +259,7 @@ def to_record(raw: dict, source: SourceSpec) -> Optional[dict]:
     value = raw.get(source.text_field)
     if value is None:
         return None
-    return {"text": str(value)}
+    return {"text": clean(str(value), source.cleaners)}
 
 
 def _batched(items: Sequence[str], size: int) -> Iterator[Sequence[str]]:
@@ -282,6 +294,7 @@ def prepare_source(
     # 18% keep rate when 89% of its rows pass.
     buffer: list[tuple[dict, str, tuple[int, Counter, int]]] = []
     buffered_chars = 0
+    next_progress = progress_every
     handle = None
     if out_path:
         os.makedirs(os.path.dirname(out_path) or ".", exist_ok=True)
@@ -346,12 +359,15 @@ def prepare_source(
             remaining = report.target_tokens - report.tokens
             if (len(buffer) >= TOKENIZE_BATCH or buffered_chars >= remaining) and flush():
                 return report
-            if progress_every and report.documents and report.documents % progress_every == 0:
+            # Documents arrive a tokenization batch at a time, so test for crossing
+            # the next multiple rather than for landing on one.
+            if progress_every and report.documents >= next_progress:
                 print(
                     f"    {source.name}: {report.documents} docs, "
                     f"{report.tokens / 1e6:.1f}M/{report.target_tokens / 1e6:.1f}M tokens",
                     flush=True,
                 )
+                next_progress = (report.documents // progress_every + 1) * progress_every
         else:
             report.exhausted = True
         flush()
@@ -516,7 +532,7 @@ def render_sources(reports: Sequence[SourceReport]) -> str:
     return "\n".join(lines)
 
 
-def main() -> None:
+def main() -> int:
     parser = argparse.ArgumentParser(description="Build a corpus from a mixture spec")
     parser.add_argument("spec", help="Mixture spec JSON")
     parser.add_argument("--out_dir", type=str, default="datasets/prepared")
@@ -545,7 +561,7 @@ def main() -> None:
     if args.probe:
         results = [probe_source(source, args.probe) for source in spec.sources]
         print(render_probe(results))
-        raise SystemExit(0 if all(r.status == "ok" for r in results) else 1)
+        return 0 if all(r.status == "ok" for r in results) else 1
     if args.scale != 1.0:
         spec.total_tokens = int(spec.total_tokens * args.scale)
 
@@ -571,7 +587,7 @@ def main() -> None:
 
     if args.dry_run:
         print("\ndry run: nothing written")
-        return
+        return 0
 
     decon = spec.decontaminate or {}
     eval_index = None
@@ -602,7 +618,26 @@ def main() -> None:
     with open(manifest_path, "w", encoding="utf-8") as fh:
         json.dump(manifest, fh, ensure_ascii=False, indent=2)
     print(f"manifest -> {manifest_path}")
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    # pyarrow 25 deadlocks at process exit if a parquet read is still in flight
+    # on one of its I/O threads: the read needs the GIL, CPython ends the thread
+    # during finalization, and the static thread pool's destructor waits for it
+    # forever. A probe always exits in that state; Ctrl-C or an error
+    # mid-source can. Every output file is closed by now, so run the atexit
+    # handlers (multiprocessing's releases tqdm's semaphore) and leave before
+    # finalization starts.
+    try:
+        status = main()
+    except KeyboardInterrupt:
+        traceback.print_exc()
+        status = 130
+    except Exception:
+        traceback.print_exc()
+        status = 1
+    atexit._run_exitfuncs()
+    sys.stdout.flush()
+    sys.stderr.flush()
+    os._exit(status)

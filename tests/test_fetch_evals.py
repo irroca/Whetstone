@@ -11,13 +11,16 @@ from datatools.fetch_evals import (
     FetchReport,
     convert_big_math,
     convert_gsm8k,
+    convert_humaneval,
     convert_math500,
+    convert_mbpp,
     convert_mmlu,
     convert_tal_scq5k,
     render,
     update_spec_decontamination,
 )
-from datatools.records import detect_schema, record_parts, validate
+from datatools.decontaminate import load_eval_index, match_record
+from datatools.records import detect_schema, record_parts, validate, write_jsonl
 
 GSM8K_ROW = {
     "question": "Natalia sold clips to 48 of her friends in April, and then she sold half "
@@ -61,6 +64,62 @@ BIG_MATH_ROW = {
     "source": "olympiads",
     "domain": "number theory",
     "llama8b_solve_rate": 0.375,
+}
+
+HUMANEVAL_ROW = {
+    "task_id": "HumanEval/0",
+    "prompt": "from typing import List\n\n\n"
+              "def has_close_elements(numbers: List[float], threshold: float) -> bool:\n"
+              '    """ Check if in given list of numbers, are any two numbers closer to each other than\n'
+              "    given threshold.\n"
+              "    >>> has_close_elements([1.0, 2.0, 3.0], 0.5)\n    False\n"
+              "    >>> has_close_elements([1.0, 2.8, 3.0, 4.0, 5.0, 2.0], 0.3)\n    True\n"
+              '    """\n',
+    "canonical_solution": "    for idx, elem in enumerate(numbers):\n"
+                          "        for idx2, elem2 in enumerate(numbers):\n"
+                          "            if idx != idx2:\n"
+                          "                distance = abs(elem - elem2)\n"
+                          "                if distance < threshold:\n"
+                          "                    return True\n\n"
+                          "    return False\n",
+    "test": "\n\nMETADATA = {\n    'author': 'jt',\n    'dataset': 'test'\n}\n\n\n"
+            "def check(candidate):\n"
+            "    assert candidate([1.0, 2.0, 3.9, 4.0, 5.0, 2.2], 0.3) == True\n",
+    "entry_point": "has_close_elements",
+}
+
+HUMANEVAL_IDIOM_ROW = {
+    "task_id": "HumanEval/7",
+    "prompt": "from typing import List\n\n\n"
+              "def filter_by_substring(strings: List[str], substring: str) -> List[str]:\n"
+              '    """ Filter an input list of strings only for ones that contain given substring\n'
+              "    >>> filter_by_substring([], 'a')\n    []\n"
+              "    >>> filter_by_substring(['abc', 'bacd', 'cde', 'array'], 'a')\n"
+              "    ['abc', 'bacd', 'array']\n"
+              '    """\n',
+    "canonical_solution": "    return [x for x in strings if substring in x]\n",
+    "test": "\n\ndef check(candidate):\n    assert candidate([], 'john') == []\n",
+    "entry_point": "filter_by_substring",
+}
+
+MBPP_ROW = {
+    "task_id": 11,
+    "text": "Write a python function to remove first and last occurrence of a given character "
+            "from the string.",
+    "code": "def remove_Occ(s,ch): \r\n    for i in range(len(s)): \r\n        if (s[i] == ch): \r\n"
+            "            s = s[0 : i] + s[i + 1:] \r\n            break\r\n"
+            "    for i in range(len(s) - 1,-1,-1):  \r\n        if (s[i] == ch): \r\n"
+            "            s = s[0 : i] + s[i + 1:] \r\n            break\r\n    return s ",
+    "test_list": [
+        'assert remove_Occ("hello","l") == "heo"',
+        'assert remove_Occ("abcda","a") == "bcd"',
+        'assert remove_Occ("PHP","P") == "H"',
+    ],
+    "test_setup_code": "",
+    "challenge_test_list": [
+        'assert remove_Occ("hellolloll","l") == "helollol"',
+        'assert remove_Occ("","l") == ""',
+    ],
 }
 
 
@@ -141,6 +200,38 @@ def test_big_math_keeps_the_solve_rate():
     assert record["answer"] == "1"
 
 
+def test_humaneval_keeps_what_a_code_environment_needs_to_run_it():
+    record = convert_humaneval(HUMANEVAL_ROW)
+    assert record["question"].startswith("from typing import List")
+    assert record["answer"].lstrip().startswith("for idx, elem in enumerate(numbers):")
+    assert "def check(candidate):" in record["test"]
+    assert record["entry_point"] == "has_close_elements"
+
+
+def test_mbpp_normalizes_line_endings_and_keeps_its_tests():
+    record = convert_mbpp(MBPP_ROW)
+    assert "\r" not in record["answer"]
+    assert record["answer"].startswith("def remove_Occ(s,ch):")
+    assert record["test_list"] == MBPP_ROW["test_list"]
+
+
+@pytest.mark.parametrize("missing", ["text", "code", "test_list"])
+def test_mbpp_row_missing_a_field_is_skipped(missing):
+    assert convert_mbpp({k: v for k, v in MBPP_ROW.items() if k != missing}) is None
+
+
+def test_short_reference_code_only_matches_exactly(tmp_path):
+    """A one-line body is an idiom, not a benchmark fingerprint; a long body is."""
+    path = tmp_path / "humaneval.jsonl"
+    write_jsonl(str(path), [convert_humaneval(HUMANEVAL_IDIOM_ROW), convert_humaneval(HUMANEVAL_ROW)])
+    index = load_eval_index([str(path)])
+
+    idiom = "def keep(strings, substring):\n    return [x for x in strings if substring in x]\n"
+    leak = "import math\n\n\ndef close(numbers, threshold):\n" + HUMANEVAL_ROW["canonical_solution"]
+    assert match_record({"text": idiom}, index) is None
+    assert match_record({"text": leak}, index) is not None
+
+
 @pytest.mark.parametrize(
     "converter,row",
     [
@@ -149,6 +240,8 @@ def test_big_math_keeps_the_solve_rate():
         (convert_tal_scq5k, TAL_ROW),
         (convert_mmlu, MMLU_ROW),
         (convert_big_math, BIG_MATH_ROW),
+        (convert_humaneval, HUMANEVAL_ROW),
+        (convert_mbpp, MBPP_ROW),
     ],
 )
 def test_every_converter_emits_a_valid_task_record(converter, row):
