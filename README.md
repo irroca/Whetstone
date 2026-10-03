@@ -26,7 +26,7 @@ RL 部分不依赖 TRL/veRL：可验证奖励环境、组相对优势、clipped 
 ```bash
 uv venv --python 3.12 && source .venv/bin/activate
 uv pip install -r requirements.txt
-HF_HUB_OFFLINE=1 python -m pytest tests/ -q     # 327 passed，无需 GPU / 网络 / checkpoint
+HF_HUB_OFFLINE=1 python -m pytest tests/ -q     # 全部通过，无需 GPU / 网络 / checkpoint
 ```
 
 不用 `uv` 的话 `python3.12 -m venv .venv` + `pip install -r requirements.txt` 等效。
@@ -296,6 +296,12 @@ python3 -m datatools.tokenizer_stats datasets/zh.jsonl --tokenizer ./tok_16k ./t
 `slim/nets/inception_resnet_v2.py` 这样的正常源码。这个指标来自 Gopher，是给散文设计的；缩进和
 样板让它随文件长度单调上升，所以代码源关掉了它（StarCoder 的代码过滤也没有这一条，它的
 行长度、字母数字占比规则 starcoderdata 上游已经做过，冒烟里一篇都拦不到）。
+
+重复行比例（`max_duplicate_lines`）只统计含字母或数字的行。单独一行的 `"""`、`)`、`},`、markdown 的
+`---` 是结构不是内容，算进去的话 docstring 多的文件看起来有一半是重复行；导航菜单的每一行都有字，
+照样抓得到。这一改在冒烟的 1557 个代码文件上把这条规则的拒绝从 27 篇降到 17 篇（放回来的是 Django
+model、二进制读写、CLI 这类正常代码，剩下的是同一行内容重复几十次的测试和 Qt 生成文件），数学源
+20 → 18，其余源已保留的文档没有一篇因此被拒。
 
 `dedup` 的 MinHash 是直接在 numpy 上实现的（不依赖 `datasketch`）：
 
