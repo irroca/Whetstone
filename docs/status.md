@@ -8,11 +8,12 @@
 ## 0. 一句话现状
 
 算法链路（五阶段后训练）和数据管线都已实现，CPU 单测覆盖；语料方案和模型规模已定。
-**数据管线已经在真实语料上跑通了一次千分之一规模的冒烟**（§4 步骤 3），暴露并修掉了六个问题，
-其中去污染此前删掉的文档几乎全是误杀。预训练已经改读预 tokenize 的 memmap 语料（§3.1 完成）。
+**数据管线已经在真实语料上跑通了千分之一规模的完整冒烟**（§4 步骤 3，六个源全部含代码），
+暴露并修掉了十一个问题：去污染此前删掉的文档几乎全是误杀，代码源有 15% 的正常源码被一条散文用的
+重复度规则删掉。预训练已经改读预 tokenize 的 memmap 语料（§3.1 完成）。
 
-**正式训练还没开始**。剩下挡在前面的：代码语料 `starcoderdata` 是 gated 的，需要你接受条款并
-登录 HF（§4 步骤 3）；注意力没用 SDPA（§3.2）；分词器还没重训（§4 步骤 5）。
+**正式训练还没开始**。剩下挡在前面的：注意力没用 SDPA（§3.2）；消融编排脚本还没写、
+消融 #1 / #5 还没跑（§4 步骤 4）；分词器还没重训（§4 步骤 5）。
 
 仓库里现有的一切数字都是 29M 玩具规模的**实现验证**，不是能力声明。
 
@@ -42,7 +43,10 @@
 - `datatools.tokenize_corpus` + `dataset.MemmapPretrainDataset`：预 tokenize 成 `uint16` 的 `.bin`，
   `pretrain.py` 按扩展名自动选读取器（§3.1）
 - `prepare --probe`、`where`（按上游元数据过滤）、`hf.columns`（只下载需要的 parquet 列）、
-  输出记录带 `source` 字段、manifest 里报告命中最多的评测项（§4 步骤 3 的冒烟里加的）
+  `cleaners`（过滤前改写文本，目前用来删 StarCoder 元数据行）、输出记录带 `source` 字段、
+  manifest 里报告命中最多的评测项（§4 步骤 3 的冒烟里加的）
+- `fetch_evals` 有七个去污染集：GSM8K / MATH-500 / TAL-SCQ5K 中英 / MMLU / HumanEval / MBPP，
+  代码集带着测试（`test` / `test_list`），将来的代码环境可以直接用
 
 ### 训练记录（[PR #8](https://github.com/irroca/Whetstone/pull/8) / [#9](https://github.com/irroca/Whetstone/pull/9)）
 - 每次训练写 `{save_dir}/runs/{run_id}/`：`meta.json`（参数 + git commit + 数据指纹）、
@@ -186,35 +190,32 @@ padding mask 五种情况，可以直接用来验证两条路径等价）。KV c
 ```bash
 python3 -m datatools.fetch_evals --decontamination_only --update_spec configs/mixture_v1.json
 ```
-2026-10-03 完成：GSM8K 1319 / MATH-500 500 / TAL-SCQ5K 中英各 2000 / MMLU 14042，共 19,861 条，
-46 秒；`decontaminate.against` 已写回 spec（按字段拆开后索引 44,450 项）。评测集在
-`datasets/eval/`，git 忽略，换机器要重拉。
+2026-10-03 完成：GSM8K 1319 / MATH-500 500 / TAL-SCQ5K 中英各 2000 / MMLU 14042 /
+HumanEval 164 / MBPP 500，共 20,525 条；`decontaminate.against` 已写回 spec（按字段拆开后
+索引 45,778 项）。代码两个集是冒烟加进代码源之后补的：之前去污染只查数学和 MMLU，代码部分
+等于没查。评测集在 `datasets/eval/`，git 忽略，换机器要重拉。
 
-### 步骤 3：小规模跑通数据管线 ✅（代码源除外）
+### 步骤 3：小规模跑通数据管线 ✅
 ```bash
 python3 -m datatools.prepare configs/mixture_v1.json --probe 3      # 先查所有源的 spec 问题
-python3 -m datatools.prepare configs/mixture_v1.json --scale 0.001 --out_dir datasets/smoke
+python3 -m datatools.prepare configs/mixture_v1.json --scale 0.001 --out_dir datasets/smoke_full
 ```
-**代码源 `starcoderdata` 是 gated 的，还没跑。需要你做**：在
-[数据集页面](https://huggingface.co/datasets/bigcode/starcoderdata) 接受条款（自动批准）→
-[建一个 read token](https://huggingface.co/settings/tokens) → `hf auth login` →
-`python -m datatools.prepare configs/mixture_v1.json --probe 3` 确认 `code` 一行是 `ok`
-（顺带验证 `columns: ["content"]` 和 `data_dir: "python"` 写得对不对）。
-
-冒烟用的是去掉代码源、其余权重归一后的 800 万 token 版本。最后一次运行（所有修复之后）：
+完整配比、1000 万 token，最后一次运行（所有修复之后，产物在 `datasets/smoke_full/`）：
 
 | 源 | token | 文档 | 读取 | 保留率 | token/篇 | 主要拒绝原因 |
 |----|------:|-----:|-----:|------:|--------:|------|
 | zh_web | 3.00M | 1895 | 2337 | 81% | 1584 | `too_short` 277，`low_cjk_ratio` 160 |
 | en_web | 2.81M | 1867 | 1877 | 99% | 1504 | — |
+| code | 2.01M | 869 | 926 | 94% | 2308 | `too_short` 26，`too_long` 17，`duplicate_lines` 14 |
 | math | 1.42M | 765 | 845 | 91% | 1853 | `repetitive` 59，`duplicate_lines` 20 |
 | books | 0.51M | 7 | 11 | 64% | 72948 | `too_long` 2（钦定版圣经、莎士比亚全集），意大利语《神曲》，《大宪章》判为 `repetitive` |
 | synthetic | 0.30M | 276 | 278 | 99% | 1090 | — |
 
-划分 train 4752 / val 33 / holdout 25；13-gram 命中 2 篇，LCS 复核后删除 0 篇。
-全程约 13 分钟，网速在几十 KB/s 到 1MB/s 之间波动，大头是网络。
+划分 train 5613 / val 37 / holdout 29；对 45,778 个评测片段做 13-gram 匹配，命中 2 篇（都不是代码），
+LCS 复核后删除 0 篇。网速好的时候全程 3 分 21 秒，差的时候（几十 KB/s）13 分钟，大头是网络。
+memmap 端到端（§3.1）用的是更早的无代码 800 万 token 版本 `datasets/smoke/`。
 
-**跑出来并已修掉的六个问题**：
+**跑出来并已修掉的十一个问题**：
 1. `datasets`（HF）不在 `requirements.txt` 里，而且本地 `datasets/` 目录会被当成同名的命名空间包，
    报 `cannot import name 'load_dataset' from 'datasets' (unknown location)`
 2. **FineWeb2-HQ 每行带 768 维 embedding**：上游列被原样写进输出，中文那份比正文大 9.3 倍；下载
@@ -232,9 +233,24 @@ python3 -m datatools.prepare configs/mixture_v1.json --scale 0.001 --out_dir dat
 6. **LCS 复核只看文档前 2000 个单元、且对整篇算**：书里更靠后的泄漏不会被比对，短题目的词又会从
    整页各处被零散凑齐。改为在共享 n-gram 处对齐后再算。之前以为抓到的"MATH-500 真泄漏"其实是
    一份和题目共享三角形面积行列式记号的公式表
+7. **`--probe` 打印完结果后卡死不退出**：pyarrow 25 在还有 parquet 读请求没完成时退出，会死锁在
+   线程池的析构里（工作线程在解释器收尾时被 CPython 结束，析构一直在等它）。`del` + `gc.collect()`
+   和关掉 `pre_buffer` 都不管用。`prepare` 的入口改成跑完 atexit 后直接 `os._exit`
+8. **去污染不查代码**：评测集只有数学和 MMLU。补了 HumanEval（164）和 MBPP（500），参考实现放
+   `answer`，这样 `return [x for x in strings if substring in x]` 这类短惯用写法只做精确匹配，
+   不会误杀用到它的代码文件（放 `solution` 就会，测试里断言了）
+9. **starcoderdata 的内容里带仓库元数据**：49% 的文件第一行是
+   `<reponame>…<filename>…<gh_stars>…`。新加 `cleaners`，代码源用 `starcoder_metadata` 在过滤前删掉
+   这一行；只删整行都是元数据段的，代码里的 `'-f <filename>'` 不动。修完后 0 篇带标记
+10. **散文用的重复度规则在删正常代码**：字符 10-gram 重复度拒掉 15% 的代码文件，2k 字符以内 2%、
+   超过 2 万字符 57%；232 篇里只有 10 篇是生成代码。代码源关掉这条后保留率 80% → 94%，
+   同样 200 万 token 从 1238 篇变成 869 篇（中位数 1840 → 2481 字符），长文件不再被系统性删掉
+11. **`--progress_every` 从不打印或刷屏**：文档按 tokenize 批次（256 篇）一起计数，取模判断对 500
+   永远不成立、对 128 每一行都成立（1200 篇刷了 945 行）。改为跨过下一个整数倍时打印
 
 **值得在消融里核实的观察（没改）**：中文 `min_chars: 200` 删掉 12% 的文档，`min_cjk_ratio: 0.5`
-删掉 7%。后者可能专删中英混排的技术文章，而这正是代码/数学能力需要的。见 §8。
+删掉 7%。后者可能专删中英混排的技术文章，而这正是代码/数学能力需要的。代码这边，保留的文件里
+2.4% 头部带生成标记（以 Django migration 为主），`duplicate_lines` 对测试文件偏严。都见 §8。
 
 验收（已满足）：每个源 `fill` ≈ 100%，没有 `ran out of data`；没有哪条规则删掉大半；
 `split.top_matches` 里没有一项删掉大量文档。
@@ -329,14 +345,14 @@ PPO critic、PRM（过程奖励模型）、MoE、多卡并行、推理服务化�
 | 加速器 | 无 | **Apple M5 Pro，MPS** | CUDA |
 | `--device` 默认 | `cpu` | **`mps`**（自动选）| `cuda` |
 | `--dtype` | 只能 `float32` | `bfloat16` | `bfloat16` |
-| 数据 | `datasets/` 是空的 | 有评测集 `datasets/eval/` 和冒烟语料 `datasets/smoke/`（git 忽略）| 需重新拉 |
+| 数据 | `datasets/` 是空的 | 有评测集 `datasets/eval/`、完整冒烟语料 `datasets/smoke_full/`，以及 memmap 端到端用过的无代码版 `datasets/smoke/`（git 忽略）| 需重新拉 |
 
 本地环境搭建：
 
 ```bash
 uv venv --python 3.12 && source .venv/bin/activate
 uv pip install -r requirements.txt
-HF_HUB_OFFLINE=1 python -m pytest tests/ -q     # 399 passed
+HF_HUB_OFFLINE=1 python -m pytest tests/ -q     # 419 passed
 ```
 
 要注意的几点：
@@ -353,8 +369,8 @@ HF_HUB_OFFLINE=1 python -m pytest tests/ -q     # 399 passed
   （`build_autocast_scaler` 里的逻辑），别以为是 bug
 - 系统自带的 Python 是 3.9，**跑不了**（`transformers` 5.x 要 3.10+）。必须用 3.12 的 venv
 - **`bigcode/starcoderdata`（代码语料）和 `big_math` 是 gated 的**（自动批准），要先在 HF 上接受条款，
-  再 `hf auth login`（或设 `HF_TOKEN`）。其余语料和五个去污染评测集都不需要。现在本机没有 token，
-  请求都是匿名的，限速也更紧
+  再 `hf auth login`（或设 `HF_TOKEN`）。其余语料和七个去污染评测集都不需要。本机已登录并接受了
+  starcoderdata 的条款，`big_math` 还没有。`hf` 命令在 venv 里（`.venv/bin/hf`），系统 Python 没有
 - **磁盘预算**：10B token 的 JSONL 约 30GB，预 tokenize 成 `uint16` 后约 20GB，
   加上 HF 缓存，留 100GB 比较稳妥。不要下全量语料——FineWeb2-HQ 的 `cmn_Hani` 是 784GB，
   我们用 `streaming=True` 只取需要的量
@@ -381,6 +397,9 @@ HF_HUB_OFFLINE=1 python -m pytest tests/ -q     # 399 passed
    63% 是正常的，不是碎片化
 9. **JSONL 预训练读取器每篇只取前 `max_seq_len` 个 token**，不报错、loss 照常下降，但配比已被改写
    （冒烟语料上只用到 28% 的 token、书籍 1%）。正式训练和消融一律用 `tokenize_corpus` 产出的 `.bin`
+10. **自己写的脚本流式读 HF parquet、读到一半就退出，会卡死在退出阶段**（pyarrow 25：在途的读请求
+   拿不到 GIL，线程池析构永远等下去）。`prepare` 已经规避了；临时脚本结束时先 flush，
+   再 `os._exit(0)`
 
 ---
 
@@ -390,9 +409,15 @@ HF_HUB_OFFLINE=1 python -m pytest tests/ -q     # 399 passed
 2. **中文过滤阈值会不会专删技术文章？** 冒烟里 `min_cjk_ratio: 0.5` 删掉 7% 的中文文档，中英混排、
    带代码片段的技术文章最容易落到这条线以下，而它们正对代码/数学能力有用。抽 50 篇被拒的看一眼
    再决定，可以作为消融 #1 的附带项
-3. **代码任务的沙箱怎么做？** 阶段 B 的核心设计问题。子进程 + 超时是底线，要不要上容器取决于
+3. **代码要不要过滤生成文件？** 关掉重复度规则后，保留的代码里 2.4% 的文件头部带生成标记，大头是
+   Django migration（还有 protobuf、Qt UI、Pulumi）。但按标记一刀切会误删 Colab 和 nbdev 导出的
+   文件，那些其实是人写的代码。倾向于只认具体生成器的标记（`Generated by Django`、
+   `protocol buffer compiler` 之类），正式数据集之前定
+4. **`duplicate_lines` 对代码偏严**：它把单独一行的 `"""`、`)`、`},` 也算作重复行，冒烟里拒掉的 27 篇
+   有一半是测试文件和 docstring 多的文件（超过 1 万字符的文件拒 5.8%）。可以改成忽略很短的行再算
+5. **代码任务的沙箱怎么做？** 阶段 B 的核心设计问题。子进程 + 超时是底线，要不要上容器取决于
    数据源可信度
-4. **租什么卡、租多久？** 取决于 §3.3 的实测结果。如果显存宽裕，`docs/corpus-plan.md` 里
+6. **租什么卡、租多久？** 取决于 §3.3 的实测结果。如果显存宽裕，`docs/corpus-plan.md` 里
    ~185M / 18B token 的档位也在射程内
 
 改名已全部完成：代码、文档、远端仓库都是 **`irroca/Whetstone`**。如果你手上还有指向旧名的

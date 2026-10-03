@@ -193,7 +193,7 @@ checkpoint 加载进 8 层模型，多出来的两层会保持随机初始化且
 ### 一条命令跑完整管线
 
 配比写在 spec 里（见 `configs/mixture_v1.json`），`prepare` 按它执行
-**拉取 → 质量过滤 → 精确去重 → 去污染 → 划分 → manifest**：
+**拉取 → 清洗 → 质量过滤 → 精确去重 → 去污染 → 划分 → manifest**：
 
 ```bash
 python3 -m datatools.prepare configs/mixture_v1.json --probe 3          # 每源拉 3 行，检查 spec
@@ -206,10 +206,18 @@ python3 -m datatools.prepare configs/mixture_v1.json --scale 0.001      # 千分
 probe 对每个源报告状态（`ok` / `ERROR` / `NO TEXT FIELD`）、实际列名、样本文本，以及这几行里
 过滤器会拒掉多少；所有源的问题一次报完，有任何一个源不是 `ok` 就以退出码 1 结束。
 
+`prepare` 结束时跑完 atexit 就直接 `os._exit`，不走解释器收尾：pyarrow 25 在还有 parquet 读请求
+没完成时退出会死锁在线程池的析构里，probe 每次都会碰上（读完几行就放弃数据流、马上退出），
+中途 Ctrl-C 也可能碰上。所有输出文件在那之前都已关闭。
+
+`prepare` 结束时跑完 atexit 就直接 `os._exit`，不走解释器收尾：pyarrow 25 在还有 parquet 读请求
+没完成时退出会死锁在线程池的析构里，probe 每次都会碰上（读完几行就放弃数据流、马上退出），
+中途 Ctrl-C 也可能碰上。所有输出文件在那之前都已关闭。
+
 整条链路是**流式**的：配比按 token 计，而语料按文档和字节发布，所以只能边 tokenize 边记数、
 取满即停。10B token 是约 30GB 文本，任何一步都不能全量进内存。
 
-spec 里每个源除了 `filters`，还有两个控制「读什么」的字段：
+spec 里每个源除了 `filters`，还有两个控制「读什么」的字段和一个控制「怎么改写」的字段：
 
 - **`hf.columns`**：只读 parquet 的这几列。不只是省磁盘：parquet 是**按整个行组**流式读的，
   第一行产出前要先把整个行组拉完。FineWeb2-HQ 每行带一个 768 维的 embedding（质量分类器用的），
@@ -221,6 +229,12 @@ spec 里每个源除了 `filters`，还有两个控制「读什么」的字段�
 - **`where`**：按上游元数据精确匹配，键是点分路径，值可以是列表（任一命中即可）。文本过滤器
   看不到这类信息：古腾堡里约 5% 的书是法语/德语/拉丁语，拉丁字母占比照样过线，只能靠
   `{"metadata.language": "en"}`。拒绝原因记为 `where:metadata.language`，和其他规则一样归因
+- **`cleaners`**：过滤之前按名字对文本做的改写（`datatools/cleaners.py`，写错名字加载 spec 时报错），
+  所以过滤、精确去重和 token 计数看到的都是改写后的文本。目前只有 `starcoder_metadata`：
+  starcoderdata 把仓库元数据序列化进了文件内容，冒烟里 49% 的代码文件第一行是
+  `<reponame>owner/repo<filename>path<gh_stars>10-100`（三段各自随机出现）。这些标记在 StarCoder
+  的分词器里是特殊 token，在我们的分词器里只是字符串：白占 token、教模型生成它们，还让同一文件的
+  两个 fork 成不了精确重复。只删**整行都是元数据段**的第一行，代码里的 `'-f <filename>'` 不动
 
 每条输出记录只保留 schema 本身的字段，**外加一个 `source` 字段**标明它来自哪个配比槽位。
 上游的其余列一律丢弃（以前带 `text` 的行会原样透传，FineWeb2-HQ 的 embedding 让中文这一份比
@@ -275,6 +289,13 @@ python3 -m datatools.tokenizer_stats datasets/zh.jsonl --tokenizer ./tok_16k ./t
 `filters` 的每条规则返回的是**拒绝原因的名字**而不是布尔值。过滤这一步真正有用的输出不是留下的
 集合，而是**哪条规则删了多少**——一个阈值静默删掉八成语料是 bug，只有归因才看得见。
 阈值故意没有调优：先用 `stats` 看真实分位数，再写进 spec。
+
+代码源是个例子：字符 10-gram 重复度（`max_repetition: 0.5`）在冒烟里拒掉 15% 的代码文件，按长度看
+2k 字符以内 2%、超过 2 万字符 57%，被拒文件长度的中位数 1.1 万、保留的 1.8 千。232 篇里只有
+10 篇是生成代码（Django migration、Thrift、Pulumi），其余是 `bokeh/client/util.py`、
+`slim/nets/inception_resnet_v2.py` 这样的正常源码。这个指标来自 Gopher，是给散文设计的；缩进和
+样板让它随文件长度单调上升，所以代码源关掉了它（StarCoder 的代码过滤也没有这一条，它的
+行长度、字母数字占比规则 starcoderdata 上游已经做过，冒烟里一篇都拦不到）。
 
 `dedup` 的 MinHash 是直接在 numpy 上实现的（不依赖 `datasketch`）：
 
@@ -332,12 +353,26 @@ python3 -m datatools.fetch_evals --decontamination_only --update_spec configs/mi
 | `math500` | 500 | 标准 MATH 评测子集 |
 | `tal_scq5k_cn` / `tal_scq5k_en` | 各 2000 | MIT 许可的中英竞赛数学，唯一干净的中文可验证源 |
 | `mmlu` | 14042 | 只做去污染 |
+| `humaneval` | 164 | 代码：去污染 + 将来代码环境的评测 |
+| `mbpp` | 500 | 代码：test 划分，包含 sanitized 子集 |
 | `big_math` | 251k | GRPO 的 prompt 池（gated，需 HF token）|
 
 转换不是直接搬字段：GSM8K 的答案要从 `#### N` 里抽出来、CoT 留在 `solution` 字段；
 TAL-SCQ5K 的 `answer_value` 只是选项字母（`B`），要解析 `answer_option_list` 换成选项**内容**，
 否则不可验证；MMLU 的 `answer` 是下标，要换成选项文本。`solution` 字段会被
 `record_parts` 一起索引——**只抄了解答、没抄题目的网页同样是泄漏**。
+
+代码题靠跑测试判分，所以 HumanEval 的 `test` / `entry_point`、MBPP 的 `test_list` 原样带上，
+`answer` 放参考实现（MBPP 上游是 CRLF 换行，转成 `\n`）。参考实现放 `answer` 而不是
+`solution` 是有意的：短答案只做精确匹配，于是 `return [x for x in strings if substring in x]`
+这种 10 个单元的惯用写法不会命中所有用到它的代码文件；放进 `solution` 会按自身长度建索引，
+测试里断言了两种放法的差别。
+
+代码题靠跑测试判分，所以 HumanEval 的 `test` / `entry_point`、MBPP 的 `test_list` 原样带上，
+`answer` 放参考实现（MBPP 上游是 CRLF 换行，转成 `\n`）。参考实现放 `answer` 而不是
+`solution` 是有意的：短答案只做精确匹配，于是 `return [x for x in strings if substring in x]`
+这种 10 个单元的惯用写法不会命中所有用到它的代码文件；放进 `solution` 会按自身长度建索引，
+测试里断言了两种放法的差别。
 
 `big_math` 保留了 `llama8b_solve_rate`（每题 64 次 rollout 的通过率）。这是做难度课程的关键：
 零奖励是 GRPO 的吸收态（组内全错 → 无奖励方差 → 无梯度），有了通过率就能按难度带筛题，

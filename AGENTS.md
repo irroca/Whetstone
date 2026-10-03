@@ -132,10 +132,23 @@ rather than duplicating commands here.
  - **Run `prepare --probe 3` before a real `prepare`.** Sources are pulled serially, so a broken
  source (gated repo, wrong config name, renamed field) otherwise only fails after every source
  before it has finished. The probe reports all of them at once and exits 1 if any is not `ok`.
+ - **`prepare`'s `__main__` runs the atexit handlers and then calls `os._exit`, on purpose.**
+ pyarrow 25 deadlocks in a static thread pool's destructor if a parquet read is still in flight
+ when the process exits; a probe always is in that state (it abandons each stream after a few
+ rows), and Ctrl-C mid-source can be. Don't turn it back into a plain `main()` call.
  - `to_record` **projects** each row onto its schema's fields and drops every upstream column;
  `prepare_source` then adds a `source` tag (needed to split merged val data per language). Do
  not go back to passing rows through: FineWeb2-HQ ships a 768-float embedding per document,
  which made the Chinese slice 9.3x the size of its text.
+ - `to_record` also applies the source's `cleaners` (`datatools/cleaners.py`, named in the spec,
+ unknown names raise) to pretrain text, so filters, exact dedup and token counts see the
+ cleaned document. `starcoder_metadata` removes the `<reponame>…<filename>…<gh_stars>…` first
+ line that 49% of starcoderdata files carry, and only when that whole line is metadata: a
+ `'-f <filename>'` inside the code is content.
+ - **`max_repetition` is off for the code source on purpose.** Character 10-gram repetition
+ grows with file length (indentation, boilerplate): on the smoke corpus it rejected 2% of code
+ files under 2k chars and 57% of those over 20k, nearly all ordinary source. Don't re-enable it
+ for consistency with the prose sources.
  - `hf.columns` (parquet sources only; Gutenberg is `jsonl.gz`) limits which columns are
  downloaded. Parquet streams whole row groups, so without it zh_web also downloads every
  embedding before the first row comes out. Projection alone is not enough: fsspec reads 5MiB
@@ -170,8 +183,11 @@ rather than duplicating commands here.
     batch but never emitted. Don't regress either.
   - `datatools/fetch_evals.py` pulls benchmarks into the repo's `{"question","answer"}` schema, so
     one file serves both `prepare`'s `decontaminate.against` and `grpo.py --eval_path`. Converters
-    are pure functions tested offline against recorded rows — update the recorded row when a
-    field name changes upstream rather than loosening the converter. **A mixture spec with an
+ are pure functions tested offline against recorded rows — update the recorded row when a
+ field name changes upstream rather than loosening the converter. Code sets (HumanEval, MBPP)
+ carry their tests and put the reference code in `answer`, not `solution`: short answers only
+ match exactly, whereas a `solution` is indexed at its own length, and a 10-unit idiom like
+ `return [x for x in strings if substring in x]` would then flag every file that uses it. **A mixture spec with an
     empty `decontaminate.against` silently checks nothing**, so run `fetch_evals
     --decontamination_only --update_spec <spec>` before `prepare`.
 - **Every stage records its run to `{save_dir}/runs/{run_id}/`** via `runlog.RunRecorder`

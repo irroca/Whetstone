@@ -285,9 +285,11 @@ RL 阶段要做算术和代码。这组配比里 34% 是代码和数学，且数
 7. **去污染是必做项。** SmolLM2 的做法是对 GSM8K / MATH / MMLU 做 13-gram 匹配 +
    最长公共子序列重叠率 0.6 阈值，已在 `datatools.decontaminate` 实现。真实语料上的冒烟发现，
    标点算作单元、短答案按自身长度建索引会造成大面积误杀（删掉 3.9% 的文档，几乎全是误杀），
-   现在标点不算单元、短答案只做精确匹配，规则和数据见 README「数据工具」。
+   现在标点不算单元、短答案只做精确匹配，规则和数据见 README「数据工具」。代码部分对照
+   HumanEval / MBPP（参考实现放 `answer`，短函数体只精确匹配，惯用写法不会误杀）。
 8. **`bigcode/starcoderdata` 是 gated 的**（2026-10-03 本地实测：`DatasetNotFoundError: ... is a
-   gated dataset on the Hub`）。自动批准，但需要账号接受条款并配置 token。
+   gated dataset on the Hub`）。自动批准，但需要账号接受条款并配置 token。同日已接受条款，
+   probe 六个源全部 `ok`。
 9. **FineWeb2-HQ 每行带一个 768 维 embedding**（它的质量分类器用的）。整行保留时中文这一份比正文
    大 9.3 倍；parquet 又是按整个行组流式读的，不裁列时下载量是正文的十几倍。spec 里用
    `hf.columns` 只读 `text`。
@@ -295,6 +297,14 @@ RL 阶段要做算术和代码。这组配比里 34% 是代码和数学，且数
     原来的 `max_chars: 400000` 会筛掉 32% 的书且专挑长篇。现为 200 万，只排除多卷合集。
     另有约 5% 不是英文（法、意、拉丁、德），拉丁字母占比照样过线，用 `where` 按
     `metadata.language` 过滤。
+11. **starcoderdata 的文件内容里带着仓库元数据**：49% 的文件第一行是
+    `<reponame>…<filename>…<gh_stars>…`（StarCoder 训练时的序列化格式，三段随机出现）。
+    代码源用 `cleaners: ["starcoder_metadata"]` 在过滤前删掉这一行。
+12. **字符 10-gram 重复度不适用于代码**：它随文件长度单调上升，冒烟里拒掉 15% 的代码文件，
+    超过 2 万字符的拒掉 57%，几乎都是正常源码。代码源已关掉这条（`max_repetition: null`）。
+    剩下的问题：保留的代码里 2.4% 的文件头部带生成标记（以 Django migration 为主，但 Colab /
+    nbdev 导出的其实是人写的代码），`duplicate_lines` 会把单独一行的 `"""`、`)` 也算作重复行，
+    两者见 `status.md` §8。
 
 ---
 
@@ -313,11 +323,12 @@ python3 -m datatools.prepare configs/mixture_v1.json --dry_run
 python3 -m datatools.prepare configs/mixture_v1.json --out_dir datasets/prepared
 ```
 
-流程顺序是 **拉取 → 质量过滤 → 去重 → 去污染 → 划分 → manifest**：
+流程顺序是 **拉取 → 清洗 → 质量过滤 → 去重 → 去污染 → 划分 → manifest**：
 
 | 阶段 | 模块 | 要点 |
 |------|------|------|
 | 拉取 | `prepare.py` | HF 流式（`streaming=True`），按 token 预算边数边停，不下全量 |
+| 清洗 | `cleaners.py` | 过滤前按名字改写文本，目前只有删 StarCoder 元数据行的 `starcoder_metadata` |
 | 过滤 | `filters.py` | 长度、语种比例、重复度、符号/数字占比、行级重复；每条拒绝都归因到具体规则 |
 | 去重 | `dedup.py` | 精确 + MinHash 近重复（源内） |
 | 去污染 | `decontaminate.py` | 13-gram 重叠 + 可选 LCS 比例，CJK 按字符切、拉丁按词切，标点不算单元；manifest 列出删文档最多的评测项 |
@@ -331,7 +342,7 @@ python3 -m datatools.prepare configs/mixture_v1.json --out_dir datasets/prepared
 完整的执行顺序、验收标准和阻塞项见 [`docs/status.md`](status.md)。概要：
 
 1. ~~拉评测集闭上去污染的环（`fetch_evals --update_spec`）~~ 已完成
-2. ~~`--scale 0.001` 小规模跑通管线~~ 已完成（代码源除外，等 HF token），发现的问题见上面第 8–10 条
+2. ~~`--scale 0.001` 小规模跑通管线~~ 已完成（含代码源），发现的问题见上面第 8–12 条
 3. 跑消融 #1（中文占比）和 #5（词表大小）——它们决定其余所有配置
 4. 按定下的配比产出正式数据集，用它重训 tokenizer
 5. 租卡做 ~100M / ~10B token 的正式预训练（前提：`status.md` §3 的三件工程事已完成）
