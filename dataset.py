@@ -1,6 +1,9 @@
 import json
 from torch.utils.data import Dataset, DataLoader
+import numpy as np
 import torch
+
+from datatools.tokenize_corpus import check_tokenizer, load_token_meta, token_paths
 
 
 def assistant_loss_mask(input_ids, bos_id, eos_id, max_length, pad_token_id=0):
@@ -100,6 +103,74 @@ class PretrainDataset(Dataset):
         Y = input_ids[1:].clone().detach().long()
         loss_mask = loss_mask[1:].clone().detach().long()
         return X, Y, loss_mask
+
+
+class MemmapPretrainDataset(Dataset):
+    """Fixed-length windows over a corpus pre-tokenized by ``datatools.tokenize_corpus``.
+
+    Memory stays constant whatever the corpus size, and nothing is tokenized in
+    the training loop. Documents are packed back to back, so every window is
+    full and the loss mask is all ones: there is no padding to exclude.
+
+    Window ``i`` covers tokens ``[i*(L-1), i*(L-1) + L)`` for ``L = max_length``.
+    Neighbouring windows share one token, so every token after the first is a
+    prediction target exactly once per epoch (up to ``L - 2`` tail tokens that
+    do not fill a window are dropped), and ``X``/``Y`` come out ``L - 1`` long,
+    the same as ``PretrainDataset`` at the same ``--max_seq_len``.
+    """
+
+    def __init__(self, data_path, tokenizer, max_length=512):
+        super().__init__()
+        if max_length < 2:
+            raise ValueError(f"max_length must be at least 2, got {max_length}")
+        self.path = token_paths(data_path)[0]
+        self.meta = load_token_meta(self.path)
+        check_tokenizer(self.meta, tokenizer, self.path)
+        self.dtype = np.dtype(self.meta["dtype"])
+        self.num_tokens = self.meta["num_tokens"]
+        self.max_length = max_length
+        self.stride = max_length - 1
+        self.num_windows = (self.num_tokens - 1) // self.stride
+        if self.num_windows < 1:
+            raise ValueError(
+                f"{self.path} holds {self.num_tokens} tokens, fewer than one window of {max_length}"
+            )
+        self._tokens = None
+
+    @property
+    def tokens(self):
+        # Opened lazily so each DataLoader worker maps the file itself.
+        if self._tokens is None:
+            self._tokens = np.memmap(self.path, dtype=self.dtype, mode="r", shape=(self.num_tokens,))
+        return self._tokens
+
+    def __getstate__(self):
+        # Pickling a memmap copies the whole array into every worker.
+        state = self.__dict__.copy()
+        state["_tokens"] = None
+        return state
+
+    def __len__(self):
+        return self.num_windows
+
+    def __getitem__(self, index):
+        if index < 0:
+            index += self.num_windows
+        if not 0 <= index < self.num_windows:
+            raise IndexError(f"window {index} out of range for {self.num_windows} windows")
+        start = index * self.stride
+        window = torch.from_numpy(self.tokens[start : start + self.max_length].astype(np.int64))
+        X = window[:-1]
+        Y = window[1:]
+        return X, Y, torch.ones_like(Y)
+
+
+def build_pretrain_dataset(data_path, tokenizer, max_length=512):
+    """Memory-mapped windows for a tokenized ``.bin``, the JSONL reader for anything else."""
+    if data_path.endswith(".bin"):
+        return MemmapPretrainDataset(data_path, tokenizer, max_length=max_length)
+    return PretrainDataset(data_path, tokenizer, max_length=max_length)
+
 
 class SFTDataset(Dataset):
     def __init__(self, jsonl_path, tokenizer, max_length=1024):

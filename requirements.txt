@@ -11,6 +11,10 @@ numpy>=1.26
 scikit-learn>=1.3
 tqdm>=4.66
 
+# Data pipeline: datatools.prepare / datatools.fetch_evals stream from the Hub.
+# Imported lazily, so the tests run without it, but the pipeline does not.
+datasets>=3.0
+
 pytest>=8.0
 
 # Optional: interactive chat colored output

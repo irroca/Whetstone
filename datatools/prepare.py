@@ -25,10 +25,19 @@ it fits. In practice the yield is low here: FineWeb-Edu and FineWeb2-HQ are
 already MinHash-deduplicated upstream, so the remaining near-duplicates come
 from cross-source overlap and from our own synthetic data.
 
+Every emitted record carries a ``source`` field naming the mixture slot it came
+from, so the merged splits can still be broken down per source (per-language
+validation loss is what the mixture ablations compare).
+
 ::
 
+    python3 -m datatools.prepare configs/mixture_v1.json --probe 3
     python3 -m datatools.prepare configs/mixture_v1.json --dry_run
     python3 -m datatools.prepare configs/mixture_v1.json --out_dir datasets/prepared
+
+``--probe`` pulls a few rows from every source and checks the spec against
+them: a wrong config name, a gated repo or a renamed text field shows up for all
+sources at once, instead of killing a long run at whichever source comes first.
 """
 
 from __future__ import annotations
@@ -43,10 +52,27 @@ from typing import Any, Iterator, Optional, Sequence
 
 from .decontaminate import DEFAULT_N, EvalIndex, load_eval_index
 from .filters import FilterConfig, reject_reason
-from .records import detect_schema, normalize_text, read_jsonl, record_text, write_jsonl
+from .records import (
+    PREFERENCE,
+    SFT,
+    TASK,
+    detect_schema,
+    normalize_text,
+    read_jsonl,
+    record_text,
+    write_jsonl,
+)
 from .split import HOLDOUT, TRAIN, VAL, assign_split
 
 TOKENIZE_BATCH = 256
+PROJECTED_READ_AHEAD = 64 * 1024
+
+# Fields kept when a row already has a non-pretrain schema; everything else is dropped.
+SCHEMA_FIELDS = {
+    SFT: ("conversations",),
+    PREFERENCE: ("prompt", "chosen", "rejected"),
+    TASK: ("question", "answer", "solution"),
+}
 
 
 @dataclass
@@ -59,6 +85,7 @@ class SourceSpec:
     jsonl: Optional[str] = None
     hf: Optional[dict] = None
     filters: FilterConfig = field(default_factory=FilterConfig)
+    where: dict = field(default_factory=dict)
     max_records: Optional[int] = None
     note: str = ""
 
@@ -75,6 +102,13 @@ class SourceSpec:
             raise ValueError(f"source {source.name!r} needs exactly one of 'jsonl' or 'hf'")
         if source.weight <= 0:
             raise ValueError(f"source {source.name!r} must have weight > 0")
+        columns = (source.hf or {}).get("columns")
+        if columns is not None:
+            needed = {source.text_field, *(key.split(".")[0] for key in source.where)}
+            missing = sorted(needed - set(columns))
+            if missing:
+                # Every row would be rejected, and the run would only show 0% fill at the end.
+                raise ValueError(f"source {source.name!r}: hf.columns {columns} omits {missing}")
         return source
 
 
@@ -149,6 +183,22 @@ class SourceReport:
         }
 
 
+def hf_load_options(hf: dict) -> dict:
+    """``load_dataset`` keyword arguments for an ``hf`` source spec.
+
+    Column projection only saves bandwidth if each read stops at the end of
+    the column chunk. fsspec reads 5MiB past every read by default, which lands
+    in the next, dropped column: on FineWeb2-HQ that is the embedding, and one
+    row group costs 8.7MB instead of 3.8MB (25.6MB with no projection at all).
+    """
+    options = dict(hf)
+    options.setdefault("streaming", True)
+    options.setdefault("split", "train")
+    if "columns" in options:
+        options.setdefault("storage_options", {"hf": {"block_size": PROJECTED_READ_AHEAD}})
+    return options
+
+
 def iter_raw(source: SourceSpec) -> Iterator[dict]:
     """Yield raw records from a source, lazily."""
     if source.jsonl is not None:
@@ -158,23 +208,42 @@ def iter_raw(source: SourceSpec) -> Iterator[dict]:
 
     from datasets import load_dataset  # imported lazily: tests run offline
 
-    options = dict(source.hf or {})
-    options.setdefault("streaming", True)
-    options.setdefault("split", "train")
+    options = hf_load_options(source.hf or {})
     path = options.pop("path")
     dataset = load_dataset(path, **options)
     for row in dataset:
         yield dict(row)
 
 
-def to_record(raw: dict, source: SourceSpec) -> Optional[dict]:
-    """Normalize a raw row into one of the repo's four schemas.
+def where_mismatch(raw: dict, where: dict) -> Optional[str]:
+    """The first ``where`` field a raw row fails, as a rejection reason.
 
-    Rows that already match a known schema pass through unchanged, so a
-    preference or conversation dataset can be mixed in without special-casing.
+    Keys are dotted paths into the row (``metadata.language``); a list value
+    accepts any of its members. This is for upstream metadata the text filters
+    cannot see, such as a book's declared language.
     """
-    if detect_schema(raw) != "unknown":
-        return raw
+    for key, expected in where.items():
+        value: Any = raw
+        for part in key.split("."):
+            value = value.get(part) if isinstance(value, dict) else None
+        allowed = expected if isinstance(expected, list) else [expected]
+        if value not in allowed:
+            return f"where:{key}"
+    return None
+
+
+def to_record(raw: dict, source: SourceSpec) -> Optional[dict]:
+    """Project a raw row onto one of the repo's four schemas, dropping the rest.
+
+    Conversation, preference and task rows keep their schema's fields, so such
+    a dataset can be mixed in without special-casing. Anything else becomes
+    ``{"text": row[text_field]}``. Upstream columns are never carried along:
+    FineWeb2-HQ ships a 768-float embedding with every document, and keeping it
+    makes the Chinese slice 9.3x larger than its text (81MB for 8.8MB).
+    """
+    schema = detect_schema(raw)
+    if schema in SCHEMA_FIELDS:
+        return {key: raw[key] for key in SCHEMA_FIELDS[schema] if key in raw}
     value = raw.get(source.text_field)
     if value is None:
         return None
@@ -190,7 +259,9 @@ def count_tokens(tokenizer, texts: Sequence[str]) -> list[int]:
     """Token counts for a batch. Batched because this is the pipeline's hot path."""
     if not texts:
         return []
-    encoded = tokenizer(list(texts), add_special_tokens=False)
+    # verbose=False: whole documents run past model_max_length by design, and
+    # the warning about "indexing errors" only applies to feeding a model.
+    encoded = tokenizer(list(texts), add_special_tokens=False, verbose=False)
     return [len(ids) for ids in encoded["input_ids"]]
 
 
@@ -204,41 +275,48 @@ def prepare_source(
     """Stream one source until its token budget is met, writing filtered records."""
     report = SourceReport(name=source.name, target_tokens=spec.token_budget(source))
     seen_digests: set[bytes] = set()
-    buffer: list[tuple[dict, str]] = []
+    # Each buffered record carries the counters as they stood when it was
+    # accepted. When the budget fills at a record, the report rewinds to that
+    # record's snapshot: rows read after it were never needed, and counting
+    # them (and their rejections) makes a source of 70k-token books report an
+    # 18% keep rate when 89% of its rows pass.
+    buffer: list[tuple[dict, str, tuple[int, Counter, int]]] = []
+    buffered_chars = 0
     handle = None
     if out_path:
         os.makedirs(os.path.dirname(out_path) or ".", exist_ok=True)
         handle = open(out_path, "w", encoding="utf-8")
 
     def flush() -> bool:
-        """Tokenize and emit the buffer. Returns True when the budget is met.
-
-        Records pulled into the buffer but never emitted (because the budget
-        filled mid-batch) are subtracted back out of ``seen``, so the reported
-        keep rate stays a true filter pass rate rather than being diluted by
-        the tokenization batch size.
-        """
-        nonlocal buffer
+        """Tokenize and emit the buffer. Returns True when the budget is met."""
+        nonlocal buffer, buffered_chars
         if not buffer:
             return False
-        counts = count_tokens(tokenizer, [text for _, text in buffer])
-        for position, ((record, _), n_tokens) in enumerate(zip(buffer, counts)):
-            if handle is not None:
-                handle.write(json.dumps(record, ensure_ascii=False) + "\n")
-            report.tokens += n_tokens
-            report.documents += 1
-            if report.tokens >= report.target_tokens:
-                report.seen -= len(buffer) - position - 1
-                buffer = []
-                return True
-        buffer = []
-        return False
+        counts = count_tokens(tokenizer, [text for _, text, _ in buffer])
+        try:
+            for (record, _, snapshot), n_tokens in zip(buffer, counts):
+                if handle is not None:
+                    tagged = {**record, "source": source.name}
+                    handle.write(json.dumps(tagged, ensure_ascii=False) + "\n")
+                report.tokens += n_tokens
+                report.documents += 1
+                if report.tokens >= report.target_tokens:
+                    report.seen, report.rejected, report.exact_duplicates = snapshot
+                    return True
+            return False
+        finally:
+            buffer, buffered_chars = [], 0
 
     try:
         for raw in iter_raw(source):
-            report.seen += 1
-            if source.max_records is not None and report.seen > source.max_records:
+            if source.max_records is not None and report.seen >= source.max_records:
                 break
+            report.seen += 1
+
+            mismatch = where_mismatch(raw, source.where)
+            if mismatch is not None:
+                report.rejected[mismatch] += 1
+                continue
 
             record = to_record(raw, source)
             if record is None:
@@ -259,8 +337,14 @@ def prepare_source(
                 continue
             seen_digests.add(digest)
 
-            buffer.append((record, text))
-            if len(buffer) >= TOKENIZE_BATCH and flush():
+            buffer.append((record, text, (report.seen, Counter(report.rejected), report.exact_duplicates)))
+            buffered_chars += len(text)
+            # Documents almost never have more tokens than characters, so the
+            # budget cannot fill before the buffer holds as many characters as
+            # tokens remain. Flushing from then on bounds over-reading to about
+            # one document instead of a whole batch (256 books for a 7-book budget).
+            remaining = report.target_tokens - report.tokens
+            if (len(buffer) >= TOKENIZE_BATCH or buffered_chars >= remaining) and flush():
                 return report
             if progress_every and report.documents and report.documents % progress_every == 0:
                 print(
@@ -294,6 +378,7 @@ def finalize(
     counts = Counter()
     contaminated = 0
     rescued = 0
+    hits: Counter = Counter()
     try:
         for path in source_paths:
             for record in read_jsonl(path):
@@ -301,10 +386,13 @@ def finalize(
                     match = match_record(record.data, eval_index)
                     if match is not None:
                         part, hit = match
-                        if lcs_threshold is not None and lcs_ratio(part, eval_index.items[hit]) < lcs_threshold:
+                        if lcs_threshold is not None and (
+                            lcs_ratio(part, eval_index.items[hit], eval_index.n) < lcs_threshold
+                        ):
                             rescued += 1
                         else:
                             contaminated += 1
+                            hits[hit] += 1
                             continue
                 name = assign_split(
                     record_text(record.data),
@@ -317,12 +405,92 @@ def finalize(
     finally:
         for handle in handles.values():
             handle.close()
+    # One eval item removing many documents is the signature of a false
+    # positive (a generic phrase), not of a leak, which is why it is reported.
+    top_matches = [
+        {"eval_item": eval_index.items[item][:160], "documents": count}
+        for item, count in hits.most_common(10)
+    ]
     return {
         "counts": dict(counts),
         "contaminated_removed": contaminated,
         "lcs_rescued": rescued,
         "eval_items": len(eval_index) if eval_index is not None else 0,
+        "top_matches": top_matches,
     }
+
+
+@dataclass
+class ProbeResult:
+    name: str
+    text_field: str
+    rows: int = 0
+    columns: list[str] = field(default_factory=list)
+    missing_text: int = 0
+    chars: int = 0
+    rejected: Counter = field(default_factory=Counter)
+    sample: str = ""
+    error: Optional[str] = None
+
+    @property
+    def status(self) -> str:
+        if self.error is not None:
+            return "ERROR"
+        if self.rows == 0:
+            return "EMPTY"
+        if self.missing_text:
+            return "NO TEXT FIELD"
+        return "ok"
+
+
+def probe_source(source: SourceSpec, rows: int = 3) -> ProbeResult:
+    """Pull the first few raw rows of a source and check the spec against them.
+
+    Errors are captured, not raised: the point is to see every source's
+    problem in one pass.
+    """
+    result = ProbeResult(name=source.name, text_field=source.text_field)
+    try:
+        for raw in iter_raw(source):
+            result.rows += 1
+            result.columns = sorted(raw)
+            record = to_record(raw, source)
+            if record is None:
+                result.missing_text += 1
+            else:
+                text = record_text(record)
+                result.chars += len(text)
+                result.sample = result.sample or text
+                reason = where_mismatch(raw, source.where) or reject_reason(text, source.filters)
+                if reason is not None:
+                    result.rejected[reason] += 1
+            if result.rows >= rows:
+                break
+    except Exception as exc:
+        result.error = f"{type(exc).__name__}: {exc}"
+    return result
+
+
+def render_probe(results: Sequence[ProbeResult]) -> str:
+    lines = []
+    for result in results:
+        lines.append(f"{result.name:<20} {result.status}")
+        if result.error is not None:
+            lines.append(f"    {result.error.strip().splitlines()[0][:300]}")
+        if result.columns:
+            lines.append(f"    columns: {', '.join(result.columns)}")
+        if result.missing_text:
+            lines.append(f"    text_field {result.text_field!r} missing in {result.missing_text}/{result.rows} rows")
+        kept = result.rows - result.missing_text
+        if kept:
+            rejected = ", ".join(f"{k}={v}" for k, v in result.rejected.most_common()) or "none"
+            lines.append(
+                f"    {result.rows} rows, {result.chars // kept} chars/row; "
+                f"filters would reject: {rejected}"
+            )
+        if result.sample:
+            lines.append(f"    sample: {result.sample[:160]!r}")
+    return "\n".join(lines)
 
 
 def render_sources(reports: Sequence[SourceReport]) -> str:
@@ -364,9 +532,20 @@ def main() -> None:
         help="Multiply total_tokens, e.g. 0.01 for a quick pipeline check",
     )
     parser.add_argument("--progress_every", type=int, default=0, help="Docs between progress lines")
+    parser.add_argument(
+        "--probe",
+        type=int,
+        default=0,
+        metavar="ROWS",
+        help="Pull ROWS rows from every source, report spec problems, and exit",
+    )
     args = parser.parse_args()
 
     spec = MixtureSpec.load(args.spec)
+    if args.probe:
+        results = [probe_source(source, args.probe) for source in spec.sources]
+        print(render_probe(results))
+        raise SystemExit(0 if all(r.status == "ok" for r in results) else 1)
     if args.scale != 1.0:
         spec.total_tokens = int(spec.total_tokens * args.scale)
 
@@ -405,6 +584,8 @@ def main() -> None:
         spec, paths, args.out_dir, eval_index, decon.get("lcs_threshold")
     )
     print(f"splits: {split_info['counts']}, contaminated removed: {split_info['contaminated_removed']}")
+    for match in split_info["top_matches"][:5]:
+        print(f"    -{match['documents']:>6} docs matched {match['eval_item'][:100]!r}")
 
     manifest = {
         "mixture": spec.name,

@@ -11,21 +11,28 @@ of 0.6. Two stages:
 1. **13-gram containment** (cheap, always on). Build the set of 13-grams of
    every eval item; flag any training document sharing one.
 2. **LCS overlap ratio** (optional, stricter). For flagged documents only,
-   compute the longest common subsequence against the matched eval item and
-   require it to cover at least ``lcs_threshold`` of the shorter text. This
-   demotes coincidental 13-gram collisions back to clean.
+   align the matched eval item with the document at their shared n-grams and
+   require the longest common subsequence there to cover at least
+   ``lcs_threshold`` of the shorter text. This demotes coincidental 13-gram
+   collisions back to clean: on the smoke corpus, a coordinate-geometry formula
+   sheet shares the triangle-area determinant with a MATH-500 problem.
 
 **CJK needs its own tokenization.** A 13-gram over whitespace-separated words
 does not exist in Chinese. ``text_units`` emits each CJK character as its own
-unit and each latin/digit run as a word, so a 13-gram is 13 words in English
-and 13 characters in Chinese — both roughly a sentence fragment.
+unit and each other run of letters/digits as a word, so a 13-gram is 13 words in
+English and 13 characters in Chinese — both roughly a sentence fragment.
+Punctuation and symbols are not units (as in GPT-3's contamination analysis):
+as units, a run of dashes in one MMLU question matches every markdown table,
+and LaTeX braces turn any formula skeleton into a "phrase".
 
-**Known limitation: very short answers are weakly protected.** A benchmark
-answer of ``"42"`` has fewer than ``MIN_GRAM`` units, so it is matched only
-against a training part equal to it. Flagging a bare ``42`` wherever it appears
-would delete the corpus, so protection comes from the question, which is long
-and distinctive. This is asserted in the tests so it stays a known property
-rather than a surprise.
+**Answers are protected by exact matching only, unless they are long.** A
+benchmark answer leaking on its own is not contamination; the question is what
+makes an item recognizable. Indexing short answers as n-grams was the largest
+source of false positives on real data: MMLU's ``1,2,3`` matched 76 of 4.8k
+smoke-test documents, MATH's ``\\frac{3}{2}`` 35, TAL's ``等腰三角形`` most of
+the rest. So an answer shorter than ``n`` units only matches a training part
+that is itself that string; questions and solutions keep the shorter-gram rule.
+This is asserted in the tests so it stays a known property, not a surprise.
 """
 
 from __future__ import annotations
@@ -38,7 +45,9 @@ from dataclasses import dataclass, field
 from typing import Iterable, Optional, Sequence
 
 from .records import (
+    TASK,
     ReadStats,
+    detect_schema,
     normalize_text,
     read_jsonl,
     record_parts,
@@ -47,14 +56,20 @@ from .records import (
 )
 
 DEFAULT_N = 13
-MIN_GRAM = 5  # below this an n-gram matches almost anything, so fall back to exact matching
-_UNIT_RE = re.compile(r"[0-9A-Za-z]+|[^\s0-9A-Za-z]")
+# Below this an n-gram matches generic phrasing ("which of the following is
+# true", "what is the value of b"), so shorter items fall back to exact matching.
+MIN_GRAM = 8
+# Bounds the quadratic LCS gate to about 600 x 1200 units per alignment.
+LCS_CONTEXT = 300
+_CJK = "\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff"
+_UNIT_RE = re.compile(rf"[^\W_{_CJK}]+|[{_CJK}]")
 
 
 def text_units(text: str) -> list[str]:
-    """Split into comparison units: latin/digit runs stay whole, other chars split.
+    """Split into comparison units: each CJK character, or a run of other letters/digits.
 
-    ``"solve 12 + 7 计算结果"`` -> ``['solve', '12', '+', '7', '计', '算', '结', '果']``
+    Punctuation, symbols and underscores separate units and are dropped.
+    ``"solve 12 + 7 计算结果"`` -> ``['solve', '12', '7', '计', '算', '结', '果']``
     """
     return _UNIT_RE.findall(text)
 
@@ -92,13 +107,37 @@ def lcs_length(a: Sequence[str], b: Sequence[str], max_units: int = 2000) -> int
     return previous[-1]
 
 
-def lcs_ratio(a: str, b: str, max_units: int = 2000) -> float:
-    """LCS length over the *shorter* text's length, so a long page cannot dilute it."""
+def lcs_ratio(a: str, b: str, n: int = DEFAULT_N) -> float:
+    """How much of the shorter text the longer one reproduces, in order, where they overlap.
+
+    At each n-gram the texts share, the shorter text (up to ``LCS_CONTEXT``
+    units either side of it) is aligned against the longer one and their LCS
+    is taken over the shorter side, so a long page cannot dilute it. The best
+    alignment wins; texts sharing no n-gram score 0. Measured against a whole
+    page instead, a short item collects its words by chance from anywhere on
+    it, and any cap on the page's length hides a leak further down a book.
+    """
     units_a, units_b = text_units(normalize_text(a, True)), text_units(normalize_text(b, True))
-    shorter = min(len(units_a), len(units_b))
-    if shorter == 0:
+    short, long_ = sorted((units_a, units_b), key=len)
+    if not short:
         return 0.0
-    return lcs_length(units_a, units_b, max_units) / shorter
+    size = min(n, len(short))
+    offsets: dict[tuple[str, ...], int] = {}
+    for q in range(len(short) - size + 1):
+        offsets.setdefault(tuple(short[q : q + size]), q)
+    best, covered = 0.0, 0
+    for p in range(len(long_) - size + 1):
+        q = offsets.get(tuple(long_[p : p + size])) if p >= covered else None
+        if q is None:
+            continue
+        lo, hi = max(0, q - LCS_CONTEXT), min(len(short), q + size + LCS_CONTEXT)
+        segment = short[lo:hi]
+        start, end = p - (q - lo), p + (hi - q)
+        slack = len(segment) // 2
+        window = long_[max(0, start - slack) : end + slack]
+        best = max(best, lcs_length(window, segment) / len(segment))
+        covered = end
+    return best
 
 
 @dataclass
@@ -119,13 +158,14 @@ class EvalIndex:
     short_items: dict[str, int] = field(default_factory=dict)
     items: list[str] = field(default_factory=list)
 
-    def add(self, text: str) -> None:
+    def add(self, text: str, min_gram: Optional[int] = None) -> None:
+        """Index one eval item. Items shorter than ``min_gram`` units only match exactly."""
         units = text_units(normalize_text(text, casefold=True))
         if not units:
             return
         item_id = len(self.items)
         self.items.append(text)
-        if len(units) < self.min_gram:
+        if len(units) < (self.min_gram if min_gram is None else min_gram):
             self.short_items.setdefault(" ".join(units), item_id)
             return
         size = min(len(units), self.n)
@@ -181,13 +221,16 @@ def load_eval_index(
     index = EvalIndex(n=n)
     for path in paths:
         for record in read_jsonl(path):
-            parts = (
-                record_parts(record.data)
-                if field_name == "auto"
-                else [str(record.data.get(field_name, ""))]
-            )
-            for part in parts:
-                index.add(part)
+            if field_name != "auto":
+                index.add(str(record.data.get(field_name, "")))
+            elif detect_schema(record.data) == TASK:
+                for key in ("question", "answer", "solution"):
+                    if record.data.get(key):
+                        # Short answers match exactly only; see the module docstring.
+                        index.add(str(record.data[key]), min_gram=n if key == "answer" else None)
+            else:
+                for part in record_parts(record.data):
+                    index.add(part)
     return index
 
 
@@ -251,7 +294,7 @@ def decontaminate(
             continue
         text, hit = match
         report.ngram_hits += 1
-        if lcs_threshold is not None and lcs_ratio(text, index.items[hit]) < lcs_threshold:
+        if lcs_threshold is not None and lcs_ratio(text, index.items[hit], index.n) < lcs_threshold:
             report.lcs_rescued += 1
             kept.append(record)
             continue
