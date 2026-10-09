@@ -110,8 +110,8 @@ HF_HUB_OFFLINE=1 python3 -m pytest tests/ -q      # 应为 502 passed（含 #12�
 | [#8](https://github.com/irroca/Whetstone/pull/8) | MPS 设备自动选择 + 训练记录体系 | 已合并 |
 | [#9](https://github.com/irroca/Whetstone/pull/9) | 训练记录与复盘体系（`runlog` + 验证集 + `analyze_runs.py`）| 已合并 |
 | [#10](https://github.com/irroca/Whetstone/pull/10) | memmap 预训练语料 + 数据管线首次真实数据冒烟 | 已合并（squash），但只含前 4 个提交 |
-| [#11](https://github.com/irroca/Whetstone/pull/11) | 消融编排 + 补上 #10 合并后才推的 5 个提交（SDPA、代码源修复）| 待合并 |
-| [#12](https://github.com/irroca/Whetstone/pull/12) | 消融结论、正式配比与词表、去污染修复、共享训练循环、GPU 准备 | 待合并，**base 是 #11 的分支**：先合 #11，再把 #12 的 base 改成 `main` |
+| [#11](https://github.com/irroca/Whetstone/pull/11) | 消融编排 + 补上 #10 合并后才推的 5 个提交（SDPA、代码源修复）| 已合并（squash）|
+| [#12](https://github.com/irroca/Whetstone/pull/12) | 消融结论、正式配比与词表、去污染修复、共享训练循环、GPU 准备 | 待合并（#11 合并后已 rebase 到 `main`，每个提交的 tree 不变）|
 
 **教训**：stacked PR 要么严格按自下而上的顺序合，要么在合之前把上层 PR 的 base 直接改成 `main`。
 `squash` 合并会切断祖先关系，所以一旦顺序错了，后续那个 PR 的内容不会自动跟过来，
@@ -447,7 +447,8 @@ done
 
 **进度**：前两条已完成（七个评测集重拉、六个源 probe 全部 `ok`）。后两条 10-09 16:30 起在
 `screen` 会话 `whetstone-data` 里跑，固定在 `d400431` 的 worktree `../whetstone-data-v2` 里
-（`datasets` 是指回主仓库的软链接），预计 11–13 小时，网络是瓶颈。日志
+（`datasets` 是指回主仓库的软链接），预计 11–13 小时，网络是瓶颈。`d400431` 是 rebase 前的提交，
+日志和 manifest 记的都是它；PR #12 里的 `f56f110` 与它的 tree 完全相同。日志
 `results/data_v2/run.log`；中断了就重跑 `zsh results/data_v2/run.sh`，已完成的步骤会跳过。
 
 **出数据之前修掉的去污染误杀**（原 §8 第 7 条）：选择题的通用题干（`下列说法正确的是．`、
