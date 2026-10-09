@@ -1,0 +1,160 @@
+{
+  "name": "v2-bilingual-verifiable",
+  "tokenizer": "./tokenizer/v1_32k",
+  "total_tokens": 10000000000,
+  "seed": 0,
+  "val_fraction": 0.005,
+  "holdout_fraction": 0.005,
+  "decontaminate": {
+    "against": [
+      "datasets/eval/gsm8k.jsonl",
+      "datasets/eval/humaneval.jsonl",
+      "datasets/eval/math500.jsonl",
+      "datasets/eval/mbpp.jsonl",
+      "datasets/eval/mmlu.jsonl",
+      "datasets/eval/tal_scq5k_cn.jsonl",
+      "datasets/eval/tal_scq5k_en.jsonl"
+    ],
+    "n": 13,
+    "lcs_threshold": 0.6
+  },
+  "sources": [
+    {
+      "name": "zh_web",
+      "weight": 0.2,
+      "note": "FineWeb2-HQ Chinese: ODC-By, already MinHash-deduplicated upstream. Rows carry a 768-float embedding, so read only the text column. 20% from ablation_v1: 15% already gets 90% of the Chinese gain of 45%; every further 15% costs English, code and math about 2% bits per byte; the other sources keep their v1 proportions",
+      "hf": {
+        "path": "epfml/FineWeb2-HQ",
+        "name": "cmn_Hani",
+        "split": "train",
+        "columns": [
+          "text"
+        ]
+      },
+      "text_field": "text",
+      "filters": {
+        "min_chars": 200,
+        "max_chars": 100000,
+        "min_cjk_ratio": 0.5,
+        "max_digit_ratio": 0.3,
+        "max_symbol_ratio": 0.3,
+        "max_repetition": 0.3,
+        "max_duplicate_lines": 0.3
+      }
+    },
+    {
+      "name": "en_web",
+      "weight": 0.32,
+      "note": "FineWeb-Edu: ODC-By, educational-quality classifier threshold 3",
+      "hf": {
+        "path": "HuggingFaceFW/fineweb-edu",
+        "name": "sample-10BT",
+        "split": "train",
+        "columns": [
+          "text"
+        ]
+      },
+      "text_field": "text",
+      "filters": {
+        "min_chars": 200,
+        "max_chars": 100000,
+        "min_latin_ratio": 0.5,
+        "max_digit_ratio": 0.3,
+        "max_symbol_ratio": 0.3,
+        "max_repetition": 0.3,
+        "max_duplicate_lines": 0.3,
+        "min_mean_word_length": 3.0,
+        "max_mean_word_length": 10.0
+      }
+    },
+    {
+      "name": "code",
+      "weight": 0.229,
+      "note": "starcoderdata Python: ships file contents, unlike Stack-Edu which is SWHIDs only. max_repetition is off: character 10-gram repetition grows with file length and rejected 57% of files over 20k chars, nearly all ordinary code",
+      "hf": {
+        "path": "bigcode/starcoderdata",
+        "data_dir": "python",
+        "split": "train",
+        "columns": [
+          "content"
+        ]
+      },
+      "text_field": "content",
+      "cleaners": [
+        "starcoder_metadata"
+      ],
+      "filters": {
+        "min_chars": 100,
+        "max_chars": 60000,
+        "max_digit_ratio": 0.3,
+        "max_symbol_ratio": 0.6,
+        "max_repetition": null,
+        "max_duplicate_lines": 0.5
+      }
+    },
+    {
+      "name": "math",
+      "weight": 0.16,
+      "note": "FineMath4+: ODC-By, 10B tokens, scores 4-5 only",
+      "hf": {
+        "path": "HuggingFaceTB/finemath",
+        "name": "finemath-4plus",
+        "split": "train",
+        "columns": [
+          "text"
+        ]
+      },
+      "text_field": "text",
+      "filters": {
+        "min_chars": 100,
+        "max_chars": 100000,
+        "max_digit_ratio": 0.4,
+        "max_symbol_ratio": 0.5,
+        "max_repetition": 0.4,
+        "max_duplicate_lines": 0.4
+      }
+    },
+    {
+      "name": "books",
+      "weight": 0.057,
+      "note": "Common Pile Project Gutenberg: public domain. OCR noise is expected. ~5% of books are not English; 98% are under 1M chars, the cap only drops multi-volume compilations",
+      "hf": {
+        "path": "common-pile/project_gutenberg",
+        "split": "train"
+      },
+      "text_field": "text",
+      "where": {
+        "metadata.language": "en"
+      },
+      "filters": {
+        "min_chars": 1000,
+        "max_chars": 2000000,
+        "min_latin_ratio": 0.5,
+        "max_digit_ratio": 0.2,
+        "max_symbol_ratio": 0.2,
+        "max_repetition": 0.4,
+        "max_duplicate_lines": 0.3
+      }
+    },
+    {
+      "name": "synthetic_textbook",
+      "weight": 0.034,
+      "note": "Cosmopedia v2: synthetic textbooks/blogs/stories, 30B tokens",
+      "hf": {
+        "path": "HuggingFaceTB/smollm-corpus",
+        "name": "cosmopedia-v2",
+        "split": "train",
+        "columns": [
+          "text"
+        ]
+      },
+      "text_field": "text",
+      "filters": {
+        "min_chars": 200,
+        "max_chars": 100000,
+        "min_latin_ratio": 0.5,
+        "max_repetition": 0.3
+      }
+    }
+  ]
+}

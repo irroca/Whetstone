@@ -9,7 +9,7 @@ from train_utils import (
     accelerator_type,
     add_common_train_args,
     build_autocast_scaler,
-    flush_pending_grads,
+    build_optimizer,
     init_wandb_if_needed,
     optimizer_step,
     resolve_device,
@@ -35,37 +35,36 @@ def test_optimizer_step_clears_grads_no_scaler():
     assert model.weight.grad is None
 
 
-def test_flush_pending_grads_leftover_accum_boundary_not_hit():
-    """Simulate N backwards where N % accumulation_steps != 0 (leftover pending grads)."""
-    accumulation_steps = 4
-    model, optimizer = _tiny_model_and_optimizer()
-
-    pending = False
-    n_micro_batches = 3  # 3 % 4 != 0, so accum boundary never hit
-    for _ in range(n_micro_batches):
-        x = torch.randn(2, 4)
-        loss = model(x).sum()
-        loss.backward()
-        pending = True
-        if (_ + 1) % accumulation_steps == 0:
-            optimizer_step(model, optimizer, scaler=None, grad_clip=1.0)
-            pending = False
-
-    # Leftover grads should still be present since boundary was never hit.
-    assert model.weight.grad is not None
-    assert torch.any(model.weight.grad != 0)
-    assert pending is True
-
-    flushed = flush_pending_grads(model, optimizer, scaler=None, grad_clip=1.0, pending=pending)
-
-    assert flushed is True
-    assert model.weight.grad is None
+def _optimizer_args(**overrides):
+    parser = argparse.ArgumentParser()
+    add_common_train_args(parser)
+    args = parser.parse_args([])
+    for key, value in {"device": "cpu", **overrides}.items():
+        setattr(args, key, value)
+    return args
 
 
-def test_flush_pending_grads_noop_when_not_pending():
-    model, optimizer = _tiny_model_and_optimizer()
-    flushed = flush_pending_grads(model, optimizer, scaler=None, grad_clip=1.0, pending=False)
-    assert flushed is False
+def test_build_optimizer_decays_matrices_but_not_norms_or_biases():
+    from config import LLMConfig
+    from model import Whetstone
+
+    model = Whetstone(LLMConfig(dim=32, n_layers=1, n_heads=4, n_kv_heads=2, vocab_size=64))
+    optimizer = build_optimizer(model, _optimizer_args(weight_decay=0.1))
+
+    decay = {id(p): group["weight_decay"] for group in optimizer.param_groups for p in group["params"]}
+    for name, p in model.named_parameters():
+        assert decay[id(p)] == (0.1 if p.ndim >= 2 else 0.0), name
+    assert len(decay) == len(list(model.parameters()))  # the tied embedding counted once
+    assert optimizer.param_groups[0]["betas"] == (0.9, 0.95)
+
+
+def test_build_optimizer_skips_frozen_parameters():
+    model = nn.Sequential(nn.Linear(4, 4), nn.Linear(4, 1))
+    for p in model[0].parameters():
+        p.requires_grad_(False)
+    optimizer = build_optimizer(model, _optimizer_args())
+    trained = {id(p) for group in optimizer.param_groups for p in group["params"]}
+    assert trained == {id(p) for p in model[1].parameters()}
 
 
 def test_optimizer_step_clips_grad_norm():

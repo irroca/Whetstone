@@ -146,20 +146,57 @@ def optimizer_step(
     return float(grad_norm)
 
 
-def flush_pending_grads(
-    model: nn.Module,
-    optimizer: optim.Optimizer,
-    scaler: Any,
-    grad_clip: float,
-    pending: bool,
-) -> bool:
-    """If ``pending`` (leftover grads from a partial accumulation window at epoch end),
-    run ``optimizer_step`` and return ``True`` (flushed). Otherwise return ``False``.
+def build_optimizer(model: nn.Module, args: Any) -> optim.Optimizer:
+    """AdamW that decays matrices only.
+
+    Norm gains and biases are vectors: decaying them pulls every RMSNorm gain
+    toward zero and regularizes nothing. On CUDA the fused kernel updates all
+    parameters in one launch instead of one per tensor.
     """
-    if pending:
-        optimizer_step(model, optimizer, scaler, grad_clip)
-        return True
-    return False
+    params = [p for p in model.parameters() if p.requires_grad]
+    groups = [
+        {"params": [p for p in params if p.ndim >= 2], "weight_decay": args.weight_decay},
+        {"params": [p for p in params if p.ndim < 2], "weight_decay": 0.0},
+    ]
+    return optim.AdamW(
+        [group for group in groups if group["params"]],
+        lr=args.learning_rate,
+        betas=(args.adam_beta1, args.adam_beta2),
+        fused=True if accelerator_type(args.device) == "cuda" else None,
+    )
+
+
+def atomic_torch_save(obj: Any, path: str) -> None:
+    """``torch.save`` under a temporary name, then rename over ``path``.
+
+    A rented machine can be reclaimed mid-write; writing in place would then
+    destroy the previous checkpoint along with the new one.
+    """
+    os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
+    tmp = f"{path}.tmp"
+    try:
+        with open(tmp, "wb") as fh:
+            torch.save(obj, fh)
+            fh.flush()
+            os.fsync(fh.fileno())
+        os.replace(tmp, path)
+    finally:
+        if os.path.exists(tmp):
+            os.remove(tmp)
+
+
+def rng_state() -> dict:
+    state = {"torch": torch.get_rng_state()}
+    if torch.cuda.is_available():
+        state["cuda"] = torch.cuda.get_rng_state_all()
+    return state
+
+
+def restore_rng_state(state: dict) -> None:
+    """Inverse of :func:`rng_state`. ``map_location`` may have moved the states off the CPU."""
+    torch.set_rng_state(state["torch"].cpu())
+    if state.get("cuda") is not None and torch.cuda.is_available():
+        torch.cuda.set_rng_state_all([s.cpu() for s in state["cuda"]])
 
 
 def save_checkpoint(
@@ -173,7 +210,7 @@ def save_checkpoint(
     loss: float,
     config: Any,
 ) -> None:
-    os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
+    """``step`` is how many batches of ``epoch`` are done: a resumed run starts after them."""
     payload = {
         "epoch": epoch,
         "step": step,
@@ -181,10 +218,11 @@ def save_checkpoint(
         "model_state_dict": model.state_dict(),
         "optimizer_state_dict": optimizer.state_dict() if optimizer is not None else None,
         "scaler_state_dict": scaler.state_dict() if scaler is not None else None,
+        "rng_state": rng_state(),
         "loss": loss,
         "config": getattr(config, "__dict__", config),
     }
-    torch.save(payload, path)
+    atomic_torch_save(payload, path)
 
 
 def _is_wrapped_checkpoint(obj: Any) -> bool:
@@ -243,6 +281,8 @@ def load_train_state(
         optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
     if scaler is not None and checkpoint.get("scaler_state_dict"):
         scaler.load_state_dict(checkpoint["scaler_state_dict"])
+    if checkpoint.get("rng_state"):
+        restore_rng_state(checkpoint["rng_state"])
     return (
         int(checkpoint.get("epoch", 0)),
         int(checkpoint.get("step", 0)),
@@ -361,12 +401,13 @@ def save_final_weights(path: str, model: nn.Module, config: LLMConfig) -> None:
     keeps working, but ``n_heads`` cannot be recovered from tensor shapes alone
     (``wq`` is always ``dim x dim``), so the architecture goes next to it in JSON.
     """
-    os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
-    torch.save(model.state_dict(), path)
+    atomic_torch_save(model.state_dict(), path)
     arch = {name: getattr(config, name) for name in (*MODEL_ARCH_FIELDS, "vocab_size")}
     arch["max_seq_len"] = config.max_seq_len
-    with open(config_sidecar_path(path), "w", encoding="utf-8") as fh:
+    sidecar = config_sidecar_path(path)
+    with open(f"{sidecar}.tmp", "w", encoding="utf-8") as fh:
         json.dump(arch, fh, ensure_ascii=False, indent=2)
+    os.replace(f"{sidecar}.tmp", sidecar)
 
 
 def read_checkpoint_arch(path: str) -> dict:
@@ -469,6 +510,10 @@ def add_common_train_args(
     epochs: int = 1,
     batch_size: int = 8,
     learning_rate: float = 1e-4,
+    weight_decay: float = 0.1,
+    adam_beta1: float = 0.9,
+    adam_beta2: float = 0.95,
+    max_steps: int = 0,
     dtype: str = "float32",
     num_workers: int = 0,
     accumulation_steps: int = 1,
@@ -490,7 +535,7 @@ def add_common_train_args(
     Each script passes its own defaults via keyword args (e.g. ``learning_rate``,
     ``wandb_project``, ``data_path``) and then adds any stage-specific extras
     (``--pretrained_path``, ``--teacher_path``, ``--beta``, ...) after calling this.
-    ``--device`` always defaults to ``"cuda"`` if a GPU is available, else ``"cpu"``.
+    ``--device`` defaults to :func:`resolve_device` (cuda > mps > cpu).
 
     ``skip`` drops flags that make no sense for a stage rather than letting it
     define its own copy: GRPO is driven by ``--rl_steps`` over env-sampled
@@ -501,6 +546,20 @@ def add_common_train_args(
         "epochs": dict(type=int, default=epochs),
         "batch_size": dict(type=int, default=batch_size),
         "learning_rate": dict(type=float, default=learning_rate),
+        "weight_decay": dict(type=float, default=weight_decay, help="AdamW decay on matrices; norms and biases get none"),
+        "adam_beta1": dict(type=float, default=adam_beta1),
+        "adam_beta2": dict(
+            type=float,
+            default=adam_beta2,
+            help="0.95 as in most LLM pretraining: at 0.999 the second-moment estimate trails "
+                 "a rise in gradient scale for ~1000 steps, oversizing the updates meanwhile",
+        ),
+        "max_steps": dict(
+            type=int,
+            default=max_steps,
+            help="Stop after this many optimizer updates, the LR schedule spanning them; "
+                 "0 = run every epoch",
+        ),
         "device": dict(type=str, default=resolve_device()),
         "use_wandb": dict(type=str2bool, default=False),
         "wandb_project": dict(type=str, default=wandb_project),

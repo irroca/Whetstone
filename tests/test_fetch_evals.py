@@ -180,6 +180,50 @@ def test_tal_ignores_malformed_option_lists():
     assert convert_tal_scq5k(dict(TAL_ROW, answer_option_list="[not valid python")) is None
 
 
+def test_a_question_without_text_is_skipped():
+    """TAL-SCQ5K-EN has '?' stems with options a-d; the question was an image."""
+    options = [[{"aoVal": letter, "content": letter.lower()}] for letter in "ABCD"]
+    assert convert_tal_scq5k(dict(TAL_ROW, problem="?", answer_option_list=options, answer_value="B")) is None
+    assert convert_mmlu(dict(MMLU_ROW, question=" ? ")) is None
+
+
+def test_multiple_choice_questions_carry_their_options():
+    tal = convert_tal_scq5k(TAL_ROW)
+    assert tal["question"].splitlines() == [TAL_ROW["problem"], "A. 星期一", "B. 星期二", "C. 星期三"]
+    mmlu = convert_mmlu(MMLU_ROW)
+    assert mmlu["question"].splitlines() == [
+        "What is the capital of France?", "A. Berlin", "B. Paris", "C. Madrid", "D. Rome",
+    ]
+
+
+def test_a_generic_stem_matches_only_together_with_its_options(tmp_path):
+    """A stem such as '下列说法正确的是．' is generic; the stem with its options is the item."""
+    row = dict(
+        TAL_ROW,
+        problem="下列说法正确的是．",
+        answer_option_list=[
+            [{"aoVal": "A", "content": "两个锐角的和一定是钝角"}],
+            [{"aoVal": "B", "content": "平行四边形的对角线互相平分"}],
+            [{"aoVal": "C", "content": "三角形的外角一定大于内角"}],
+        ],
+        answer_value="B",
+        answer_analysis=["由平行四边形的判定可知。"],
+    )
+    record = convert_tal_scq5k(row)
+    page = "第三课练习：下列说法正确的是．请逐条判断并说明理由，再完成课本上的例题。"
+    leak = "期末复习第5题：" + record["question"] + "\n答案：B"
+
+    bare = tmp_path / "bare.jsonl"
+    write_jsonl(str(bare), [dict(record, question=row["problem"])])
+    assert match_record({"text": page}, load_eval_index([str(bare)])) is not None
+
+    path = tmp_path / "tal.jsonl"
+    write_jsonl(str(path), [record])
+    index = load_eval_index([str(path)])
+    assert match_record({"text": page}, index) is None
+    assert match_record({"text": leak}, index) is not None
+
+
 def test_mmlu_resolves_the_answer_index():
     record = convert_mmlu(MMLU_ROW)
     assert record["answer"] == "Paris"

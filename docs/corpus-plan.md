@@ -1,22 +1,26 @@
 # 训练语料方案（候选清单 + 配比 + 消融计划）
 
 **目标能力**：可验证任务（算术 / 代码）为主，中英双语可用。
-**状态**：候选清单已核实，配比待消融确认。旧语料全部弃用。
+**状态**：候选清单已核实；消融 #1 和 #5 已跑完，正式配比定为 `configs/mixture_v2.json`。旧语料全部弃用。
 
 ## 已定的决策
 
 | 项 | 决定 | 影响 |
 |----|------|------|
-| 模型规模 | **~100M**（`--dim 768 --n_layers 12 --n_kv_heads 3`，vocab 32k） | 嵌入层占 25.3%，可接受；token 预算 ~10B |
+| 模型规模 | **~100M**（`--dim 768 --n_layers 12 --n_kv_heads 3`，vocab 32k） | 嵌入层占 25.3%，可接受；token 预算 10B |
 | 中文语料 | **`epfml/FineWeb2-HQ` 的 `cmn_Hani`** | ODC-By，许可最干净；`CCI3-HQ` 降级为消融 #2 的对照 |
+| 中文占比 | **20%**（消融 #1） | 0 → 15% 拿到中文收益的九成；20% 比 30% 中文差 3.4%，代码 / 数学好 1.5% / 1.3% |
+| 词表 | **32k，`tokenizer/v1_32k/`**（消融 #5） | 48k 只再好 0.8%，每 token 多 11% FLOPs |
+| 配比 | **`configs/mixture_v2.json`**：zh 20 / en 32 / code 22.9 / math 16 / books 5.7 / synthetic 3.4（%） | 中文以外按 v1 的比例缩放；10B token 按 v1_32k 计数 |
 | 仓库 | **公开** | 许可约束是硬的：回避 MAP-CC（NC-ND），保留 ODC-By 署名 |
 | 正式训练 | **租卡** | 不受 8GB 限制；若显存充足可把模型提到 ~185M / token 提到 18B |
 
-具体命令：
+具体命令（完整参数和租卡计划见 `status.md` §4 步骤 6）：
 
 ```bash
 python3 pretrain.py --dim 768 --n_layers 12 --n_heads 12 --n_kv_heads 3 \
-  --tokenizer_path ./tokenizer_32k --max_seq_len 2048 --data_path datasets/prepared/train.jsonl
+  --tokenizer_path tokenizer/v1_32k --max_seq_len 2048 --data_path datasets/mixture_v2/train.bin \
+  --val_data_path datasets/mixture_v2/val.bin --dtype bfloat16
 ```
 
 后续阶段（SFT / KD / DPO / GRPO）不需要重复声明架构——`resolve_model_config` 会从
@@ -262,7 +266,7 @@ RL 阶段要做算术和代码。这组配比里 34% 是代码和数学，且数
 | 6 | 单阶段 vs 两阶段 | 全程同配比 vs 后 20% 上采样代码数学 | SmolLM2 的多阶段结论在 10B 尺度上还成立吗 |
 
 消融 1 和 5 优先——它们决定其余所有配置。两者合在 `configs/ablation_v1.json` 里，共六组，
-用 `run_ablation.py` 跑（设计和进度见 `status.md` §4 步骤 4）。
+用 `run_ablation.py` 跑，**已完成**，结果和由此定下的配置见 `status.md` §4 步骤 4。
 
 **评测指标**（不能只看 PPL，PPL 跨配比不可比，因为 token 分布不同）：
 - 每个源各自的 holdout **bits per byte**：按 UTF-8 字节归一化，跨词表也可比，比「同一 tokenizer
@@ -315,17 +319,18 @@ RL 阶段要做算术和代码。这组配比里 34% 是代码和数学，且数
 
 ## 6. 数据管线（已实现）
 
-配比写在 `configs/mixture_v1.json` 里，`prepare.py` 按它跑完整流程：
+正式配比写在 `configs/mixture_v2.json` 里（`mixture_v1.json` 是消融用的基础配比），`prepare.py`
+按它跑完整流程：
 
 ```bash
 # 每个源只拉 3 行，所有源的 spec 问题（gated、config 名、字段名）一次报完
-python3 -m datatools.prepare configs/mixture_v1.json --probe 3
+python3 -m datatools.prepare configs/mixture_v2.json --probe 3
 
 # 先看一眼各源会取多少、被过滤掉多少，不落盘
-python3 -m datatools.prepare configs/mixture_v1.json --dry_run
+python3 -m datatools.prepare configs/mixture_v2.json --dry_run
 
 # 正式产出（每源一个 JSONL + train/val/holdout + manifest）
-python3 -m datatools.prepare configs/mixture_v1.json --out_dir datasets/prepared
+python3 -m datatools.prepare configs/mixture_v2.json --out_dir datasets/mixture_v2
 ```
 
 流程顺序是 **拉取 → 清洗 → 质量过滤 → 去重 → 去污染 → 划分 → manifest**：

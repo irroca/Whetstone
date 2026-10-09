@@ -3,8 +3,9 @@
 ## Start here
 
 **Read [`docs/status.md`](docs/status.md) first.** It is the handoff document: where the project
-actually stands, which PRs are open, the three engineering items that block real training, and the
-ordered next steps. This file covers how the codebase behaves; `status.md` covers what to do next.
+actually stands, which PRs are open, the ablation results and the decisions taken from them, the
+GPU training plan, and the ordered next steps. This file covers how the codebase behaves;
+`status.md` covers what to do next.
 
 Whetstone is a from-scratch PyTorch LLM training/inference codebase (no web server, no
 long-running service) targeting bilingual zh/en **verifiable tasks** (arithmetic, code). The core
@@ -95,9 +96,12 @@ rather than duplicating commands here.
   `tests/fixtures/*.jsonl` are enough for a CPU smoke of every stage.
 - **`tokenizer/zh_6400/` is a legacy tokenizer**, committed so the CPU tests and smoke runs work
   (vocab 6400, bos `<s>`, eos `</s>`, pad `<unk>`). It was trained on Chinese only and compresses
-  code at 2.23 chars/token against 4.00 for English prose, so real bilingual+code training needs a
-  retrained ~32k vocabulary (`train_tokenizer.py`). **Checkpoints do not survive a tokenizer
-  change** — `resolve_model_config` raises on a `vocab_size` mismatch, which is intended.
+  code at 2.23 chars/token against 4.00 for English prose. **The formal tokenizer is
+  `tokenizer/v1_32k/`** (vocab 32768, same specials and chat template, digits split): the ablation's
+  v32k, kept as evaluated rather than retrained on the formal corpus. The formal mixture is
+  `configs/mixture_v2.json` (zh 20%, 10B tokens counted in v1_32k); `docs/status.md` §4 step 4 has
+  the ablation behind both. **Checkpoints do not survive a tokenizer change** —
+  `resolve_model_config` raises on a `vocab_size` mismatch, which is intended.
 - **`chat.py` is an interactive REPL** (`input()`), so pipe input for non-interactive runs, e.g.
  `printf 'question\nquit\n' | python3 chat.py --save_dir results --model_mode 1 --device cpu`.
  `--model_mode` selects the checkpoint: 0=`pretrain*.pth`, 1=`sft*.pth`, 2=`distill*.pth`,
@@ -204,6 +208,11 @@ rather than duplicating commands here.
  `return [x for x in strings if substring in x]` would then flag every file that uses it. **A mixture spec with an
     empty `decontaminate.against` silently checks nothing**, so run `fetch_evals
     --decontamination_only --update_spec <spec>` before `prepare`.
+  - **Multiple-choice items (TAL-SCQ5K, MMLU) put their options in `question`** (`stem\nA. …`), and
+    `answer` is the correct option's text. A bare stem such as `下列说法正确的是．` is indexed at its
+    own length and matched every page using the phrase: 136 of the ablation pool's 252 removals came
+    from two such items. Items whose stem has no letter or digit (an image upstream) are skipped,
+    since their option letters alone reach `MIN_GRAM`. Removals on the pool fell to 57.
 - **Data ablations run through `run_ablation.py <spec> {plan,run,pool,tokenizers,data,train,probe,report}`**
  (`configs/ablation_v1.json`; the data side is `datatools/ablation.py`, the evaluations `probes.py`).
  Every stage skips finished outputs, so a killed run resumes by repeating the command.
@@ -244,19 +253,44 @@ rather than duplicating commands here.
 - **Common training CLI flags come from `train_utils.add_common_train_args(parser, **overrides)`**
  (`--save_dir`, `--epochs`, `--batch_size`, `--learning_rate`, `--device`, `--use_wandb`,
  `--wandb_project`, `--dtype`, `--num_workers`, `--accumulation_steps`, `--grad_clip`, `--log_step`,
- `--save_step`, `--max_seq_len`, `--data_path`, `--resume_from`, `--seed`). Each script calls it
+ `--save_step`, `--max_seq_len`, `--data_path`, `--resume_from`, `--seed`, `--weight_decay`,
+ `--adam_beta1`, `--adam_beta2`, `--max_steps`). Each script calls it
  first with its own default overrides, then adds its stage-specific extras (e.g. `dpo.py` adds
  `--policy_path`/`--beta`). Don't hand-roll these flags in a script — add/change them in
  `add_common_train_args` so all five scripts stay in sync. A stage that genuinely has no use for a
  shared flag passes `skip=(...)` rather than defining its own (`grpo.py` skips `--epochs`,
- `--accumulation_steps`, `--num_workers` because it is driven by `--rl_steps` over env-sampled
- prompts with no DataLoader). `--device` defaults to `resolve_device()` (cuda > mps > cpu)
+ `--accumulation_steps`, `--num_workers`, `--max_steps` because it is driven by `--rl_steps` over
+ env-sampled prompts with no DataLoader). `--device` defaults to `resolve_device()` (cuda > mps > cpu)
  everywhere (train scripts, `eval_ppl.py`, `chat.py`).
-- **`--resume_from` does not guarantee identical batch order.** Each script's `DataLoader` uses
-  `shuffle=True` with no fixed per-epoch seed, so resuming mid-epoch skips the same *number* of
-  batches (via `start_step`) but not necessarily the *same* data. This is a known limitation
-  (see README's "已知行为与限制"), not something to "fix" without an explicit ask — a real fix
-  would need a seeded `Sampler`/checkpointed RNG state, which is out of scope for now.
+- **Every optimizer comes from `train_utils.build_optimizer`**: AdamW that decays only parameters
+  with `ndim >= 2` (decaying RMSNorm gains pulls them toward zero), betas `(0.9, 0.95)`, `fused=True`
+  on CUDA, frozen parameters left out. GRPO uses it too. Don't construct `optim.AdamW` in a script.
+- **pretrain / SFT / distill / DPO share one loop, `trainer.train`.** A stage supplies a step
+  function, `batch -> (loss, {name: scalar tensor}, target tokens)` (`trainer.lm_step` for
+  pretrain and SFT), plus an optional `evaluate()` closure. Don't reintroduce a per-script
+  `train_epoch`.
+  - Logging, evaluation and checkpoints run only **right after an optimizer update**, so
+    `--log_step` / `--val_every` / `--save_step` count updates (`--log_step` used to count
+    micro-batches). Checked per micro-batch, an evaluation due at update 1000 ran once per
+    micro-batch of that accumulation window. An epoch's trailing partial window is an update too.
+  - **`--resume_from` resumes exactly**: an epoch's order is the permutation seeded by
+    `seed + epoch` (`EpochSampler`), a checkpoint's `step` is **batches of that epoch consumed**,
+    the resumed sampler starts after them without loading them, and the checkpoint carries the
+    RNG state. The DataLoader gets its own seeded `generator` on purpose: each new iterator draws
+    a worker seed, from the global RNG otherwise, which shifts a resumed run's dropout stream by
+    one draw. `tests/test_trainer.py` asserts bitwise-equal weights after a resume, with dropout,
+    and fails if any of the three is removed. Resuming needs the same `--batch_size` and data.
+  - Losses and metrics are summed **on the device** and read only when logged; target-token counts
+    come from the mask before it moves. A `float(loss)` per micro-batch is a host sync that costs
+    real throughput on CUDA; `optimizer_step` syncs once per update for the grad norm.
+  - `save_checkpoint` / `save_final_weights` write through `atomic_torch_save` (temp file, fsync,
+    `os.replace`): a rented instance can be reclaimed mid-write.
+  - `pretrain.py --compile` compiles only the training forward; evaluation and saving use the raw
+    module. RoPE's complex multiply is not fused by Inductor (it falls back to eager).
+- **`bench_train.py`** times the real pretraining step on random ids over `--batch_sizes` ×
+  `--compile` and reports tok/s, peak memory, TFLOPS and MFU (`--peak_tflops`), plus whether the
+  training forward reaches flash attention on CUDA. `probes.py` is also a CLI that runs the three
+  probes on any checkpoint against a `prepare` holdout.
 - **`eval_ppl.py` wraps text pretrain-style** (`bos_token + text + eos_token`, matching
   `dataset.PretrainDataset`) before tokenizing, so PPL is computed on the same input distribution
   the model was trained on — don't strip that wrapping when touching `calculate_ppl`.

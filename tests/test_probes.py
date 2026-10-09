@@ -1,11 +1,14 @@
+import json
 import math
 
 import pytest
 import torch
 from transformers import AutoTokenizer
 
+import probes
 from config import LLMConfig
 from model import Whetstone
+from train_utils import save_final_weights
 from probes import (
     addition_items,
     arithmetic_probe,
@@ -130,3 +133,27 @@ def test_arithmetic_probe_scores_exact_answers(tokenizer):
     assert result == {"add_1digit": 1.0, "add_2digit": 1.0, "items": 10}
     wrong = arithmetic_probe(_ScriptedModel(tokenizer, lambda p: " 1000\n"), tokenizer, "cpu", items=10)
     assert wrong["add_1digit"] == 0.0 and wrong["add_2digit"] == 0.0
+
+
+def test_the_cli_probes_a_checkpoint_against_a_tagged_holdout(tokenizer, tmp_path):
+    checkpoint = tmp_path / "pretrain_final.pth"
+    save_final_weights(str(checkpoint), _model(tokenizer), _model(tokenizer).params)
+    holdout = tmp_path / "holdout.jsonl"
+    with open(holdout, "w", encoding="utf-8") as fh:
+        for source, text in [("zh_web", TEXTS[0]), ("en_web", TEXTS[2]), ("code", "def f(x):\n    return x\n")]:
+            fh.write(json.dumps({"text": text, "source": source}, ensure_ascii=False) + "\n")
+    out = tmp_path / "probes.json"
+
+    assert probes.main([
+        "--checkpoint", str(checkpoint), "--holdout", str(holdout), "--tokenizer_path", TOKENIZER,
+        "--max_seq_len", "128", "--device", "cpu", "--confusion_prompts", "1", "--arithmetic_items", "2",
+        "--out", str(out),
+    ]) == 0
+
+    result = json.loads(out.read_text(encoding="utf-8"))
+    assert sorted(result["bpb"]) == ["code", "en_web", "zh_web"]
+    model = probes.load_model(str(checkpoint), tokenizer, 128, "cpu")
+    direct = bits_per_byte(model, tokenizer, [TEXTS[0]], max_seq_len=128, device="cpu")
+    assert result["bpb"]["zh_web"]["bpb"] == pytest.approx(direct["bpb"], rel=1e-5)
+    assert result["arithmetic"]["items"] == 2
+    assert {"zh", "en"} <= set(result["language_confusion"])
