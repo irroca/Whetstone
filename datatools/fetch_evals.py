@@ -80,33 +80,51 @@ def convert_math500(row: dict) -> Optional[dict]:
     }
 
 
-def _tal_option_content(row: dict) -> Optional[str]:
-    """Resolve the answer letter to its option text.
+def with_options(stem: str, options: Sequence[tuple[str, str]]) -> str:
+    """A multiple-choice item as one text: the stem, then one ``X. option`` line each.
 
-    ``answer_option_list`` is a list of single-element lists of
-    ``{"aoVal": "A", "content": "..."}``. The bare letter is useless as a
-    verifiable target, so the content is what gets stored.
+    The stem alone is not the item. Stems are often generic ("下列说法正确的是．",
+    "Which of the following statements is true?"), and decontamination indexes a
+    stem that short at its own length, so it matches every page using the
+    phrase. Nor can a model answer it as a prompt without the options.
     """
-    letter = str(row.get("answer_value", "")).strip()
-    if not letter:
-        return None
+    return "\n".join([stem] + [f"{letter}. {text}" for letter, text in options])
+
+
+def _has_text(stem: str) -> bool:
+    """False for a stem such as "?", whose question was an image upstream.
+
+    Its options ("a", "b", ...) plus the letters would still reach the index's
+    minimum length and match any "A. a B. b" listing.
+    """
+    return any(ch.isalnum() for ch in stem)
+
+
+def _tal_options(row: dict) -> list[tuple[str, str]]:
+    """``answer_option_list`` is a list of single-element lists of
+    ``{"aoVal": "A", "content": "..."}``."""
+    options = []
     for group in _as_list(row.get("answer_option_list")):
         for option in _as_list(group) or ([group] if isinstance(group, dict) else []):
-            if isinstance(option, dict) and str(option.get("aoVal", "")).strip() == letter:
-                return str(option.get("content", "")).strip()
-    return None
+            if isinstance(option, dict) and str(option.get("aoVal", "")).strip():
+                options.append((str(option["aoVal"]).strip(), str(option.get("content", "")).strip()))
+    return options
 
 
 def convert_tal_scq5k(row: dict) -> Optional[dict]:
+    """The answer letter is resolved to its option text: a bare letter is useless
+    as a verifiable target."""
     problem = str(row.get("problem", "")).strip()
-    content = _tal_option_content(row)
-    if not problem or not content:
+    letter = str(row.get("answer_value", "")).strip()
+    options = _tal_options(row)
+    content = dict(options).get(letter) if letter else None
+    if not _has_text(problem) or not content:
         return None
     analysis = _as_list(row.get("answer_analysis"))
     return {
-        "question": problem,
+        "question": with_options(problem, options),
         "answer": content,
-        "answer_letter": str(row.get("answer_value", "")).strip(),
+        "answer_letter": letter,
         "solution": str(analysis[0]) if analysis else "",
         "difficulty": row.get("difficulty"),
         "source": "tal_scq5k",
@@ -115,14 +133,18 @@ def convert_tal_scq5k(row: dict) -> Optional[dict]:
 
 def convert_mmlu(row: dict) -> Optional[dict]:
     """``answer`` is an index into ``choices``."""
-    choices = _as_list(row.get("choices"))
+    question = str(row.get("question", ""))
+    choices = [str(c) for c in _as_list(row.get("choices"))]
     index = row.get("answer")
-    if not choices or not isinstance(index, int) or not 0 <= index < len(choices):
+    if not _has_text(question) or not choices:
         return None
+    if not isinstance(index, int) or not 0 <= index < len(choices):
+        return None
+    letters = [chr(ord("A") + i) for i in range(len(choices))]
     return {
-        "question": str(row.get("question", "")),
-        "answer": str(choices[index]),
-        "choices": [str(c) for c in choices],
+        "question": with_options(question, list(zip(letters, choices))),
+        "answer": choices[index],
+        "choices": choices,
         "subject": row.get("subject"),
         "source": "mmlu",
     }
