@@ -64,9 +64,9 @@ CPU 单测和 smoke 跑得起来。它在代码上的压缩率只有 2.23 字符
 ## 仓库结构
 
 ```text
-config.py  model.py  dataset.py  losses.py  train_utils.py  rollout.py   # 核心库
+config.py  model.py  dataset.py  losses.py  train_utils.py  trainer.py  rollout.py   # 核心库
 pretrain.py  sft.py  distill.py  dpo.py  grpo.py                         # 五个训练阶段
-eval_ppl.py  chat.py  analyze_grpo.py  train_tokenizer.py                # 评估与工具
+eval_ppl.py  chat.py  analyze_grpo.py  train_tokenizer.py  bench_train.py  # 评估与工具
 run_ablation.py  probes.py                                               # 数据消融
 datatools/   envs/   configs/   tests/   docs/   tokenizer/
 ```
@@ -76,6 +76,8 @@ datatools/   envs/   configs/   tests/   docs/   tokenizer/
 | `model.py` / `config.py` | 模型与配置（RoPE、RMSNorm、SwiGLU、可选 GQA、权重共享）|
 | `dataset.py` | Pretrain / SFT / Preference(DPO) 数据集与 assistant loss mask |
 | `losses.py` / `train_utils.py` | CE/KD/DPO/GRPO loss；共享训练工具与 CLI |
+| `trainer.py` | pretrain / SFT / KD / DPO 共用的训练循环（梯度累积、验证、存档、精确续训）|
+| `bench_train.py` | 训练步的吞吐、峰值显存、MFU 与 flash attention 检查，租卡后先跑它 |
 | `runlog.py` / `evaluate.py` | 每次训练的完整记录；held-out 验证指标 |
 | `datatools/` | 语料管线：统计、过滤、去重、去污染、划分、配比编排、评测集拉取 |
 | `envs/` | 可验证奖励环境（RLVR）与各阶段数据生成 |
@@ -84,38 +86,47 @@ datatools/   envs/   configs/   tests/   docs/   tokenizer/
 | `eval_ppl.py` / `chat.py` | 困惑度评估、交互式生成 |
 | `analyze_runs.py` / `analyze_grpo.py` | 训练记录复盘（全阶段）、RL 指标分析 |
 | `run_ablation.py` / `probes.py` | 数据消融编排（数据池 → 分词器 → 各组语料 → 训练 → 评测 → 汇总表）；基座模型评测 |
-| `configs/` | 配比 spec（`mixture_v1.json`）、消融 spec（`ablation_v1.json`）|
+| `configs/` | 配比 spec（正式 `mixture_v2.json`，消融用的基础配比 `mixture_v1.json`）、消融 spec（`ablation_v1.json`）|
 | `docs/corpus-plan.md` | 语料候选清单、许可证、配比与消融计划 |
 | `docs/experiments.md` | 实验协议与已记录的跑批结果 |
 
 ## 从零到训练：完整顺序
 
+正式配比是 `configs/mixture_v2.json`（中文 20%、10B token），分词器 `tokenizer/v1_32k/` 已提交，
+两者都来自数据消融（见 [`docs/status.md`](docs/status.md) §4 步骤 4）：
+
 ```bash
 # 1. 拉评测集（去污染要用；不做这步去污染就是空转）
-python3 -m datatools.fetch_evals --decontamination_only --update_spec configs/mixture_v1.json
+python3 -m datatools.fetch_evals --decontamination_only --update_spec configs/mixture_v2.json
 
 # 2. 每个源只拉几行，把 spec 的问题（gated、config 名、字段改名）一次性全报出来
-python3 -m datatools.prepare configs/mixture_v1.json --probe 3
+python3 -m datatools.prepare configs/mixture_v2.json --probe 3
 
 # 3. 按配比构建语料（拉取 → 过滤 → 去重 → 去污染 → 划分 → manifest）
-python3 -m datatools.prepare configs/mixture_v1.json --out_dir datasets/prepared
+python3 -m datatools.prepare configs/mixture_v2.json --out_dir datasets/mixture_v2
 
-# 4. 在清洗后的语料上重训分词器
-python3 train_tokenizer.py --data datasets/prepared/train.jsonl --out tokenizer/v1_32k --vocab_size 32768
+# 4. 预 tokenize 成可 memmap 的二进制（换分词器就要重做这一步）
+for s in train val holdout; do
+  python3 -m datatools.tokenize_corpus datasets/mixture_v2/$s.jsonl \
+    --tokenizer tokenizer/v1_32k --out datasets/mixture_v2/$s
+done
 
-# 5. 用第 4 步的分词器预 tokenize 成可 memmap 的二进制（换分词器就要重做这一步）
-python3 -m datatools.tokenize_corpus datasets/prepared/train.jsonl \
-  --tokenizer tokenizer/v1_32k --out datasets/prepared/train
-python3 -m datatools.tokenize_corpus datasets/prepared/val.jsonl \
-  --tokenizer tokenizer/v1_32k --out datasets/prepared/val
+# 5. 在 GPU 上先量吞吐、显存和 MFU，按结果定 micro-batch 和要不要编译
+python3 bench_train.py --tokenizer_path tokenizer/v1_32k --dim 768 --n_layers 12 --n_heads 12 \
+  --n_kv_heads 3 --max_seq_len 2048 --batch_sizes 8 16 32 --compile False True --peak_tflops 312
 
-# 6. 五个阶段（架构只在第一步声明，后续自动继承）
+# 6. 五个阶段（架构只在第一步声明，后续自动继承；完整参数见 docs/status.md §4 步骤 6）
 python3 pretrain.py --dim 768 --n_layers 12 --n_heads 12 --n_kv_heads 3 \
-  --tokenizer_path tokenizer/v1_32k --data_path datasets/prepared/train.bin \
-  --val_data_path datasets/prepared/val.bin --save_dir results
+  --tokenizer_path tokenizer/v1_32k --max_seq_len 2048 --data_path datasets/mixture_v2/train.bin \
+  --val_data_path datasets/mixture_v2/val.bin --batch_size 16 --accumulation_steps 16 \
+  --learning_rate 6e-4 --dtype bfloat16 --save_dir results
 python3 sft.py     --pretrained_path results/pretrain_final.pth --data_path datasets/sft.jsonl
 python3 dpo.py     --policy_path results/sft_final.pth --data_path datasets/preference.jsonl
 python3 grpo.py    --policy_path results/dpo_final.pth --env arithmetic
+
+# 7. 任意 checkpoint 的每源 bits per byte、语言混淆率、few-shot 加法
+python3 probes.py --checkpoint results/pretrain_final.pth --holdout datasets/mixture_v2/holdout.jsonl \
+  --tokenizer_path tokenizer/v1_32k --out results/probes_pretrain.json
 ```
 
 ## 训练记录与复盘
@@ -372,11 +383,11 @@ TAL-SCQ5K 的 `answer_value` 只是选项字母（`B`），要解析 `answer_opt
 否则不可验证；MMLU 的 `answer` 是下标，要换成选项文本。`solution` 字段会被
 `record_parts` 一起索引——**只抄了解答、没抄题目的网页同样是泄漏**。
 
-代码题靠跑测试判分，所以 HumanEval 的 `test` / `entry_point`、MBPP 的 `test_list` 原样带上，
-`answer` 放参考实现（MBPP 上游是 CRLF 换行，转成 `\n`）。参考实现放 `answer` 而不是
-`solution` 是有意的：短答案只做精确匹配，于是 `return [x for x in strings if substring in x]`
-这种 10 个单元的惯用写法不会命中所有用到它的代码文件；放进 `solution` 会按自身长度建索引，
-测试里断言了两种放法的差别。
+**选择题把选项拼进 `question`**（`题干\nA. …\nB. …`），`answer` 是正确选项的内容。只索引题干的话，
+`下列说法正确的是．` 这种通用题干会按自身长度（8 个字）建索引，命中每一篇带这句话的网页：消融数据池
+的 252 篇删除里有 136 篇来自两道这样的题。拼上选项后删除降到 57 篇，剩下的基本是真泄漏。
+题干里没有任何字母或数字的题（上游是图片）直接跳过，否则 `A. a B. b …` 这样的选项字母就凑够了
+最短索引长度。
 
 代码题靠跑测试判分，所以 HumanEval 的 `test` / `entry_point`、MBPP 的 `test_list` 原样带上，
 `answer` 放参考实现（MBPP 上游是 CRLF 换行，转成 `\n`）。参考实现放 `answer` 而不是
@@ -407,6 +418,8 @@ TAL-SCQ5K 的 `answer_value` 只是选项字母（`B`），要解析 `answer_opt
 注意 `single_char_frac` 只能在同一书写系统内比较——中文单字本身就是有意义的单位，
 63% 是正常的，不是碎片化。
 
+**正式用的 `tokenizer/v1_32k/` 已提交**：它就是数据消融里评测过的 32k 词表（在消融数据池 train 划分
+里按基础配比取的 1 亿个 token 上训练），没有在正式语料上重训，否则得到的是另一个没评测过的分词器。
 重训用 `train_tokenizer.py`，它复用 `datatools.records`，所以分词器看到的文本与训练阶段
 完全一致（包括展平后的对话）：
 
@@ -689,12 +702,26 @@ python3 analyze_grpo.py results_a/grpo_metrics.jsonl results_b/grpo_metrics.json
 `train_utils.add_common_train_args(parser, **overrides)` 统一添加（`--save_dir` / `--epochs` /
 `--batch_size` / `--learning_rate` / `--device` / `--use_wandb` / `--wandb_project` / `--dtype` /
 `--num_workers` / `--accumulation_steps` / `--grad_clip` / `--log_step` / `--save_step` /
-`--max_seq_len` / `--data_path` / `--resume_from` / `--seed`）；每个脚本通过关键字参数覆盖自己的默认值
+`--max_seq_len` / `--data_path` / `--resume_from` / `--seed` / `--weight_decay` / `--adam_beta1` /
+`--adam_beta2` / `--max_steps`）；每个脚本通过关键字参数覆盖自己的默认值
 （如 `distill.py` 用 `wandb_project="Whetstone-Distill"`），再 `add_argument` 自己的额外参数
 （如 `--teacher_path` / `--beta`）。
 
-- `--device` 统一默认 `"cuda" if torch.cuda.is_available() else "cpu"`（四个训练脚本 + `eval_ppl.py` +
-  `chat.py` 一致；此前 `pretrain.py`/`sft.py`/`distill.py`/`dpo.py` 默认写的是 `"cuda:0"`）。
+四个脚本的训练循环是同一个（`trainer.py`），各阶段只提供「一个 batch 怎么算损失」：
+
+- **`--log_step` / `--val_every` / `--save_step` 都按优化器更新计数**，日志、验证、存档只在更新之后
+  发生（以前 `--log_step` 按 micro-batch 计，验证和存档在一个累积窗口里会重复触发）。epoch 末尾
+  不满一个累积窗口的部分也算一次更新
+- **`--resume_from` 精确续训**：每个 epoch 的顺序由 `seed + epoch` 决定，checkpoint 记录本 epoch
+  已消耗的 batch 数和 RNG 状态，续训结果与不中断逐位相同（需要相同的 `--batch_size` 和数据）
+- checkpoint 和 `*_final.pth` 都是先写临时文件再改名，写到一半被杀不会损坏上一份
+- 优化器：AdamW，只对矩阵做 weight decay（`--weight_decay 0.1`），betas 默认 `(0.9, 0.95)`，
+  CUDA 上用 fused 实现
+- `--max_steps N`：训 N 次更新就停，学习率调度按 N 展开。`pretrain.py --compile True` 用
+  `torch.compile` 编译训练前向
+
+- `--device` 统一默认按 cuda > mps > cpu 自动选择（`train_utils.resolve_device()`，五个训练脚本 +
+  `eval_ppl.py` + `chat.py` 一致）。
 - `--use_wandb True --wandb_project ...`：四个训练脚本现在都支持（`distill.py`/`dpo.py` 是本轮新增，
   之前只有 `pretrain.py`/`sft.py` 有）。日志由 `train_utils.init_wandb_if_needed(args, run_name=...)`
   统一处理：`use_wandb=False` 时直接返回 `None`（不 import）；为 `True` 时才 `import swanlab as wandb`
@@ -731,12 +758,8 @@ LLMConfig(dim=512, n_layers=8, n_heads=8, n_kv_heads=8, vocab_size=6400, max_seq
 
 ## 已知行为与限制
 
-- **`--resume_from` + shuffle 的顺序不保证**：`DataLoader(..., shuffle=True)` 每次重新创建
-  `DataLoader`/新进程时都会用不同的打乱顺序（没有固定/可派生的 per-epoch seed），而
-  `train_epoch` 的 resume 逻辑是"跳过前 `start_step` 个 batch"。这只保证**跳过的 batch 数量**
-  与上次一致，**不保证**跳过的是同一批数据——同一 epoch 内 resume 后大概率会重复或漏掉一些样本。
-  这是当前实现的已知限制，不是 bug；如需严格可复现的 resume，需要自己引入固定 seed 的
-  `Sampler`（不在本轮范围内）。
+- **续训要求相同的 `--batch_size` 和数据**：checkpoint 里的 `step` 是本 epoch 已消耗的 batch 数，
+  换了 batch 大小或数据，跳过的就不是原来那些样本。GRPO 不支持续训（没有 DataLoader）。
 - **`eval_ppl.py` 按 pretrain 方式包裹文本**：`calculate_ppl` 对每条文本先用
   `wrap_pretrain_text` 包上 `bos_token`/`eos_token`（与 `dataset.PretrainDataset` 编码方式一致），
   再 tokenize/padding/truncate 计算困惑度，确保评估输入分布与训练输入分布对齐（旧版本直接对裸文本
@@ -762,7 +785,7 @@ LLMConfig(dim=512, n_layers=8, n_heads=8, n_kv_heads=8, vocab_size=6400, max_seq
   `resolve_model_config` 会在 `vocab_size` 不匹配时直接报错。
 - **`datatools.dedup` 的近重复去重有内存上界**（每条文档约 1KB 签名，约 100–200 万条），
   所以 `prepare` 内联只做流式精确去重，近重复要按源分文件单独跑。
-- **极短评测答案的去污染保护较弱**（少于 5 个单元时退化为精确匹配）。保护主要来自题干。
+- **短评测答案的去污染保护较弱**（少于 13 个单元时只做精确匹配）。保护主要来自题干。
 - 无分布式训练、无 FlashAttention 绑定、无服务化 API、无 INT8/INT4、无 PPO critic、无 PRM。
 - fixtures / CPU smoke **不能**代表语言能力；真实数字见 `docs/experiments.md`。
 - 旧版伪「特殊 token 加权蒸馏」已移除，现为真实 KD。

@@ -1,6 +1,6 @@
 # 项目状态与路线（交接文档）
 
-**最后更新**：2026-10-03，本地 Mac session。
+**最后更新**：2026-10-09，本地 Mac session。
 本文档是新 session 的入口——先读这里，再读 `AGENTS.md`。
 
 ---
@@ -8,14 +8,16 @@
 ## 0. 一句话现状
 
 算法链路（五阶段后训练）和数据管线都已实现，CPU 单测覆盖；语料方案和模型规模已定。
-**数据管线已经在真实语料上跑通了千分之一规模的完整冒烟**（§4 步骤 3，六个源全部含代码），
-暴露并修掉了十二个问题：去污染此前删掉的文档几乎全是误杀，代码源有 15% 的正常源码被一条散文用的
-重复度规则删掉。预训练已经改读预 tokenize 的 memmap 语料（§3.1），注意力换成了 SDPA（§3.2）。
+**消融 #1（中文占比）和 #5（词表大小）已跑完**（§4 步骤 4）：定为中文 20%、32k 词表、10B token，
+词表就用消融里评测过的那个（`tokenizer/v1_32k`），配比是 `configs/mixture_v2.json`。
 
-**正式训练还没开始**。消融 #1（中文占比）和 #5（词表大小）的编排脚本已经写好，正在本机上跑
-（§4 步骤 4，六组共约一天）。跑完按结果定配比和词表，再出正式数据集、重训分词器（§4 步骤 5）。
+**正式数据集正在本机生成**（§4 步骤 5，10-09 16:30 开始，约 11–13 小时）。训练代码已经为租卡
+准备好：四个阶段共用一个训练循环，续训与不中断逐位一致，checkpoint 原子写入，有 `bench_train.py`
+在开卡第一个小时量吞吐和显存、`probes.py` 评测任意 checkpoint（§3.4）。下一步是租卡正式预训练，
+完整计划在 §4 步骤 6。
 
-仓库里现有的一切数字都是 29M 玩具规模的**实现验证**，不是能力声明。
+仓库里现有的一切数字都是 29M 玩具规模的**实现验证**，或 3 亿 token 消融代理模型的**相对比较**，
+不是能力声明。
 
 ---
 
@@ -57,7 +59,15 @@
 ### 数据消融
 - `run_ablation.py`：一个 spec 跑完 数据池 → 分词器 → 各组语料 → 训练 → 评测 → 汇总表，
   每个阶段可续跑（§4 步骤 4）
-- `probes.py`：每个源的 bits per byte（跨词表可比）、语言混淆率、few-shot 加法
+- `probes.py`：每个源的 bits per byte（跨词表可比）、语言混淆率、few-shot 加法；
+  也是 CLI，可以评测任意 checkpoint（§3.4）
+
+### 训练循环（§3.4）
+- `trainer.py`：pretrain / SFT / KD / DPO 共用的 epoch 循环，各阶段只提供「一个 batch 怎么算损失」
+- 日志、验证、存档只在优化器更新之后发生；续训从同一批数据、同一个随机数状态接着跑
+- `build_optimizer`：只对矩阵做 weight decay，β₂ = 0.95，CUDA 上用 fused AdamW；`--max_steps`；
+  `pretrain.py --compile`
+- `bench_train.py`：吞吐、峰值显存、MFU、flash attention 检查
 
 ### 调研与决策（`docs/corpus-plan.md`）
 - 语料候选清单（中英 web / 代码 / 数学 / 书籍 / 可验证任务），含规模、许可证、获取上的坑
@@ -79,7 +89,7 @@
 
 ```bash
 git clone https://github.com/irroca/Whetstone.git && cd Whetstone
-HF_HUB_OFFLINE=1 python3 -m pytest tests/ -q      # 应为 483 passed
+HF_HUB_OFFLINE=1 python3 -m pytest tests/ -q      # 应为 502 passed（含 #12）
 ```
 
 下面这段记录下来，是因为它是一个很容易再犯一次的坑：
@@ -101,6 +111,7 @@ HF_HUB_OFFLINE=1 python3 -m pytest tests/ -q      # 应为 483 passed
 | [#9](https://github.com/irroca/Whetstone/pull/9) | 训练记录与复盘体系（`runlog` + 验证集 + `analyze_runs.py`）| 已合并 |
 | [#10](https://github.com/irroca/Whetstone/pull/10) | memmap 预训练语料 + 数据管线首次真实数据冒烟 | 已合并（squash），但只含前 4 个提交 |
 | [#11](https://github.com/irroca/Whetstone/pull/11) | 消融编排 + 补上 #10 合并后才推的 5 个提交（SDPA、代码源修复）| 待合并 |
+| [#12](https://github.com/irroca/Whetstone/pull/12) | 消融结论、正式配比与词表、去污染修复、共享训练循环、GPU 准备 | 待合并，**base 是 #11 的分支**：先合 #11，再把 #12 的 base 改成 `main` |
 
 **教训**：stacked PR 要么严格按自下而上的顺序合，要么在合之前把上层 PR 的 base 直接改成 `main`。
 `squash` 合并会切断祖先关系，所以一旦顺序错了，后续那个 PR 的内容不会自动跟过来，
@@ -113,9 +124,10 @@ HF_HUB_OFFLINE=1 python3 -m pytest tests/ -q      # 应为 483 passed
 
 ---
 
-## 3. 开始正式训练之前必须做的三件工程事
+## 3. 开始正式训练之前的工程事
 
-这三件都是在云端 CPU 上跑不出来、但一上真实规模就会立刻爆的问题。按优先级排：
+都是在 CPU 上跑不出来、但一上真实规模就会立刻爆的问题。3.1、3.2、3.4 已完成，3.3 留给开卡后的
+第一个小时：
 
 ### 3.1 ~~【阻塞】`dataset.py` 把整个 JSONL 读进内存~~（已完成）
 
@@ -191,8 +203,56 @@ loss 在两条路径上一致到小数点后 3–4 位。**MPS 上的 SDPA 训�
 
 还没量的：`--batch_size` / `--max_seq_len` 的 OOM 边界（本机 48GB 统一内存不紧张，
 8GB 的 5060Ti 或租来的卡才是真约束），以及 SDPA 在 CUDA 上的提升（§3.2，CPU 和 MPS 已量）。
+**这些留给开卡后的第一个小时**，用 `bench_train.py` 一条命令量完（§4 步骤 6）。它跑的就是
+`pretrain.py` 的训练步（同一个模型、优化器、autocast、损失），只是数据换成随机 token：
 
-顺带可以考虑（不阻塞）：gradient checkpointing、`torch.compile`、fused AdamW。
+```bash
+python3 bench_train.py --tokenizer_path tokenizer/v1_32k --dim 768 --n_layers 12 --n_heads 12 \
+  --n_kv_heads 3 --max_seq_len 2048 --batch_sizes 8 16 32 --compile False True \
+  --peak_tflops 312 --out results/bench.json
+```
+
+每个 micro-batch × 编译开关输出 token/s、每次更新耗时、峰值显存、TFLOPS 和 MFU，OOM 记一行
+继续下一个；CUDA 上先检查训练前向能不能走 flash attention（只允许 flash 后端跑一次前向，
+不能就报原因）。FLOPs 按每个矩阵权重 6 次 + 因果注意力 `6 × 层数 × seq × dim` 算：
+100M 目标在 seq 2048 是 0.71 GFLOP/token。
+
+本机 MPS + bf16 的参考（100M，seq 512，后台在跑数据任务）：batch 4 6.1k token/s，batch 8 7.4k。
+
+已做：`torch.compile`（`pretrain.py --compile`，只包训练前向）、fused AdamW（CUDA 上自动）。
+没做：gradient checkpointing（100M 在 80GB 卡上用不着），以及 RoPE 改成实数实现：现在的复数乘法
+Inductor 不能融合，退回 eager 执行，开编译时大约损失 1–2%，等实测编译的收益再决定。
+
+### 3.4 ~~训练循环在梯度累积和续训上的问题~~（已完成）
+
+原来四个 DataLoader 阶段各有一份几乎相同的 `train_epoch`，问题也是四份：
+
+- **验证和存档在每个 micro-batch 上判断**：累积 16 步时，`global_step` 停在 1000 的那 16 个
+  micro-batch 每个都会触发一次第 1000 步的验证和存档
+- **续训不保证数据相同**：`shuffle=True` 每次重新打乱，跳过的只是 batch 的**个数**；RNG 状态不进
+  checkpoint，dropout 的随机数也接不上
+- **checkpoint 原地写**：写到一半被回收（租的卡会发生），新旧两份一起坏
+- **每个 micro-batch 都 `loss.item()`**：强制 GPU 同步，CUDA 上白白损失吞吐
+- 优化器是 `AdamW` 默认值：对 RMSNorm 的增益也做 weight decay，β₂ = 0.999
+
+现在 `trainer.py` 一处实现，四个阶段只提供 step 函数（pretrain / SFT 是 `lm_step`，KD 另记 ce / kd，
+DPO 记 `dpo_loss`）：
+
+- 日志、验证、存档只在优化器更新之后判断；`--log_step` / `--val_every` / `--save_step` 都按
+  **优化器更新**计数（以前 `--log_step` 按 micro-batch）。epoch 末尾不满一个累积窗口的部分也是一次更新
+- 每个 epoch 的顺序是 `seed + epoch` 决定的排列；checkpoint 的 `step` 改为「本 epoch 已消耗的
+  batch 数」，续训的 sampler 直接从后面开始，不加载跳过的数据；RNG 状态跟权重一起存取。
+  DataLoader 自己的 generator 也要固定：否则它每创建一次迭代器就从全局 RNG 取一个种子，续训的
+  dropout 会因此错开一位
+- 单测：训到第 7 次更新存档，换一个不同初始化的模型从存档续训，结束时**每个参数逐位相等**；
+  模型里有 dropout。去掉排列的种子、去掉 RNG 恢复、让 DataLoader 用全局 RNG，三种改法各自都会让它失败
+- `atomic_torch_save`：写临时文件、`fsync`、`os.replace`；`*_final.pth` 和 sidecar 也一样
+- 指标在设备上累加、记日志时才读；token 数从 CPU 上的 mask 算；CUDA 上 `pin_memory` + `non_blocking`
+- `build_optimizer`：只对二维以上的权重 decay（`--weight_decay 0.1`），`--adam_beta1/2` 默认
+  0.9 / 0.95，CUDA 上 `fused=True`；GRPO 也用它
+- `--max_steps`：训够这么多次更新就停，学习率调度按它展开；`pretrain.py --compile`
+- `tests/test_stages.py` 在 fixtures 上把 pretrain → SFT → KD / DPO 依次跑通，外加一次从 epoch
+  checkpoint 续训
 
 ---
 
@@ -277,8 +337,36 @@ memmap 端到端（§3.1）用的是更早的无代码 800 万 token 版本 `dat
 验收（已满足）：每个源 `fill` ≈ 100%，没有 `ran out of data`；没有哪条规则删掉大半；
 `split.top_matches` 里没有一项删掉大量文档。
 
-### 步骤 4：消融 #1（中文占比）和 #5（词表大小）⏳ 正在跑
+### 步骤 4：消融 #1（中文占比）和 #5（词表大小）✅
 这两个决定其余所有配置，所以先做。
+
+**结果**（`results/ablation_v1/report.md`；holdout 上的 bits per byte，越低越好；混淆率是中文开头
+续写成别的语言的比例）：
+
+| 组 | 词表 | 中文 | zh | en | code | math | 加权平均 | zh→en |
+|----|------|----:|----:|----:|----:|----:|----:|----:|
+| zh00_v32k | 32k | 0% | 2.914 | **1.235** | **0.864** | **1.167** | 1.658 | 39% |
+| zh15_v32k | 32k | 15% | 1.665 | 1.251 | 0.881 | 1.188 | 1.296 | 1% |
+| zh30_v32k | 32k | 30% | 1.584 | 1.271 | 0.901 | 1.212 | 1.287 | 3% |
+| zh45_v32k | 32k | 45% | **1.534** | 1.295 | 0.925 | 1.241 | 1.290 | 2% |
+| zh30_v16k | 16k | 30% | 1.616 | 1.293 | 0.917 | 1.238 | 1.312 | 1% |
+| zh30_v48k | 48k | 30% | 1.579 | 1.256 | 0.895 | 1.203 | **1.277** | 2% |
+
+- **中文的收益在 15% 之前就拿到了九成**：0 → 15% 中文 bpb 降 1.249，15 → 45% 只再降 0.131。
+  中文从 15% 加到 45%，en / code / math 各变差 3.5% / 5.0% / 4.5%
+- **中文 0% 的组 39% 的中文提示会续写成英文**，有中文的组都在 3% 以内
+- **定为 20%**：按 15% 与 30% 两组线性插值，20% 比 30% 中文差 3.4%，code / math / en 好 1.5% /
+  1.3% / 1.0%。项目的目标能力是算术和代码，而中文的大头已经在 15% 拿到
+- **词表定 32k**：16k → 32k 加权平均降 1.9%，32k → 48k 只再降 0.8%，而 48k 在 dim 768、seq 2048
+  时每个 token 多 11% 的 FLOPs，logits 显存多一半
+- **加法探针在所有组都是 1–9%**，3 亿 token 的代理模型还没有算术能力，这一列区分不出组
+
+**决定落地**：`tokenizer/v1_32k/` 直接用消融里评测过的 v32k，不在正式语料上重训（重训出来的就是
+另一个没评测过的分词器）。它训练的样本取自数据池的 train 划分，而划分按内容哈希、盐是同一个
+`seed`，同一篇文档在正式数据集里也只会落进 train，不会把 holdout 漏进分词器。
+`configs/mixture_v2.json`：zh 20%，其余五个源按 v1 的比例缩放（en 32% / code 22.9% / math 16% /
+books 5.7% / synthetic 3.4%），10B token，**按 v1_32k 计数**（按 zh_6400 计只会得到约 7.5B 个
+v1_32k token）。
 
 ```bash
 python3 run_ablation.py configs/ablation_v1.json plan   # 各组配比、数据池大小、产物清单；不动任何文件
@@ -330,14 +418,10 @@ python3 run_ablation.py configs/ablation_v1.json run    # 全部阶段；被打�
 产物：`results/ablation_v1/report.md`（汇总表）、每组的 `probes.json`、`runs/` 里的完整曲线
 （`analyze_runs.py compare results/ablation_v1/zh*_v32k --metric loss --split val`）。
 
-**进度**（2026-10-03）：数据、分词器、六组语料都已就绪，19:51 开始训练，按实测吞吐（每秒约 2.0–2.2 万
-token，32k 词表每组约 4.1 小时）六组 10-04 晚上训完，然后自动跑评测和汇总。
+**运行记录**：10-03 19:51 开始训练，每秒约 2.0–2.2 万 token，六组跑完后自动评测、汇总。
 
-- 跑在 `screen` 会话 `whetstone-ablation` 里，不依赖 Cursor：`screen -r whetstone-ablation` 接上去看，
-  `Ctrl-A D` 离开。日志 `results/ablation_v1/run.log`，中断后重跑 `zsh results/ablation_v1/run.sh` 续上
-- 一开始是挂在 agent 的 shell 下跑的，那样退出 Cursor 会连带杀掉训练；训到第 1900 步时停掉，
-  在 `screen` 里从头重跑，没有用续训（续训不保证数据顺序和不中断时一样）。两次第 51 步的 loss
-  都是 9.2713，固定种子下可复现
+- 跑在 `screen` 会话里，不依赖 Cursor。一开始挂在 agent 的 shell 下，退出 Cursor 会连带杀掉训练；
+  训到第 1900 步时停掉，在 `screen` 里从头重跑。两次第 51 步的 loss 都是 9.2713，固定种子下可复现
 
 - 数据池 18:36–19:14（38 分钟，网络是瓶颈）：6 个源 fill 都是 100%；train 489,537 / val 2,544 /
   holdout 2,466 篇。中文保留率 89%（`too_short` 14,233、`low_cjk_ratio` 7,894），代码 95%，数学 90%，
@@ -345,34 +429,99 @@ token，32k 词表每组约 4.1 小时）六组 10-04 晚上训完，然后自�
 - 分词器 29–39 秒一个；每组切 3 亿 token 约 1 分钟，六组都在配额上方 0.05% 以内
 - 第一组（zh00_v32k）第 1000 步 val loss 6.12。比同期训练 loss 高很多是预期的：验证集里 31% 是这组
   没见过的中文
-- **消融从一个固定在 `eea8acb` 的 worktree 里跑**（`../whetstone-ablation-v1`，`datasets/`、
-  `results/` 是指回主仓库的软链接），这样一天里主仓库切分支、改代码都不会让后面几组用上另一份代码。
-  跑完之前别删它；中断了就在那个目录里重跑同一条 `run` 命令续上
+- **消融从一个固定在 `eea8acb` 的 worktree 里跑**，这样一天里主仓库切分支、改代码都不会让后面几组
+  用上另一份代码。跑完后已删除（数据和结果在主仓库的 `datasets/`、`results/` 里，worktree 里只是软链接）
 
-### 步骤 5：正式数据集 + 重训 tokenizer
+### 步骤 5：正式数据集 ⏳ 正在跑
+分词器已定（步骤 4），这一步只剩出数据：
+
 ```bash
-python3 -m datatools.prepare configs/mixture_v1.json --out_dir datasets/prepared
-python3 train_tokenizer.py --data datasets/prepared/train.jsonl --out tokenizer/v1_32k --vocab_size 32768
-python3 -m datatools.tokenizer_stats --probe --tokenizer tokenizer/v1_32k tokenizer/zh_6400
-for s in train val; do
-  python3 -m datatools.tokenize_corpus datasets/prepared/$s.jsonl \
-    --tokenizer tokenizer/v1_32k --out datasets/prepared/$s
+python3 -m datatools.fetch_evals --decontamination_only --update_spec configs/mixture_v2.json
+python3 -m datatools.prepare configs/mixture_v2.json --probe 3
+python3 -m datatools.prepare configs/mixture_v2.json --out_dir datasets/mixture_v2 --progress_every 50000
+for s in val holdout train; do
+  python3 -m datatools.tokenize_corpus datasets/mixture_v2/$s.jsonl \
+    --tokenizer tokenizer/v1_32k --out datasets/mixture_v2/$s
 done
 ```
-验收：新词表在代码上的 `chars/token` 明显高于 2.23（旧词表的值），中文不显著变差。
-`.bin` 绑定分词器指纹，换词表必须重跑 `tokenize_corpus`（不重跑会直接报错）。
 
-**注意重训 tokenizer 会让所有旧 checkpoint 失效**——`resolve_model_config` 会在 `vocab_size`
-不匹配时直接报错，这是设计如此。本地若还有想留的 29M 权重，先归档。
+**进度**：前两条已完成（七个评测集重拉、六个源 probe 全部 `ok`）。后两条 10-09 16:30 起在
+`screen` 会话 `whetstone-data` 里跑，固定在 `d400431` 的 worktree `../whetstone-data-v2` 里
+（`datasets` 是指回主仓库的软链接），预计 11–13 小时，网络是瓶颈。日志
+`results/data_v2/run.log`；中断了就重跑 `zsh results/data_v2/run.sh`，已完成的步骤会跳过。
 
-### 步骤 6：正式预训练（~100M / ~10B token，租卡）
+**出数据之前修掉的去污染误杀**（原 §8 第 7 条）：选择题的通用题干（`下列说法正确的是．`、
+`Which of the following statements is true?`）按自身长度索引，命中每一篇带这句话的文档。
+`fetch_evals` 现在把选项拼进 `question`（`题干\nA. …\nB. …`），模型看到的题目本来也带选项；
+题干里没有任何字母数字的题（上游是图片，22 道 TAL-SCQ5K 英文题）直接跳过，否则选项字母本身
+凑够 8 个单元，又会去命中 `a a b b c c` 这类序列。在消融数据池上重跑去污染：**删除 252 → 57 篇**
+（zh 4 / en 4 / code 17 / math 31 / synthetic 1），剩下的基本是真泄漏：MBPP / HumanEval 的参考解
+出现在代码里，MATH / GSM8K 原题出现在 FineMath 里，TAL 原题出现在中文教育网页上。
+
+验收：manifest 里每个源 `fill` ≈ 100%、没有 `ran out of data`；`split.top_matches` 里没有一项删掉
+大量文档；`train.bin` 约 20GB（10B 个 `uint16`）。`.bin` 绑定分词器指纹，换词表必须重跑
+`tokenize_corpus`（不重跑会直接报错）。上传到服务器的就是 `datasets/mixture_v2/` 下的
+`{train,val}.{bin,idx,meta.json}`、`holdout.jsonl`（给 `probes.py`）和 `manifest.json`。
+
+**v1_32k 让所有旧 checkpoint 失效**——`resolve_model_config` 会在 `vocab_size` 不匹配时直接报错，
+这是设计如此。
+
+### 步骤 6：正式预训练（~100M / 10B token，租卡）
+本机 MPS 跑 10B token 要约 13 天（§3.3），所以租卡。按 0.71 GFLOP/token、MFU 35–45% 估
+（**开卡后用 `bench_train.py` 的实测替换**）：
+
+| 卡 | 估计吞吐 | 10B token | 费用（按 AutoDL 时价） |
+|----|--------:|--------:|------:|
+| RTX 4090 24GB | 7–9 万 token/s | 31–40 小时 | ¥60–110 |
+| A800 80GB | 15–18 万 | 15–19 小时 | ¥75–120 |
+| H800 80GB | 25–40 万 | 7–11 小时 | ¥60–160 |
+
+**无卡模式下先做完的事**（AutoDL 无卡模式 0.5 核 / 2GB / ¥0.1 每小时，不占 GPU）：
+
+1. 选 PyTorch 2.x + CUDA 12 + Python 3.12 的镜像，`git clone`，`pip install -r requirements.txt`
+2. 上传 `datasets/mixture_v2/` 下步骤 5 列出的文件（约 20GB）到 `/root/autodl-tmp`
+3. `HF_HUB_OFFLINE=1 python -m pytest tests/ -q`（0.5 核会慢，但能跑）
+4. 写好启动脚本（见下），确认路径都指向 `/root/autodl-tmp`
+
+无卡模式做不了的：任何 CUDA 相关的（吞吐、显存、编译、flash 检查），以及重 CPU 的活（别在上面
+跑 `prepare` 或 `tokenize_corpus`，在本机做完再传）。
+
+**开卡后的第一个小时**：
+
+1. `nvidia-smi`；`python -c "import torch; print(torch.cuda.is_available(), torch.cuda.get_device_name())"`
+2. `bench_train.py`（§3.3 的命令，`--peak_tflops` 按卡填）：选最大不 OOM、吞吐最高的 micro-batch，
+   定编译开不开；**flash attention 必须是 `ok`**
+3. 用正式命令加 `--max_steps 200 --save_step 100` 试跑：loss 在降、验证在出数；中途 kill 一次，
+   用 `--resume_from <save_dir>/latest_checkpoint.pth` 续上。确认后删掉这个目录
+4. 正式启动，挂在 `tmux` / `screen` 里，命令后接 `; /usr/bin/shutdown`，跑完自动关机停止计费
+
+**正式命令**（A800 的例子；`--batch_size` 以 bench 为准，`batch_size × accumulation_steps × 2047`
+保持约 50 万 token，共约 1.9 万次更新）：
+
 ```bash
 python3 pretrain.py --dim 768 --n_layers 12 --n_heads 12 --n_kv_heads 3 \
   --tokenizer_path tokenizer/v1_32k --max_seq_len 2048 \
-  --data_path datasets/prepared/train.bin --val_data_path datasets/prepared/val.bin \
-  --val_every 500 --save_dir results --dtype bfloat16
+  --data_path /root/autodl-tmp/mixture_v2/train.bin --val_data_path /root/autodl-tmp/mixture_v2/val.bin \
+  --epochs 1 --batch_size 16 --accumulation_steps 16 --learning_rate 6e-4 \
+  --log_step 10 --val_every 500 --val_batches 50 --save_step 500 \
+  --dtype bfloat16 --compile True --save_dir /root/autodl-tmp/results/pretrain_v2
 ```
-前提是 §3.2 已经做完（§3.1 已完成）。填 `docs/experiments.md` 的 loss / PPL 表。
+
+- 学习率 6e-4、50 万 token 的 batch 是 GPT-3 125M 的设定；10% 线性预热后余弦退到 10%
+- `--save_step 500` 约半小时一次；实例被回收就用同一条命令加 `--resume_from` 续上，数据顺序与
+  不中断时完全相同（§3.4）
+- 训完：`probes.py --checkpoint .../pretrain_final.pth --holdout .../holdout.jsonl
+  --tokenizer_path tokenizer/v1_32k`，把结果和 `runs/` 拷回本机，填 `docs/experiments.md`
+
+**AutoDL 的坑**：
+
+- 一个账号同时只能有一个无卡实例；无卡开机会释放 GPU，再开卡时那台机器的卡可能已被别人占用。
+  选空闲卡多的机器
+- `/root/autodl-tmp` 是本地数据盘，没有冗余，实例释放就没了；`/root/autodl-fs` 是同区域共享的
+  文件存储（免费 20GB）；系统盘只有 30GB，**数据和 checkpoint 都别放系统盘**（一份带优化器状态的
+  checkpoint 约 1.2GB）
+- 访问 HF / GitHub：`source /etc/network_turbo`，或 `export HF_ENDPOINT=https://hf-mirror.com`
+- 计费从开机到关机，跑完一定要关机
 
 ### 步骤 7：重建后训练四阶段
 SFT / KD / DPO 的数据要基于新语料和可验证任务重做（`envs.generate_data` 负责算术那部分；
@@ -418,14 +567,14 @@ PPO critic、PRM（过程奖励模型）、MoE、多卡并行、推理服务化�
 | 加速器 | 无 | **Apple M5 Pro，MPS** | CUDA |
 | `--device` 默认 | `cpu` | **`mps`**（自动选）| `cuda` |
 | `--dtype` | 只能 `float32` | `bfloat16` | `bfloat16` |
-| 数据 | `datasets/` 是空的 | 有评测集 `datasets/eval/`、完整冒烟语料 `datasets/smoke_full/`，以及 memmap 端到端用过的无代码版 `datasets/smoke/`（git 忽略）| 需重新拉 |
+| 数据 | `datasets/` 是空的 | 评测集 `datasets/eval/`、冒烟语料 `datasets/smoke_full/`、消融数据 `datasets/ablation_v1/`，正式数据集 `datasets/mixture_v2/` 生成中（都被 git 忽略）| 从本机上传 `mixture_v2` |
 
 本地环境搭建：
 
 ```bash
 uv venv --python 3.12 && source .venv/bin/activate
 uv pip install -r requirements.txt
-HF_HUB_OFFLINE=1 python -m pytest tests/ -q     # 483 passed，其中端到端消融测试约 30 秒
+HF_HUB_OFFLINE=1 python -m pytest tests/ -q     # 502 passed，其中端到端消融测试约 30 秒
 ```
 
 要注意的几点：
@@ -491,14 +640,9 @@ HF_HUB_OFFLINE=1 python -m pytest tests/ -q     # 483 passed，其中端到端�
    参数不值
 5. **代码任务的沙箱怎么做？** 阶段 B 的核心设计问题。子进程 + 超时是底线，要不要上容器取决于
    数据源可信度
-7. **去污染会被只有通用题干的选择题误杀，出正式数据集之前要修**。消融数据池（0.77B token）的去污染
-   删了 252 篇，其中 136 篇来自两道 TAL-SCQ5K 题：题干只有 `下列说法正确的是．` 和
-   `下列说法中正确的是（~ ~ ~ ）．`，内容全在选项里。题干按自身长度索引（8 个字，刚好够
-   `MIN_GRAM`），于是命中每一篇带这句话的文档。MMLU 的 `Which one of the following statements is
-   true:`（10 篇）同理。修法：`fetch_evals` 把选项拼进 `question` 再索引，模型看到的题目本来就带选项。
-   这只占数据池文档的 0.05%，而且所有组共用同一个数据池，不影响消融
-6. **租什么卡、租多久？** 取决于 §3.3 的实测结果。如果显存宽裕，`docs/corpus-plan.md` 里
-   ~185M / 18B token 的档位也在射程内
+7. ~~去污染会被只有通用题干的选择题误杀~~ 已修：选项拼进题目，消融数据池上删除 252 → 57 篇（§4 步骤 5）
+6. **租什么卡？** 估算见 §4 步骤 6，A800 / H800 都在 ¥160 以内；以 `bench_train.py` 的实测为准。
+   如果显存和预算宽裕，`docs/corpus-plan.md` 里 ~185M / 18B token 的档位也在射程内
 
 改名已全部完成：代码、文档、远端仓库都是 **`irroca/Whetstone`**。如果你手上还有指向旧名的
 clone，GitHub 会一直重定向，但建议顺手改掉：
