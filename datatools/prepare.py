@@ -669,11 +669,23 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         metavar="ROWS",
         help="Pull ROWS rows from every source, report spec problems, and exit",
     )
+    parser.add_argument(
+        "--only",
+        nargs="+",
+        metavar="SOURCE",
+        help="Pull just these sources and stop before decontamination and splitting. A later run "
+        "without it reuses them, so sources can be pulled separately (from another endpoint, "
+        "or into another directory and moved into this one's sources/)",
+    )
     args = parser.parse_args(argv)
 
     spec = MixtureSpec.load(args.spec)
+    unknown = sorted(set(args.only or ()) - {source.name for source in spec.sources})
+    if unknown:
+        parser.error(f"--only names sources the spec does not have: {unknown}")
+    sources = [source for source in spec.sources if not args.only or source.name in args.only]
     if args.probe:
-        results = [probe_source(source, args.probe) for source in spec.sources]
+        results = [probe_source(source, args.probe) for source in sources]
         print(render_probe(results))
         return 0 if all(r.status == "ok" for r in results) else 1
     if args.scale != 1.0:
@@ -703,7 +715,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
 
     source_dir = os.path.join(args.out_dir, "sources")
     reports, paths = [], []
-    for source in spec.sources:
+    for source in sources:
         if args.dry_run:
             reports.append(prepare_source(spec, source, tokenizer, None, args.progress_every))
             continue
@@ -720,6 +732,10 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
 
     if args.dry_run:
         print("\ndry run: nothing written")
+        return 0
+    if args.only:
+        pulled = ", ".join(source.name for source in sources)
+        print(f"\npulled {pulled} only; run without --only to decontaminate and split")
         return 0
 
     decon = spec.decontaminate or {}

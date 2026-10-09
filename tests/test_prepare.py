@@ -559,6 +559,31 @@ def test_a_finished_source_that_no_longer_matches_is_pulled_again(tmp_path, monk
     assert pulled == ["b"]
 
 
+def test_sources_pulled_in_separate_runs_and_directories_add_up_to_one_run(tmp_path, monkeypatch):
+    spec_path = _spec_file(tmp_path, _two_sources(tmp_path))
+    single = tmp_path / "single"
+    assert prepare.main([spec_path, "--out_dir", str(single)]) == 0
+
+    out, elsewhere = tmp_path / "out", tmp_path / "elsewhere"
+    assert prepare.main([spec_path, "--out_dir", str(out), "--only", "a"]) == 0
+    assert prepare.main([spec_path, "--out_dir", str(elsewhere), "--only", "b"]) == 0
+    assert not (out / "manifest.json").exists()
+    for name in ("b.jsonl", "b.jsonl.done.json"):
+        os.replace(elsewhere / "sources" / name, out / "sources" / name)
+
+    pulled = _record_pulls(monkeypatch)
+    assert prepare.main([spec_path, "--out_dir", str(out)]) == 0
+
+    assert pulled == []
+    assert _outputs(out) == _outputs(single)
+
+
+def test_only_rejects_a_source_the_spec_does_not_have(tmp_path):
+    spec_path = _spec_file(tmp_path, _two_sources(tmp_path))
+    with pytest.raises(SystemExit):
+        prepare.main([spec_path, "--out_dir", str(tmp_path / "out"), "--only", "c"])
+
+
 def test_a_second_run_does_not_start_on_a_locked_out_dir(tmp_path, capsys):
     spec_path, out = _spec_file(tmp_path, _two_sources(tmp_path)), tmp_path / "out"
     out.mkdir()
