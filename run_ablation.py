@@ -167,41 +167,10 @@ def stage_train(spec: AblationSpec, only: Optional[list[str]] = None) -> None:
         print(f"train {arm.name}: {(time.time() - started) / 3600:.2f} h", flush=True)
 
 
-def holdout_by_source(spec: AblationSpec) -> dict[str, list[str]]:
-    from datatools.records import read_jsonl
-
-    texts: dict[str, list[str]] = {}
-    for record in read_jsonl(os.path.join(spec.pool_dir, "holdout.jsonl")):
-        texts.setdefault(record.data["source"], []).append(str(record.data["text"]))
-    return texts
-
-
-def _cap(tokenizer, texts: list[str], max_tokens: int) -> list[str]:
-    """Documents in order until ``max_tokens`` of them are covered."""
-    kept, total = [], 0
-    for text, ids in zip(texts, tokenizer(texts, add_special_tokens=False, verbose=False)["input_ids"]):
-        if total >= max_tokens:
-            break
-        kept.append(text)
-        total += len(ids) + 2
-    return kept
-
-
-def load_pretrained(path: str, tokenizer, max_seq_len: int, device: str):
-    from model import Whetstone
-    from train_utils import load_weights, resolve_model_config
-
-    config = resolve_model_config(argparse.Namespace(), tokenizer.vocab_size, checkpoint_path=path, max_seq_len=max_seq_len)
-    model = Whetstone(config).to(device)
-    load_weights(path, model, device, strict=False)
-    return model.eval()
-
-
 def stage_probe(spec: AblationSpec, device: str) -> None:
-    from probes import arithmetic_probe, bits_per_byte, language_confusion
+    from probes import holdout_by_source, load_model, run_probes
 
-    holdout = holdout_by_source(spec)
-    options = {"max_tokens_per_source": 500_000, "confusion_prompts": 100, "arithmetic_items": 200, **spec.probes}
+    holdout = holdout_by_source(os.path.join(spec.pool_dir, "holdout.jsonl"))
     max_seq_len = int(spec.train.get("max_seq_len", 512))
     for arm in spec.arms:
         save_dir = arm_save_dir(spec, arm)
@@ -211,23 +180,14 @@ def stage_probe(spec: AblationSpec, device: str) -> None:
             continue
         started = time.time()
         tokenizer = _tokenizer(spec.tokenizer_dir(arm.vocab_size))
-        model = load_pretrained(final, tokenizer, max_seq_len, device)
-        bpb = {
-            source: bits_per_byte(model, tokenizer, _cap(tokenizer, texts, options["max_tokens_per_source"]), max_seq_len, device)
-            for source, texts in sorted(holdout.items())
-        }
+        model = load_model(final, tokenizer, max_seq_len, device)
         result = {
             "arm": arm.name,
-            "bpb": bpb,
-            "language_confusion": language_confusion(
-                model, tokenizer, holdout.get("zh_web", []), holdout.get("en_web", []), device,
-                prompts=options["confusion_prompts"],
-            ),
-            "arithmetic": arithmetic_probe(model, tokenizer, device, items=options["arithmetic_items"]),
+            **run_probes(model, tokenizer, holdout, max_seq_len, device, **spec.probes),
             "seconds": round(time.time() - started, 1),
         }
         _write_json(out, result)
-        print(f"probe {arm.name}: " + ", ".join(f"{s} {r['bpb']:.3f}" for s, r in bpb.items())
+        print(f"probe {arm.name}: " + ", ".join(f"{s} {r['bpb']:.3f}" for s, r in result["bpb"].items())
               + f" ({result['seconds']}s)", flush=True)
 
 

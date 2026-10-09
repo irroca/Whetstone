@@ -11,19 +11,31 @@ They answer what a mixture or vocabulary ablation needs and loss cannot:
   that drifts into English on Chinese prompts fails in a way bpb does not show.
 * ``arithmetic_probe``: few-shot addition, the verifiable task the project is
   about, scored by exact match on the greedy continuation.
+
+As a CLI it runs all three on any checkpoint against a ``prepare`` holdout:
+
+    python3 probes.py --checkpoint results/pretrain_final.pth \\
+        --holdout datasets/mixture_v2/holdout.jsonl --tokenizer_path tokenizer/v1_32k \\
+        --max_seq_len 2048 --out results/probes_pretrain.json
 """
 
 from __future__ import annotations
 
+import argparse
+import json
 import math
+import os
 import random
 import re
+import time
 from contextlib import nullcontext
 from typing import Any, Optional, Sequence
 
 import torch
 
 from losses import token_logprobs
+
+PROBE_DEFAULTS = {"max_tokens_per_source": 500_000, "confusion_prompts": 100, "arithmetic_items": 200}
 
 CJK = re.compile(r"[\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff]")
 LATIN = re.compile(r"[A-Za-z]")
@@ -207,3 +219,106 @@ def arithmetic_probe(
         result[f"add_{length}digit"] = correct / per_length
     result["items"] = per_length * len(digits)
     return result
+
+
+def holdout_by_source(path: str) -> dict[str, list[str]]:
+    """Pretraining texts of a ``prepare`` split, grouped by their ``source`` tag."""
+    from datatools.records import read_jsonl
+
+    texts: dict[str, list[str]] = {}
+    for record in read_jsonl(path):
+        texts.setdefault(record.data.get("source", "all"), []).append(str(record.data["text"]))
+    return texts
+
+
+def cap_tokens(tokenizer, texts: Sequence[str], max_tokens: int) -> list[str]:
+    """Documents in order until ``max_tokens`` of them are covered."""
+    kept, total = [], 0
+    for text, ids in zip(texts, tokenizer(list(texts), add_special_tokens=False, verbose=False)["input_ids"]):
+        if total >= max_tokens:
+            break
+        kept.append(text)
+        total += len(ids) + 2
+    return kept
+
+
+def load_model(path: str, tokenizer, max_seq_len: int, device: str):
+    """A checkpoint in eval mode, its architecture read from the checkpoint itself."""
+    from model import Whetstone
+    from train_utils import load_weights, resolve_model_config
+
+    config = resolve_model_config(argparse.Namespace(), tokenizer.vocab_size, checkpoint_path=path, max_seq_len=max_seq_len)
+    model = Whetstone(config).to(device)
+    load_weights(path, model, device, strict=False)
+    return model.eval()
+
+
+def run_probes(model, tokenizer, holdout: dict[str, list[str]], max_seq_len: int, device: str,
+               ctx: Any = None, **options) -> dict:
+    """All three probes; ``holdout`` maps a source tag to its texts, as ``holdout_by_source`` reads them."""
+    options = {**PROBE_DEFAULTS, **options}
+    return {
+        "bpb": {
+            source: bits_per_byte(
+                model, tokenizer, cap_tokens(tokenizer, texts, options["max_tokens_per_source"]),
+                max_seq_len, device, ctx=ctx,
+            )
+            for source, texts in sorted(holdout.items())
+        },
+        "language_confusion": language_confusion(
+            model, tokenizer, holdout.get("zh_web", []), holdout.get("en_web", []), device,
+            prompts=options["confusion_prompts"],
+        ),
+        "arithmetic": arithmetic_probe(model, tokenizer, device, items=options["arithmetic_items"]),
+    }
+
+
+def main(argv=None) -> int:
+    from transformers import AutoTokenizer
+
+    from train_utils import build_autocast_scaler, resolve_device
+
+    parser = argparse.ArgumentParser(description="bits per byte, language confusion and addition for one checkpoint")
+    parser.add_argument("--checkpoint", required=True)
+    parser.add_argument("--holdout", required=True, help="a prepare split (holdout.jsonl), texts tagged by source")
+    parser.add_argument("--tokenizer_path", required=True)
+    parser.add_argument("--max_seq_len", type=int, default=2048, help="window length for bits per byte")
+    parser.add_argument("--device", default=resolve_device())
+    parser.add_argument(
+        "--dtype", default="float32",
+        help="autocast dtype for bits per byte; float32 keeps numbers comparable across runs",
+    )
+    for key, value in PROBE_DEFAULTS.items():
+        parser.add_argument(f"--{key}", type=int, default=value)
+    parser.add_argument("--out", default="", help="also write the results as JSON here")
+    args = parser.parse_args(argv)
+
+    started = time.time()
+    tokenizer = AutoTokenizer.from_pretrained(args.tokenizer_path)
+    model = load_model(args.checkpoint, tokenizer, args.max_seq_len, args.device)
+    ctx, _ = build_autocast_scaler(args.device, args.dtype)
+    result = run_probes(
+        model, tokenizer, holdout_by_source(args.holdout), args.max_seq_len, args.device, ctx=ctx,
+        **{key: getattr(args, key) for key in PROBE_DEFAULTS},
+    )
+    result = {
+        "checkpoint": args.checkpoint, "holdout": args.holdout, "tokenizer": args.tokenizer_path,
+        "max_seq_len": args.max_seq_len, "dtype": args.dtype, **result,
+        "seconds": round(time.time() - started, 1),
+    }
+
+    for source, row in result["bpb"].items():
+        print(f"bpb {source:>20}: {row['bpb']:.4f}  ({row['tokens']:,} tokens, {row['docs']} docs)")
+    confusion = result["language_confusion"]
+    print(f"language confusion: zh->other {confusion['zh']['confused']:.1%}, en->zh {confusion['en']['confused']:.1%}")
+    print("arithmetic: " + ", ".join(f"{k} {v:.1%}" for k, v in result["arithmetic"].items() if k != "items"))
+    if args.out:
+        os.makedirs(os.path.dirname(args.out) or ".", exist_ok=True)
+        with open(args.out, "w", encoding="utf-8") as fh:
+            json.dump(result, fh, ensure_ascii=False, indent=2)
+        print(f"wrote {args.out}")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
