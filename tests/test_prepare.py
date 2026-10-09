@@ -1,4 +1,5 @@
 import json
+import os
 
 import pytest
 from transformers import AutoTokenizer
@@ -8,6 +9,7 @@ from datatools.decontaminate import build_eval_index
 from datatools.prepare import (
     PROJECTED_READ_AHEAD,
     MixtureSpec,
+    SourceReport,
     SourceSpec,
     count_tokens,
     finalize,
@@ -460,3 +462,138 @@ def test_source_report_serializes(tmp_path, tokenizer):
     assert payload["name"] == "s"
     assert payload["tokens"] > 0
     assert isinstance(payload["rejected"], dict)
+    assert SourceReport.from_dict(payload) == report
+
+
+def _spec_file(tmp_path, sources):
+    path = tmp_path / "spec.json"
+    path.write_text(json.dumps({
+        "name": "test",
+        "tokenizer": "./tokenizer/zh_6400",
+        "total_tokens": 4000,
+        "val_fraction": 0.1,
+        "holdout_fraction": 0.1,
+        "sources": sources,
+    }, ensure_ascii=False), encoding="utf-8")
+    return str(path)
+
+
+def _two_sources(tmp_path):
+    return [
+        {"name": "a", "weight": 0.5, "jsonl": _corpus(tmp_path, "a", 200, prefix="甲")},
+        {"name": "b", "weight": 0.5, "jsonl": _corpus(tmp_path, "b", 200, prefix="乙"),
+         "filters": {"blocklist": ["广告"]}},
+    ]
+
+
+def _outputs(out_dir):
+    names = [f"{split}.jsonl" for split in (TRAIN, VAL, HOLDOUT)] + ["manifest.json"]
+    return {name: (out_dir / name).read_text("utf-8") for name in names}
+
+
+def _record_pulls(monkeypatch, fail_at=None):
+    """Log which sources get pulled; optionally drop the connection inside one."""
+    pulled = []
+
+    def recording(source):
+        pulled.append(source.name)
+        for i, row in enumerate(iter_raw(source)):
+            if fail_at == (source.name, i):
+                raise ConnectionError("network down")
+            yield row
+
+    monkeypatch.setattr(prepare, "iter_raw", recording)
+    return pulled
+
+
+def test_a_rerun_reuses_every_finished_source(tmp_path, monkeypatch, capsys):
+    spec_path, out = _spec_file(tmp_path, _two_sources(tmp_path)), tmp_path / "out"
+    assert prepare.main([spec_path, "--out_dir", str(out)]) == 0
+    first = _outputs(out)
+    capsys.readouterr()
+
+    pulled = _record_pulls(monkeypatch)
+    assert prepare.main([spec_path, "--out_dir", str(out)]) == 0
+
+    assert pulled == []
+    assert _outputs(out) == first
+    assert capsys.readouterr().out.count("finished by an earlier run") == 2
+
+
+def test_a_source_cut_off_mid_pull_is_pulled_again_from_its_start(tmp_path, monkeypatch):
+    spec_path = _spec_file(tmp_path, _two_sources(tmp_path))
+    uninterrupted = tmp_path / "uninterrupted"
+    assert prepare.main([spec_path, "--out_dir", str(uninterrupted)]) == 0
+
+    out = tmp_path / "out"
+    _record_pulls(monkeypatch, fail_at=("b", 5))
+    with pytest.raises(ConnectionError):
+        prepare.main([spec_path, "--out_dir", str(out)])
+    assert (out / "sources" / "a.jsonl.done.json").exists()
+    assert (out / "sources" / "b.jsonl.partial").exists()
+    assert not (out / "sources" / "b.jsonl").exists()
+    assert not (out / "manifest.json").exists()
+
+    pulled = _record_pulls(monkeypatch)
+    assert prepare.main([spec_path, "--out_dir", str(out)]) == 0
+
+    assert pulled == ["b"]
+    assert _outputs(out) == _outputs(uninterrupted)
+
+
+@pytest.mark.parametrize("change", ["settings", "file"])
+def test_a_finished_source_that_no_longer_matches_is_pulled_again(tmp_path, monkeypatch, change):
+    sources = _two_sources(tmp_path)
+    spec_path, out = _spec_file(tmp_path, sources), tmp_path / "out"
+    assert prepare.main([spec_path, "--out_dir", str(out)]) == 0
+    if change == "settings":
+        sources[1]["filters"]["blocklist"].append("推广")
+        spec_path = _spec_file(tmp_path, sources)
+    else:
+        with open(out / "sources" / "b.jsonl", "a", encoding="utf-8") as fh:
+            fh.write("\n")
+
+    pulled = _record_pulls(monkeypatch)
+    assert prepare.main([spec_path, "--out_dir", str(out)]) == 0
+
+    assert pulled == ["b"]
+
+
+def test_sources_pulled_in_separate_runs_and_directories_add_up_to_one_run(tmp_path, monkeypatch):
+    spec_path = _spec_file(tmp_path, _two_sources(tmp_path))
+    single = tmp_path / "single"
+    assert prepare.main([spec_path, "--out_dir", str(single)]) == 0
+
+    out, elsewhere = tmp_path / "out", tmp_path / "elsewhere"
+    assert prepare.main([spec_path, "--out_dir", str(out), "--only", "a"]) == 0
+    assert prepare.main([spec_path, "--out_dir", str(elsewhere), "--only", "b"]) == 0
+    assert not (out / "manifest.json").exists()
+    for name in ("b.jsonl", "b.jsonl.done.json"):
+        os.replace(elsewhere / "sources" / name, out / "sources" / name)
+
+    pulled = _record_pulls(monkeypatch)
+    assert prepare.main([spec_path, "--out_dir", str(out)]) == 0
+
+    assert pulled == []
+    assert _outputs(out) == _outputs(single)
+
+
+def test_only_rejects_a_source_the_spec_does_not_have(tmp_path):
+    spec_path = _spec_file(tmp_path, _two_sources(tmp_path))
+    with pytest.raises(SystemExit):
+        prepare.main([spec_path, "--out_dir", str(tmp_path / "out"), "--only", "c"])
+
+
+def test_a_second_run_does_not_start_on_a_locked_out_dir(tmp_path, capsys):
+    spec_path, out = _spec_file(tmp_path, _two_sources(tmp_path)), tmp_path / "out"
+    out.mkdir()
+    held = prepare.lock_out_dir(str(out))
+    assert held is not None
+    try:
+        assert prepare.main([spec_path, "--out_dir", str(out)]) == 1
+        assert f"pid {os.getpid()}" in capsys.readouterr().err
+        assert not (out / "sources").exists()
+    finally:
+        held.close()
+
+    assert prepare.main([spec_path, "--out_dir", str(out)]) == 0

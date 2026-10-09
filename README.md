@@ -215,6 +215,7 @@ python3 -m datatools.prepare configs/mixture_v1.json --probe 3          # 每源
 python3 -m datatools.prepare configs/mixture_v1.json --dry_run          # 先看各源会取多少
 python3 -m datatools.prepare configs/mixture_v1.json --out_dir datasets/prepared
 python3 -m datatools.prepare configs/mixture_v1.json --scale 0.001      # 千分之一预算试跑管线
+python3 -m datatools.prepare configs/mixture_v1.json --out_dir datasets/prepared --only code  # 只拉这几个源
 ```
 
 `prepare` 是逐个源串行拉取的，所以**先 `--probe`**：spec 写错的源要等前面的源全部拉完才会报错。
@@ -225,9 +226,17 @@ probe 对每个源报告状态（`ok` / `ERROR` / `NO TEXT FIELD`）、实际列
 没完成时退出会死锁在线程池的析构里，probe 每次都会碰上（读完几行就放弃数据流、马上退出），
 中途 Ctrl-C 也可能碰上。所有输出文件在那之前都已关闭。
 
-`prepare` 结束时跑完 atexit 就直接 `os._exit`，不走解释器收尾：pyarrow 25 在还有 parquet 读请求
-没完成时退出会死锁在线程池的析构里，probe 每次都会碰上（读完几行就放弃数据流、马上退出），
-中途 Ctrl-C 也可能碰上。所有输出文件在那之前都已关闭。
+**中断了就重跑同一条命令。** 每个源拉完会在旁边留下 `sources/<源名>.jsonl.done.json`，记下它的报告、
+文件大小，以及拉取时的源配置、预算和分词器指纹；重跑时仍然吻合的源直接复用，其余的从头拉，
+所以一次崩溃只损失正在拉的那个源。同一个 `--out_dir` 同时只能有一个 `prepare` 在写（两个进程会
+互相截断对方的文件），第二个会报出占用者的 pid 后退出。断网时日志里的 `Retrying` 是 HF 客户端
+在自己重试，不需要手动重启。
+
+`--only <源名> ...` 只拉指定的源，拉完即停（不去污染、不划分）；之后不带 `--only` 重跑会复用它们。
+完成标记与目录无关，所以一个源也可以经别的 endpoint、在别的目录拉好，再连同标记一起挪进
+`sources/`。正式数据集就是这么拉的：五个公开源经 `hf-mirror.com` 拉，并且不让进程看到 HF token
+（`HF_TOKEN_PATH=/nonexistent`）；gated 的 starcoderdata 单独拉，再挪进来。**主 token 不要发给镜像**：
+gated 源要走镜像，只能用一个专门新建、只能读公开 gated 仓库的 fine-grained token，用完即删。
 
 整条链路是**流式**的：配比按 token 计，而语料按文档和字节发布，所以只能边 tokenize 边记数、
 取满即停。10B token 是约 30GB 文本，任何一步都不能全量进内存。
