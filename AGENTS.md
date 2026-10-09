@@ -155,9 +155,10 @@ rather than duplicating commands here.
  first formal build lost 3.6 hours of zh_web while the hub client was riding out an outage.
  `--only NAME...` pulls just those sources and stops before decontamination; markers do not
  depend on the directory, so a source pulled elsewhere can be moved into `sources/` with its
- marker. **Never send the HF token to a mirror**: the formal build pulls the five open sources
- through `hf-mirror.com` with `HF_TOKEN_PATH=/nonexistent`, and only the gated starcoderdata from
- the hub with the token.
+ marker. **Never send the main HF token to a mirror.** The formal build pulls the five open
+ sources through `hf-mirror.com` with `HF_TOKEN_PATH=/nonexistent`. The gated starcoderdata needs
+ a token, and the only one that may reach a mirror is a fine-grained token made for the build
+ that can read nothing but public gated repos (no per-namespace permissions), deleted afterwards.
  - **`prepare`'s `__main__` runs the atexit handlers and then calls `os._exit`, on purpose.**
  pyarrow 25 deadlocks in a static thread pool's destructor if a parquet read is still in flight
  when the process exits; a probe always is in that state (it abandons each stream after a few

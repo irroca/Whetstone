@@ -234,8 +234,9 @@ probe 对每个源报告状态（`ok` / `ERROR` / `NO TEXT FIELD`）、实际列
 
 `--only <源名> ...` 只拉指定的源，拉完即停（不去污染、不划分）；之后不带 `--only` 重跑会复用它们。
 完成标记与目录无关，所以一个源也可以经别的 endpoint、在别的目录拉好，再连同标记一起挪进
-`sources/`。正式数据集就是这么拉的：五个公开源经 `hf-mirror.com`、并且不让进程看到 HF token
-（`HF_TOKEN_PATH=/nonexistent`），只有 gated 的 starcoderdata 带 token 走官方源。**token 不要发给镜像。**
+`sources/`。正式数据集就是这么拉的：五个公开源经 `hf-mirror.com` 拉，并且不让进程看到 HF token
+（`HF_TOKEN_PATH=/nonexistent`）；gated 的 starcoderdata 单独拉，再挪进来。**主 token 不要发给镜像**：
+gated 源要走镜像，只能用一个专门新建、只能读公开 gated 仓库的 fine-grained token，用完即删。
 
 整条链路是**流式**的：配比按 token 计，而语料按文档和字节发布，所以只能边 tokenize 边记数、
 取满即停。10B token 是约 30GB 文本，任何一步都不能全量进内存。
