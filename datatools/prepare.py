@@ -26,6 +26,14 @@ it fits. In practice the yield is low here: FineWeb-Edu and FineWeb2-HQ are
 already MinHash-deduplicated upstream, so the remaining near-duplicates come
 from cross-source overlap and from our own synthetic data.
 
+**A rerun resumes per source.** A finished source leaves
+``sources/<name>.jsonl.done.json`` beside its file, recording its report, the
+file's size and what it was pulled with (source settings, budget, tokenizer).
+A rerun reuses every source whose record still matches and pulls the others
+from their start, so a crash costs the source in progress, not the run. Only
+one run may write an output directory at a time, since two truncate each
+other's files: a second one exits instead of starting.
+
 Every emitted record carries a ``source`` field naming the mixture slot it came
 from, so the merged splits can still be broken down per source (per-language
 validation loss is what the mixture ablations compare).
@@ -51,7 +59,7 @@ import os
 import sys
 import traceback
 from collections import Counter
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
 from typing import Any, Iterator, Optional, Sequence
 
 from .cleaners import CLEANERS, clean
@@ -68,9 +76,12 @@ from .records import (
     write_jsonl,
 )
 from .split import HOLDOUT, TRAIN, VAL, assign_split
+from .tokenize_corpus import tokenizer_fingerprint
 
 TOKENIZE_BATCH = 256
 PROJECTED_READ_AHEAD = 64 * 1024
+LOCK_NAME = ".prepare.lock"
+DONE_SUFFIX = ".done.json"
 
 # Fields kept when a row already has a non-pretrain schema; everything else is dropped.
 SCHEMA_FIELDS = {
@@ -192,6 +203,19 @@ class SourceReport:
             "exact_duplicates": self.exact_duplicates,
             "exhausted": self.exhausted,
         }
+
+    @classmethod
+    def from_dict(cls, values: dict) -> "SourceReport":
+        return cls(
+            name=values["name"],
+            target_tokens=values["target_tokens"],
+            tokens=values["tokens"],
+            documents=values["documents"],
+            seen=values["records_read"],
+            rejected=Counter(values["rejected"]),
+            exact_duplicates=values["exact_duplicates"],
+            exhausted=values["exhausted"],
+        )
 
 
 def hf_load_options(hf: dict) -> dict:
@@ -377,6 +401,96 @@ def prepare_source(
     return report
 
 
+def source_fingerprint(spec: MixtureSpec, source: SourceSpec, tokenizer) -> dict:
+    """What a source's output depends on; a finished file is reused only on a match."""
+    settings = {key: value for key, value in asdict(source).items() if key != "note"}
+    payload = {
+        "source": settings,
+        "target_tokens": spec.token_budget(source),
+        "tokenizer": tokenizer_fingerprint(tokenizer),
+    }
+    # Compared against the copy stored in JSON, where tuples come back as lists.
+    return json.loads(json.dumps(payload))
+
+
+def finished_report(spec: MixtureSpec, source: SourceSpec, tokenizer, out_path: str) -> Optional[SourceReport]:
+    """The report of a source an earlier run finished, if its file is still that output."""
+    try:
+        with open(out_path + DONE_SUFFIX, "r", encoding="utf-8") as fh:
+            done = json.load(fh)
+    except (OSError, ValueError):
+        return None
+    if done.get("fingerprint") != source_fingerprint(spec, source, tokenizer):
+        return None
+    if not os.path.isfile(out_path) or os.path.getsize(out_path) != done.get("bytes"):
+        return None
+    return SourceReport.from_dict(done["report"])
+
+
+def pull_source(
+    spec: MixtureSpec,
+    source: SourceSpec,
+    tokenizer,
+    out_path: str,
+    progress_every: int = 0,
+) -> SourceReport:
+    """``prepare_source`` into ``out_path``, then record the source as finished.
+
+    Records go to a temporary file that is renamed into place once complete,
+    and the marker is written last, so an interrupted pull never looks finished.
+    """
+    marker = out_path + DONE_SUFFIX
+    if os.path.exists(marker):
+        os.remove(marker)
+    partial = out_path + ".partial"
+    report = prepare_source(spec, source, tokenizer, partial, progress_every)
+    _fsync(partial)
+    os.replace(partial, out_path)
+    write_json_atomic(marker, {
+        "fingerprint": source_fingerprint(spec, source, tokenizer),
+        "bytes": os.path.getsize(out_path),
+        "report": report.to_dict(),
+    })
+    return report
+
+
+def write_json_atomic(path: str, payload: dict) -> None:
+    tmp = f"{path}.tmp"
+    with open(tmp, "w", encoding="utf-8") as fh:
+        json.dump(payload, fh, ensure_ascii=False, indent=2)
+        fh.flush()
+        os.fsync(fh.fileno())
+    os.replace(tmp, path)
+
+
+def _fsync(path: str) -> None:
+    fd = os.open(path, os.O_RDONLY)
+    try:
+        os.fsync(fd)
+    finally:
+        os.close(fd)
+
+
+def lock_out_dir(out_dir: str):
+    """An exclusive lock on ``out_dir`` for this process, or None if another run holds it.
+
+    The OS drops the lock when the process ends, however it ends, so a killed
+    run never leaves a stale one behind.
+    """
+    import fcntl  # POSIX only; imported here so the module still imports elsewhere
+
+    handle = open(os.path.join(out_dir, LOCK_NAME), "a+", encoding="utf-8")
+    try:
+        fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except OSError:
+        handle.close()
+        return None
+    handle.truncate(0)
+    handle.write(f"{os.getpid()}\n")
+    handle.flush()
+    return handle
+
+
 def finalize(
     spec: MixtureSpec,
     source_paths: Sequence[str],
@@ -532,7 +646,7 @@ def render_sources(reports: Sequence[SourceReport]) -> str:
     return "\n".join(lines)
 
 
-def main() -> int:
+def main(argv: Optional[Sequence[str]] = None) -> int:
     parser = argparse.ArgumentParser(description="Build a corpus from a mixture spec")
     parser.add_argument("spec", help="Mixture spec JSON")
     parser.add_argument("--out_dir", type=str, default="datasets/prepared")
@@ -555,7 +669,7 @@ def main() -> int:
         metavar="ROWS",
         help="Pull ROWS rows from every source, report spec problems, and exit",
     )
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
     spec = MixtureSpec.load(args.spec)
     if args.probe:
@@ -564,6 +678,19 @@ def main() -> int:
         return 0 if all(r.status == "ok" for r in results) else 1
     if args.scale != 1.0:
         spec.total_tokens = int(spec.total_tokens * args.scale)
+
+    lock = None
+    if not args.dry_run:
+        os.makedirs(args.out_dir, exist_ok=True)
+        lock = lock_out_dir(args.out_dir)
+        if lock is None:
+            with open(os.path.join(args.out_dir, LOCK_NAME), "r", encoding="utf-8") as fh:
+                holder = fh.read().strip()
+            print(
+                f"another prepare (pid {holder}) is writing {args.out_dir}; not starting a second one",
+                file=sys.stderr,
+            )
+            return 1
 
     from transformers import AutoTokenizer
 
@@ -574,14 +701,20 @@ def main() -> int:
     )
     print(f"mixture {spec.name!r}: {budget} tokens, tokenizer {spec.tokenizer}")
 
-    os.makedirs(args.out_dir, exist_ok=True)
     source_dir = os.path.join(args.out_dir, "sources")
     reports, paths = [], []
     for source in spec.sources:
-        out_path = None if args.dry_run else os.path.join(source_dir, f"{source.name}.jsonl")
-        reports.append(prepare_source(spec, source, tokenizer, out_path, args.progress_every))
-        if out_path:
-            paths.append(out_path)
+        if args.dry_run:
+            reports.append(prepare_source(spec, source, tokenizer, None, args.progress_every))
+            continue
+        out_path = os.path.join(source_dir, f"{source.name}.jsonl")
+        report = finished_report(spec, source, tokenizer, out_path)
+        if report is None:
+            report = pull_source(spec, source, tokenizer, out_path, args.progress_every)
+        else:
+            print(f"    {source.name}: finished by an earlier run ({report.tokens:,} tokens), reused")
+        reports.append(report)
+        paths.append(out_path)
 
     print(render_sources(reports))
 
@@ -615,8 +748,7 @@ def main() -> int:
         "split": split_info,
     }
     manifest_path = os.path.join(args.out_dir, "manifest.json")
-    with open(manifest_path, "w", encoding="utf-8") as fh:
-        json.dump(manifest, fh, ensure_ascii=False, indent=2)
+    write_json_atomic(manifest_path, manifest)
     print(f"manifest -> {manifest_path}")
     return 0
 
