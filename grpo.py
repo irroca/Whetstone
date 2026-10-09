@@ -24,7 +24,6 @@ import os
 import time
 
 import torch
-from torch import optim
 from transformers import AutoTokenizer
 
 from envs import available_envs, load_tasks, make_env
@@ -53,11 +52,11 @@ from train_utils import (
     add_common_train_args,
     add_model_args,
     build_autocast_scaler,
+    build_optimizer,
     describe_model,
     get_lr,
     init_wandb_if_needed,
     load_weights,
-    optimizer_step,
     optimizer_step,
     resolve_model_config,
     save_checkpoint,
@@ -206,7 +205,7 @@ def main():
         max_seq_len=512,
         data_path="",
         wandb_project="Whetstone-GRPO",
-        skip=("epochs", "accumulation_steps", "num_workers"),
+        skip=("epochs", "accumulation_steps", "num_workers", "max_steps"),
     )
     add_model_args(parser)
     parser.add_argument("--policy_path", type=str, required=True, help="Init policy (usually SFT)")
@@ -272,7 +271,7 @@ def main():
         eval_env.reseed(args.seed + 10_000)
         eval_tasks = eval_env.sample(args.eval_size)
 
-    optimizer = optim.AdamW(policy.parameters(), lr=args.learning_rate)
+    optimizer = build_optimizer(policy, args)
     ctx, scaler = build_autocast_scaler(args.device, args.dtype)
     wandb = init_wandb_if_needed(args, run_name=f"grpo-g{args.group_size}-b{args.batch_size}")
 

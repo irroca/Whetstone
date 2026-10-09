@@ -2,6 +2,7 @@ import math
 import os
 import tempfile
 
+import pytest
 import torch
 import torch.nn as nn
 
@@ -13,6 +14,7 @@ from train_utils import (
     load_train_state,
     load_weights,
     save_checkpoint,
+    save_final_weights,
     set_seed,
     str2bool,
 )
@@ -73,3 +75,57 @@ def test_load_weights_accepts_raw_and_wrapped_checkpoint():
         assert (epoch, step, global_step, loss) == (1, 2, 3, 0.5)
         for p1, p2 in zip(model.parameters(), model3.parameters()):
             assert torch.allclose(p1, p2)
+
+
+def _tiny():
+    cfg = LLMConfig(dim=32, n_layers=1, n_heads=4, n_kv_heads=2, max_seq_len=16, vocab_size=64)
+    return Whetstone(cfg), cfg
+
+
+def test_an_interrupted_save_keeps_the_previous_checkpoint(tmp_path, monkeypatch):
+    model, cfg = _tiny()
+    path = tmp_path / "latest_checkpoint.pth"
+    save_checkpoint(str(path), model, None, None, 0, 4, 4, 1.0, cfg)
+    before = path.read_bytes()
+
+    def dies_mid_write(obj, fh):
+        fh.write(b"half a checkpoint")
+        raise OSError("No space left on device")
+
+    monkeypatch.setattr(torch, "save", dies_mid_write)
+    with pytest.raises(OSError):
+        save_checkpoint(str(path), model, None, None, 0, 8, 8, 0.5, cfg)
+
+    assert path.read_bytes() == before
+    assert list(tmp_path.iterdir()) == [path]
+
+
+def test_an_interrupted_final_save_keeps_the_previous_weights(tmp_path, monkeypatch):
+    model, cfg = _tiny()
+    path = tmp_path / "pretrain_final.pth"
+    save_final_weights(str(path), model, cfg)
+    before = path.read_bytes()
+
+    def disk_full(obj, fh):
+        raise OSError("No space left on device")
+
+    monkeypatch.setattr(torch, "save", disk_full)
+    with pytest.raises(OSError):
+        save_final_weights(str(path), model, cfg)
+
+    assert path.read_bytes() == before
+    assert sorted(p.name for p in tmp_path.iterdir()) == ["pretrain_final.config.json", "pretrain_final.pth"]
+
+
+def test_resuming_restores_the_rng_stream(tmp_path):
+    """Dropout draws continue where the interrupted run left them."""
+    model, cfg = _tiny()
+    path = tmp_path / "ckpt.pth"
+    torch.manual_seed(123)
+    save_checkpoint(str(path), model, None, None, 0, 0, 0, 0.0, cfg)
+    expected = torch.rand(5)
+
+    torch.rand(100)
+    load_train_state(torch.load(path, weights_only=False), None, None)
+
+    assert torch.equal(torch.rand(5), expected)
