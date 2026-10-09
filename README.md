@@ -26,7 +26,7 @@ RL 部分不依赖 TRL/veRL：可验证奖励环境、组相对优势、clipped 
 ```bash
 uv venv --python 3.12 && source .venv/bin/activate
 uv pip install -r requirements.txt
-HF_HUB_OFFLINE=1 python -m pytest tests/ -q     # 327 passed，无需 GPU / 网络 / checkpoint
+HF_HUB_OFFLINE=1 python -m pytest tests/ -q     # 全部通过，无需 GPU / 网络 / checkpoint
 ```
 
 不用 `uv` 的话 `python3.12 -m venv .venv` + `pip install -r requirements.txt` 等效。
@@ -67,6 +67,7 @@ CPU 单测和 smoke 跑得起来。它在代码上的压缩率只有 2.23 字符
 config.py  model.py  dataset.py  losses.py  train_utils.py  rollout.py   # 核心库
 pretrain.py  sft.py  distill.py  dpo.py  grpo.py                         # 五个训练阶段
 eval_ppl.py  chat.py  analyze_grpo.py  train_tokenizer.py                # 评估与工具
+run_ablation.py  probes.py                                               # 数据消融
 datatools/   envs/   configs/   tests/   docs/   tokenizer/
 ```
 
@@ -82,7 +83,8 @@ datatools/   envs/   configs/   tests/   docs/   tokenizer/
 | `pretrain.py` / `sft.py` / `distill.py` / `dpo.py` / `grpo.py` | 五个阶段的训练入口 |
 | `eval_ppl.py` / `chat.py` | 困惑度评估、交互式生成 |
 | `analyze_runs.py` / `analyze_grpo.py` | 训练记录复盘（全阶段）、RL 指标分析 |
-| `configs/` | 配比 spec（`mixture_v1.json`）|
+| `run_ablation.py` / `probes.py` | 数据消融编排（数据池 → 分词器 → 各组语料 → 训练 → 评测 → 汇总表）；基座模型评测 |
+| `configs/` | 配比 spec（`mixture_v1.json`）、消融 spec（`ablation_v1.json`）|
 | `docs/corpus-plan.md` | 语料候选清单、许可证、配比与消融计划 |
 | `docs/experiments.md` | 实验协议与已记录的跑批结果 |
 
@@ -151,6 +153,8 @@ python analyze_runs.py plot results --out report.html    # 自包含 HTML，内�
 
 - pretrain / SFT / KD：held-out 交叉熵与 PPL，**按 token 加权**而不是按 batch 平均
   （否则一个装着短文档的 batch 会和装着长文档的 batch 等权，数字会随 batch 构成漂移）
+- 验证集按**一个固定的排列**读，不按文件顺序：`--val_batches` 只评估前几个 batch，而 `prepare`
+  写出的划分是按源分组的，按文件顺序读的话前 20 个 batch 全是中文。每次评估看到的仍是同一批样本
 - DPO：**偏好准确率**（policy 排序正确的比例）、隐式奖励 margin，以及 chosen / rejected 各自的
   奖励变化。要看的是准确率——DPO loss 会在模型只是把已有排序变得更尖锐时继续下降，单看 loss 高估进展
 - GRPO：沿用已有的 `evaluate()`（accuracy / format_rate / hack_rate）
@@ -193,7 +197,7 @@ checkpoint 加载进 8 层模型，多出来的两层会保持随机初始化且
 ### 一条命令跑完整管线
 
 配比写在 spec 里（见 `configs/mixture_v1.json`），`prepare` 按它执行
-**拉取 → 质量过滤 → 精确去重 → 去污染 → 划分 → manifest**：
+**拉取 → 清洗 → 质量过滤 → 精确去重 → 去污染 → 划分 → manifest**：
 
 ```bash
 python3 -m datatools.prepare configs/mixture_v1.json --probe 3          # 每源拉 3 行，检查 spec
@@ -206,10 +210,18 @@ python3 -m datatools.prepare configs/mixture_v1.json --scale 0.001      # 千分
 probe 对每个源报告状态（`ok` / `ERROR` / `NO TEXT FIELD`）、实际列名、样本文本，以及这几行里
 过滤器会拒掉多少；所有源的问题一次报完，有任何一个源不是 `ok` 就以退出码 1 结束。
 
+`prepare` 结束时跑完 atexit 就直接 `os._exit`，不走解释器收尾：pyarrow 25 在还有 parquet 读请求
+没完成时退出会死锁在线程池的析构里，probe 每次都会碰上（读完几行就放弃数据流、马上退出），
+中途 Ctrl-C 也可能碰上。所有输出文件在那之前都已关闭。
+
+`prepare` 结束时跑完 atexit 就直接 `os._exit`，不走解释器收尾：pyarrow 25 在还有 parquet 读请求
+没完成时退出会死锁在线程池的析构里，probe 每次都会碰上（读完几行就放弃数据流、马上退出），
+中途 Ctrl-C 也可能碰上。所有输出文件在那之前都已关闭。
+
 整条链路是**流式**的：配比按 token 计，而语料按文档和字节发布，所以只能边 tokenize 边记数、
 取满即停。10B token 是约 30GB 文本，任何一步都不能全量进内存。
 
-spec 里每个源除了 `filters`，还有两个控制「读什么」的字段：
+spec 里每个源除了 `filters`，还有两个控制「读什么」的字段和一个控制「怎么改写」的字段：
 
 - **`hf.columns`**：只读 parquet 的这几列。不只是省磁盘：parquet 是**按整个行组**流式读的，
   第一行产出前要先把整个行组拉完。FineWeb2-HQ 每行带一个 768 维的 embedding（质量分类器用的），
@@ -221,6 +233,12 @@ spec 里每个源除了 `filters`，还有两个控制「读什么」的字段�
 - **`where`**：按上游元数据精确匹配，键是点分路径，值可以是列表（任一命中即可）。文本过滤器
   看不到这类信息：古腾堡里约 5% 的书是法语/德语/拉丁语，拉丁字母占比照样过线，只能靠
   `{"metadata.language": "en"}`。拒绝原因记为 `where:metadata.language`，和其他规则一样归因
+- **`cleaners`**：过滤之前按名字对文本做的改写（`datatools/cleaners.py`，写错名字加载 spec 时报错），
+  所以过滤、精确去重和 token 计数看到的都是改写后的文本。目前只有 `starcoder_metadata`：
+  starcoderdata 把仓库元数据序列化进了文件内容，冒烟里 49% 的代码文件第一行是
+  `<reponame>owner/repo<filename>path<gh_stars>10-100`（三段各自随机出现）。这些标记在 StarCoder
+  的分词器里是特殊 token，在我们的分词器里只是字符串：白占 token、教模型生成它们，还让同一文件的
+  两个 fork 成不了精确重复。只删**整行都是元数据段**的第一行，代码里的 `'-f <filename>'` 不动
 
 每条输出记录只保留 schema 本身的字段，**外加一个 `source` 字段**标明它来自哪个配比槽位。
 上游的其余列一律丢弃（以前带 `text` 的行会原样透传，FineWeb2-HQ 的 embedding 让中文这一份比
@@ -275,6 +293,19 @@ python3 -m datatools.tokenizer_stats datasets/zh.jsonl --tokenizer ./tok_16k ./t
 `filters` 的每条规则返回的是**拒绝原因的名字**而不是布尔值。过滤这一步真正有用的输出不是留下的
 集合，而是**哪条规则删了多少**——一个阈值静默删掉八成语料是 bug，只有归因才看得见。
 阈值故意没有调优：先用 `stats` 看真实分位数，再写进 spec。
+
+代码源是个例子：字符 10-gram 重复度（`max_repetition: 0.5`）在冒烟里拒掉 15% 的代码文件，按长度看
+2k 字符以内 2%、超过 2 万字符 57%，被拒文件长度的中位数 1.1 万、保留的 1.8 千。232 篇里只有
+10 篇是生成代码（Django migration、Thrift、Pulumi），其余是 `bokeh/client/util.py`、
+`slim/nets/inception_resnet_v2.py` 这样的正常源码。这个指标来自 Gopher，是给散文设计的；缩进和
+样板让它随文件长度单调上升，所以代码源关掉了它（StarCoder 的代码过滤也没有这一条，它的
+行长度、字母数字占比规则 starcoderdata 上游已经做过，冒烟里一篇都拦不到）。
+
+重复行比例（`max_duplicate_lines`）只统计含字母或数字的行。单独一行的 `"""`、`)`、`},`、markdown 的
+`---` 是结构不是内容，算进去的话 docstring 多的文件看起来有一半是重复行；导航菜单的每一行都有字，
+照样抓得到。这一改在冒烟的 1557 个代码文件上把这条规则的拒绝从 27 篇降到 17 篇（放回来的是 Django
+model、二进制读写、CLI 这类正常代码，剩下的是同一行内容重复几十次的测试和 Qt 生成文件），数学源
+20 → 18，其余源已保留的文档没有一篇因此被拒。
 
 `dedup` 的 MinHash 是直接在 numpy 上实现的（不依赖 `datasketch`）：
 
@@ -332,12 +363,26 @@ python3 -m datatools.fetch_evals --decontamination_only --update_spec configs/mi
 | `math500` | 500 | 标准 MATH 评测子集 |
 | `tal_scq5k_cn` / `tal_scq5k_en` | 各 2000 | MIT 许可的中英竞赛数学，唯一干净的中文可验证源 |
 | `mmlu` | 14042 | 只做去污染 |
+| `humaneval` | 164 | 代码：去污染 + 将来代码环境的评测 |
+| `mbpp` | 500 | 代码：test 划分，包含 sanitized 子集 |
 | `big_math` | 251k | GRPO 的 prompt 池（gated，需 HF token）|
 
 转换不是直接搬字段：GSM8K 的答案要从 `#### N` 里抽出来、CoT 留在 `solution` 字段；
 TAL-SCQ5K 的 `answer_value` 只是选项字母（`B`），要解析 `answer_option_list` 换成选项**内容**，
 否则不可验证；MMLU 的 `answer` 是下标，要换成选项文本。`solution` 字段会被
 `record_parts` 一起索引——**只抄了解答、没抄题目的网页同样是泄漏**。
+
+代码题靠跑测试判分，所以 HumanEval 的 `test` / `entry_point`、MBPP 的 `test_list` 原样带上，
+`answer` 放参考实现（MBPP 上游是 CRLF 换行，转成 `\n`）。参考实现放 `answer` 而不是
+`solution` 是有意的：短答案只做精确匹配，于是 `return [x for x in strings if substring in x]`
+这种 10 个单元的惯用写法不会命中所有用到它的代码文件；放进 `solution` 会按自身长度建索引，
+测试里断言了两种放法的差别。
+
+代码题靠跑测试判分，所以 HumanEval 的 `test` / `entry_point`、MBPP 的 `test_list` 原样带上，
+`answer` 放参考实现（MBPP 上游是 CRLF 换行，转成 `\n`）。参考实现放 `answer` 而不是
+`solution` 是有意的：短答案只做精确匹配，于是 `return [x for x in strings if substring in x]`
+这种 10 个单元的惯用写法不会命中所有用到它的代码文件；放进 `solution` 会按自身长度建索引，
+测试里断言了两种放法的差别。
 
 `big_math` 保留了 `llama8b_solve_rate`（每题 64 次 rollout 的通过率）。这是做难度课程的关键：
 零奖励是 GRPO 的吸收态（组内全错 → 无奖励方差 → 无梯度），有了通过率就能按难度带筛题，
@@ -369,6 +414,11 @@ TAL-SCQ5K 的 `answer_value` 只是选项字母（`B`），要解析 `answer_opt
 python3 train_tokenizer.py --data datasets/prepared/train.jsonl --out tokenizer/v1_32k --vocab_size 32768
 python3 -m datatools.tokenizer_stats --probe --tokenizer tokenizer/v1_32k tokenizer/zh_6400
 ```
+
+**数字逐位切分**（和 Llama、Qwen 一样）。只用 byte-level BPE 的话，数字串按频率合并：在冒烟语料上
+训的 32k 词表里 `1987` 是一个 token，`2024` 切成 `20|24`，`12345` 切成 `12|345`。同一个数位在不同的
+数里落在不同的 token 上，算术没有一致的单位可学。
+冒烟语料上 32k 词表的代价是数学 3.47 → 3.19 字符/token（−8%），其余源 0–3%。
 
 **词表大小和模型规模必须一起定**：嵌入层是 `vocab_size × dim`，32k 词表在 29M 模型上占
 39.5% 的参数，在 ~100M（`dim=768, n_layers=12`）上占 25.3%。这也是本项目把模型定在 100M 的原因。
@@ -411,6 +461,57 @@ python3 pretrain.py --data_path datasets/prepared/train.bin --val_data_path data
   否则会悄悄只训前半份
 - **原子写入**：三个文件先写临时名，全部完成后再改名，被 kill 的任务不会留下一份看起来完整的语料
 - 常数内存，DataLoader worker 各自 memmap 文件（pickle 时不带数组，否则每个 worker 都要拷贝整个语料）
+
+## 数据消融（`run_ablation.py`）
+
+一条命令把一组消融从拉数据跑到出表：
+
+```bash
+python3 run_ablation.py configs/ablation_v1.json plan   # 各组配比、数据池大小、产物清单；不动任何文件
+python3 run_ablation.py configs/ablation_v1.json run    # 下面六个阶段依次跑
+python3 run_ablation.py configs/ablation_v1.json pool | tokenizers | data | train | probe | report
+python3 run_ablation.py configs/ablation_v1.json train --arms zh30_v32k   # 只训某几组，比如分给两台机器
+```
+
+| 阶段 | 做什么 | 产物 |
+|------|--------|------|
+| `pool` | 从基础配比派生一份 spec，`prepare` 拉一次所有组共用的数据池 | `data_dir/pool/` |
+| `tokenizers` | 从数据池的 train 划分按基础配比取样本，每个词表大小训一个 | `data_dir/tokenizers/v32k/` |
+| `data` | 每个词表 tokenize 一份验证集；每组从数据池切出自己的训练语料 | `data_dir/arms/<组>/train.bin` |
+| `train` | 每组跑一次 `pretrain.py`，spec 里 `train` / `model` 的键原样变成 CLI 参数 | `results_dir/<组>/` |
+| `probe` | 在 holdout 上跑 `probes.py` | `results_dir/<组>/probes.json` |
+| `report` | 汇总成一张表 | `results_dir/report.md` / `report.json` |
+
+每个阶段都跳过产物已经存在的工作，产物先写临时名再改名，所以**被打断后重跑同一条命令就能续上**，
+训到一半的组从它的 `latest_checkpoint.pth` 继续。
+
+spec 里每组只写它和基础配比（`mixture_v1.json`）不一样的地方：
+
+```json
+{"name": "zh15_v32k", "vocab_size": 32768, "shares": {"zh_web": 0.15}}
+```
+
+`shares` 里点名的源取这个占比，其余的源保持基础配比里的相对比例，分掉剩下的份额。
+
+为什么这样切（细节见 `datatools/ablation.py` 的模块文档）：
+
+- **所有组从同一个数据池里切，取每个源的前若干篇**。15% 组的中文是 30% 组的前缀，组与组之间只差
+  「看了多少」，不差「抽到了哪些文档」
+- **配额按各组自己的分词器计数**（含 bos/eos），所以每组训练的 token 数相同，配比就是模型实际看到的
+  配比。数据池是 `prepare` 按 zh_6400 计数的，新词表压缩得更好（冒烟语料上 1.2–1.6 倍），
+  `pool_margin`（默认 1.75）就是为此留的。数据池不够时 `data` 阶段直接报错且不留下文件，不会静默少给
+- 验证集和 holdout 是数据池的划分，所有组共用。改动任何会影响数据池大小的设置（组、每组 token 数、
+  余量、基础配比）之后，`pool` 阶段会拒绝旧的数据池，删掉 `data_dir/pool` 重拉
+
+评测（`probes.py`）：
+
+- **每个源的 bits per byte**：holdout 上的总 NLL 除以文本的 UTF-8 字节数。per-token loss 跨词表不可比
+  （词表大的每个 token 要预测的信息更多），bpb 可比。`bpb mix` 按基础配比加权，每组用同一套权重
+- **语言混淆**：拿中文 holdout 的开头 32 个 token 续写 48 个（temperature 0.7），续写里的汉字不到
+  汉字加拉丁字母总数的一半就算混淆；英文 prompt 反过来
+- **few-shot 加法**：4-shot，一位数、两位数各 100 题，greedy 解码后精确匹配
+- 表里的 val loss 只在同一词表内可比
+- 已知偏差：窗口固定 `max_seq_len` 个 token，词表大的组每个窗口覆盖的文本更多，bpb 对大词表略有利
 
 ## 快速跑通（CPU smoke）
 

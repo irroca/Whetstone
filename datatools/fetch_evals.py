@@ -12,6 +12,8 @@ Two uses, and they pull in opposite directions:
   ``{"question", "answer"}`` schema, so a fetched set can be handed straight to
   ``grpo.py --eval_path``. Here the answer has to be a single verifiable
   string, so multiple-choice letters are resolved to their option text.
+  Code sets are the exception: they are graded by running the tests that
+  travel with each record, and ``answer`` holds a reference solution.
 
 Each converter is written against field names verified on the HuggingFace API,
 and is a pure function so the tests can exercise it offline on a recorded row.
@@ -126,6 +128,43 @@ def convert_mmlu(row: dict) -> Optional[dict]:
     }
 
 
+def convert_humaneval(row: dict) -> Optional[dict]:
+    """``prompt`` is a signature plus docstring; the model writes the body.
+
+    The reference body goes in ``answer``, not ``solution``: short answers only
+    match exactly, which keeps a 10-unit body such as
+    ``return [x for x in strings if substring in x]`` from flagging every file
+    that uses the idiom.
+    """
+    prompt, body = str(row.get("prompt", "")), str(row.get("canonical_solution", ""))
+    if not prompt.strip() or not body.strip():
+        return None
+    return {
+        "question": prompt,
+        "answer": body,
+        "test": str(row.get("test", "")),
+        "entry_point": row.get("entry_point"),
+        "task_id": row.get("task_id"),
+        "source": "humaneval",
+    }
+
+
+def convert_mbpp(row: dict) -> Optional[dict]:
+    """``test_list`` grades a solution; ``code`` is one reference (CRLF upstream)."""
+    text, code = str(row.get("text", "")), str(row.get("code", ""))
+    tests = [str(t) for t in _as_list(row.get("test_list"))]
+    if not text.strip() or not code.strip() or not tests:
+        return None
+    return {
+        "question": text,
+        "answer": code.replace("\r\n", "\n"),
+        "test_list": tests,
+        "test_setup_code": str(row.get("test_setup_code") or ""),
+        "task_id": row.get("task_id"),
+        "source": "mbpp",
+    }
+
+
 def convert_big_math(row: dict) -> Optional[dict]:
     """Keeps ``llama8b_solve_rate``: a per-problem pass rate over 64 rollouts.
 
@@ -187,6 +226,18 @@ EVAL_SOURCES: dict[str, EvalSource] = {
         convert=convert_mmlu,
         note="14042 items; decontaminate against it even though we will not score well on it",
     ),
+    "humaneval": EvalSource(
+        name="humaneval",
+        hf={"path": "openai/openai_humaneval", "split": "test"},
+        convert=convert_humaneval,
+        note="164 Python functions graded by unit tests",
+    ),
+    "mbpp": EvalSource(
+        name="mbpp",
+        hf={"path": "google-research-datasets/mbpp", "name": "full", "split": "test"},
+        convert=convert_mbpp,
+        note="The 500-problem MBPP test split, which contains the sanitized subset",
+    ),
     "big_math": EvalSource(
         name="big_math",
         hf={"path": "SynthLabsAI/Big-Math-RL-Verified", "split": "train"},
@@ -199,7 +250,9 @@ EVAL_SOURCES: dict[str, EvalSource] = {
 
 # Sets worth indexing for decontamination. big_math is an RL prompt pool, not an
 # eval set, so training on it is intended rather than leakage.
-DECONTAMINATION_SETS = ("gsm8k", "math500", "tal_scq5k_cn", "tal_scq5k_en", "mmlu")
+DECONTAMINATION_SETS = (
+    "gsm8k", "math500", "tal_scq5k_cn", "tal_scq5k_en", "mmlu", "humaneval", "mbpp",
+)
 
 
 @dataclass

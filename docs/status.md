@@ -8,11 +8,12 @@
 ## 0. 一句话现状
 
 算法链路（五阶段后训练）和数据管线都已实现，CPU 单测覆盖；语料方案和模型规模已定。
-**数据管线已经在真实语料上跑通了一次千分之一规模的冒烟**（§4 步骤 3），暴露并修掉了六个问题，
-其中去污染此前删掉的文档几乎全是误杀。预训练已经改读预 tokenize 的 memmap 语料（§3.1 完成）。
+**数据管线已经在真实语料上跑通了千分之一规模的完整冒烟**（§4 步骤 3，六个源全部含代码），
+暴露并修掉了十二个问题：去污染此前删掉的文档几乎全是误杀，代码源有 15% 的正常源码被一条散文用的
+重复度规则删掉。预训练已经改读预 tokenize 的 memmap 语料（§3.1），注意力换成了 SDPA（§3.2）。
 
-**正式训练还没开始**。剩下挡在前面的：代码语料 `starcoderdata` 是 gated 的，需要你接受条款并
-登录 HF（§4 步骤 3）；注意力没用 SDPA（§3.2）；分词器还没重训（§4 步骤 5）。
+**正式训练还没开始**。消融 #1（中文占比）和 #5（词表大小）的编排脚本已经写好，正在本机上跑
+（§4 步骤 4，六组共约一天）。跑完按结果定配比和词表，再出正式数据集、重训分词器（§4 步骤 5）。
 
 仓库里现有的一切数字都是 29M 玩具规模的**实现验证**，不是能力声明。
 
@@ -27,6 +28,7 @@
 - 架构解析优先级 **显式 CLI > checkpoint 记录 > 库默认值**；`*_final.pth` 旁边写
   `*.config.json` sidecar（因为 `n_heads` 无法从张量形状反推）
 - 真正的跨尺寸蒸馏（teacher / student 各自从自己的 checkpoint 解析架构）
+- 注意力走 `F.scaled_dot_product_attention`（MPS 除外，见 §3.2），显式 score 矩阵的实现留作对照
 
 ### RLVR / GRPO（[PR #4](https://github.com/irroca/Whetstone/pull/4)）
 - `envs/`：可验证奖励环境，accuracy 与 format 双分量分开上报
@@ -42,12 +44,20 @@
 - `datatools.tokenize_corpus` + `dataset.MemmapPretrainDataset`：预 tokenize 成 `uint16` 的 `.bin`，
   `pretrain.py` 按扩展名自动选读取器（§3.1）
 - `prepare --probe`、`where`（按上游元数据过滤）、`hf.columns`（只下载需要的 parquet 列）、
-  输出记录带 `source` 字段、manifest 里报告命中最多的评测项（§4 步骤 3 的冒烟里加的）
+  `cleaners`（过滤前改写文本，目前用来删 StarCoder 元数据行）、输出记录带 `source` 字段、
+  manifest 里报告命中最多的评测项（§4 步骤 3 的冒烟里加的）
+- `fetch_evals` 有七个去污染集：GSM8K / MATH-500 / TAL-SCQ5K 中英 / MMLU / HumanEval / MBPP，
+  代码集带着测试（`test` / `test_list`），将来的代码环境可以直接用
 
 ### 训练记录（[PR #8](https://github.com/irroca/Whetstone/pull/8) / [#9](https://github.com/irroca/Whetstone/pull/9)）
 - 每次训练写 `{save_dir}/runs/{run_id}/`：`meta.json`（参数 + git commit + 数据指纹）、
   逐点 `metrics.jsonl`、`summary.json`（失败也写）；`analyze_runs.py` 做 list / show / compare / plot
 - 五个阶段都有 held-out 验证（`--val_data_path`），DPO 看偏好准确率；设备自动选 cuda > mps > cpu
+
+### 数据消融
+- `run_ablation.py`：一个 spec 跑完 数据池 → 分词器 → 各组语料 → 训练 → 评测 → 汇总表，
+  每个阶段可续跑（§4 步骤 4）
+- `probes.py`：每个源的 bits per byte（跨词表可比）、语言混淆率、few-shot 加法
 
 ### 调研与决策（`docs/corpus-plan.md`）
 - 语料候选清单（中英 web / 代码 / 数学 / 书籍 / 可验证任务），含规模、许可证、获取上的坑
@@ -69,7 +79,7 @@
 
 ```bash
 git clone https://github.com/irroca/Whetstone.git && cd Whetstone
-HF_HUB_OFFLINE=1 python3 -m pytest tests/ -q      # 应为 399 passed
+HF_HUB_OFFLINE=1 python3 -m pytest tests/ -q      # 应为 483 passed
 ```
 
 下面这段记录下来，是因为它是一个很容易再犯一次的坑：
@@ -89,11 +99,17 @@ HF_HUB_OFFLINE=1 python3 -m pytest tests/ -q      # 应为 399 passed
 | [#7](https://github.com/irroca/Whetstone/pull/7) | 交接文档跟上 `main` | 已合并 |
 | [#8](https://github.com/irroca/Whetstone/pull/8) | MPS 设备自动选择 + 训练记录体系 | 已合并 |
 | [#9](https://github.com/irroca/Whetstone/pull/9) | 训练记录与复盘体系（`runlog` + 验证集 + `analyze_runs.py`）| 已合并 |
-| [#10](https://github.com/irroca/Whetstone/pull/10) | memmap 预训练语料 + 数据管线首次真实数据冒烟 | 待合并 |
+| [#10](https://github.com/irroca/Whetstone/pull/10) | memmap 预训练语料 + 数据管线首次真实数据冒烟 | 已合并（squash），但只含前 4 个提交 |
+| [#11](https://github.com/irroca/Whetstone/pull/11) | 消融编排 + 补上 #10 合并后才推的 5 个提交（SDPA、代码源修复）| 待合并 |
 
 **教训**：stacked PR 要么严格按自下而上的顺序合，要么在合之前把上层 PR 的 base 直接改成 `main`。
 `squash` 合并会切断祖先关系，所以一旦顺序错了，后续那个 PR 的内容不会自动跟过来，
 而且再合时会因为历史分叉产生一堆「两边都改了同一文件」的假冲突。
+
+**第二次是同一类事故**：#10 合并之后，又往它的分支推了 5 个提交，GitHub 照样显示「已合并」，
+但这 5 个提交不在 `main` 上。**往已有 PR 推提交之前，先 `gh pr view <n> --json state` 确认它还开着。**
+补救是把这些提交 rebase 到 `main` 上开新 PR：`main` 的 squash 提交和原分支末端的 tree 相同时，
+`git rebase --onto origin/main <原末端>` 不会改变任何一个提交的 tree。
 
 ---
 
@@ -129,27 +145,32 @@ HF_HUB_OFFLINE=1 python3 -m pytest tests/ -q      # 应为 399 passed
   验证 loss 6.82 → 5.04。训练 token 数 7,930,209 = 15,519 个窗口 × 511，与"每个 token 恰好当一次
   目标"吻合；运行记录里有两个 `.bin` 的指纹和 manifest 里的配比
 
-### 3.2 【阻塞 8GB 本地卡】注意力显式构造完整 score 矩阵
+### 3.2 ~~【阻塞 8GB 本地卡】注意力显式构造完整 score 矩阵~~（已完成）
 
-`model.py:121` 是 `scores = (xq @ xk.transpose(-2, -1)) / sqrt(head_dim)`，然后 `masked_fill`
-再 `F.softmax(scores.float())`。**没有用 SDPA / FlashAttention**，所以
-`(B, n_heads, q_len, kv_len)` 这个张量会被完整物化，softmax 还会升到 fp32。
+原来每层都物化 `(B, n_heads, q_len, kv_len)` 的 score 张量，softmax 还升到 fp32，8GB 卡上
+seq 2048 会先在这里爆。现在 `model.Attention` 走 `F.scaled_dot_product_attention`：
 
-粗算 ~100M 模型（12 头、12 层）：
+- 不带缓存、没有 padding 的整段前向（训练的热路径）用 `is_causal=True`、不传 mask，CUDA 才能选
+  flash attention；单 token 解码也不传 mask
+- 带缓存的多 token 续写和带 padding 的 batch 构造显式布尔 mask。**续写不能用 `is_causal`**：
+  SDPA 的因果 mask 是左上角对齐的，`q_len < kv_len` 时会让新 token 看不到自己前面的缓存。
+  单测故意把这个条件改坏过，续写的两个用例会失败
+- 显式 score 矩阵的旧实现保留为 `Attention.use_sdpa = False`，单测在 prefill / 解码 / 续写 /
+  padding / 续写 + chunk mask 五种情况 × MHA / GQA 上逐位置对照，另外对照训练梯度
 
-| seq_len | 每层 score 张量（bf16，B=1） | 12 层保留的激活 |
-|---------|---------------------------|----------------|
-| 1024 | 25 MB | ~0.3 GB × B |
-| 2048 | 100 MB | ~1.2 GB × B |
+实测（同一初始化、同一批真实 token，旧实现 vs SDPA）：
 
-8GB 卡上 seq 2048 会先在这里爆。
+| 设备 | 配置 | 旧实现 | SDPA |
+|------|------|--------|------|
+| CPU fp32 | 100M，seq 2048，bs 1，一步前向 + 反向 | 激活 +4.80 GB，2.0 秒 | **+2.33 GB，1.4 秒** |
+| MPS bf16 | 29M 代理，seq 512，bs 8 | 25.6k–26.1k token/s | 23.6k–23.8k token/s |
+| MPS bf16 | 100M，seq 2048，bs 4 | 4,471 token/s，27.6 GB | 4,170 token/s，23.4 GB |
 
-**建议做法**：把 prefill 路径换成 `F.scaled_dot_product_attention`，保留现有的显式 mask 路径
-作为 fallback 和对照（现有单测覆盖了 prefill / decode+cache / 多 token 续写 / GQA /
-padding mask 五种情况，可以直接用来验证两条路径等价）。KV cache 续写时 `q_len` 很小，
-物化开销可以忽略，不急着改。
+loss 在两条路径上一致到小数点后 3–4 位。**MPS 上的 SDPA 训练时仍然物化 score 矩阵**
+（seq 2048 只省 15% 显存），而且慢 7–8%，所以 MPS 一律走显式路径（`model.py` 里按设备判断），
+本机消融的速度不受影响。CUDA 上的收益还没量，租到卡之后和 §3.3 一起量。
 
-注意 `--top_p`、repetition penalty 这些生成逻辑不受影响。
+`--top_p`、repetition penalty 这些生成逻辑不受影响。
 
 ### 3.3 显存与吞吐的实测校准
 
@@ -169,7 +190,7 @@ padding mask 五种情况，可以直接用来验证两条路径等价）。KV c
 - 假设的 30k token/s 对这台 Mac 明显偏乐观。租到卡之后要**重新量一遍**再排时间
 
 还没量的：`--batch_size` / `--max_seq_len` 的 OOM 边界（本机 48GB 统一内存不紧张，
-8GB 的 5060Ti 或租来的卡才是真约束），以及 §3.2 改成 SDPA 之后的提升。
+8GB 的 5060Ti 或租来的卡才是真约束），以及 SDPA 在 CUDA 上的提升（§3.2，CPU 和 MPS 已量）。
 
 顺带可以考虑（不阻塞）：gradient checkpointing、`torch.compile`、fused AdamW。
 
@@ -186,35 +207,32 @@ padding mask 五种情况，可以直接用来验证两条路径等价）。KV c
 ```bash
 python3 -m datatools.fetch_evals --decontamination_only --update_spec configs/mixture_v1.json
 ```
-2026-10-03 完成：GSM8K 1319 / MATH-500 500 / TAL-SCQ5K 中英各 2000 / MMLU 14042，共 19,861 条，
-46 秒；`decontaminate.against` 已写回 spec（按字段拆开后索引 44,450 项）。评测集在
-`datasets/eval/`，git 忽略，换机器要重拉。
+2026-10-03 完成：GSM8K 1319 / MATH-500 500 / TAL-SCQ5K 中英各 2000 / MMLU 14042 /
+HumanEval 164 / MBPP 500，共 20,525 条；`decontaminate.against` 已写回 spec（按字段拆开后
+索引 45,778 项）。代码两个集是冒烟加进代码源之后补的：之前去污染只查数学和 MMLU，代码部分
+等于没查。评测集在 `datasets/eval/`，git 忽略，换机器要重拉。
 
-### 步骤 3：小规模跑通数据管线 ✅（代码源除外）
+### 步骤 3：小规模跑通数据管线 ✅
 ```bash
 python3 -m datatools.prepare configs/mixture_v1.json --probe 3      # 先查所有源的 spec 问题
-python3 -m datatools.prepare configs/mixture_v1.json --scale 0.001 --out_dir datasets/smoke
+python3 -m datatools.prepare configs/mixture_v1.json --scale 0.001 --out_dir datasets/smoke_full
 ```
-**代码源 `starcoderdata` 是 gated 的，还没跑。需要你做**：在
-[数据集页面](https://huggingface.co/datasets/bigcode/starcoderdata) 接受条款（自动批准）→
-[建一个 read token](https://huggingface.co/settings/tokens) → `hf auth login` →
-`python -m datatools.prepare configs/mixture_v1.json --probe 3` 确认 `code` 一行是 `ok`
-（顺带验证 `columns: ["content"]` 和 `data_dir: "python"` 写得对不对）。
-
-冒烟用的是去掉代码源、其余权重归一后的 800 万 token 版本。最后一次运行（所有修复之后）：
+完整配比、1000 万 token，最后一次运行（所有修复之后，产物在 `datasets/smoke_full/`）：
 
 | 源 | token | 文档 | 读取 | 保留率 | token/篇 | 主要拒绝原因 |
 |----|------:|-----:|-----:|------:|--------:|------|
 | zh_web | 3.00M | 1895 | 2337 | 81% | 1584 | `too_short` 277，`low_cjk_ratio` 160 |
 | en_web | 2.81M | 1867 | 1877 | 99% | 1504 | — |
-| math | 1.42M | 765 | 845 | 91% | 1853 | `repetitive` 59，`duplicate_lines` 20 |
+| code | 2.00M | 859 | 911 | 94% | 2329 | `too_short` 26，`too_long` 17，`duplicate_lines` 9 |
+| math | 1.42M | 767 | 845 | 91% | 1855 | `repetitive` 59，`duplicate_lines` 18 |
 | books | 0.51M | 7 | 11 | 64% | 72948 | `too_long` 2（钦定版圣经、莎士比亚全集），意大利语《神曲》，《大宪章》判为 `repetitive` |
 | synthetic | 0.30M | 276 | 278 | 99% | 1090 | — |
 
-划分 train 4752 / val 33 / holdout 25；13-gram 命中 2 篇，LCS 复核后删除 0 篇。
-全程约 13 分钟，网速在几十 KB/s 到 1MB/s 之间波动，大头是网络。
+划分 train 5605 / val 37 / holdout 29；对 45,778 个评测片段做 13-gram 匹配，命中 2 篇（都不是代码），
+LCS 复核后删除 0 篇。网速好的时候全程 3 分 21 秒，差的时候（几十 KB/s）13 分钟，大头是网络。
+memmap 端到端（§3.1）用的是更早的无代码 800 万 token 版本 `datasets/smoke/`。
 
-**跑出来并已修掉的六个问题**：
+**跑出来并已修掉的十一个问题**：
 1. `datasets`（HF）不在 `requirements.txt` 里，而且本地 `datasets/` 目录会被当成同名的命名空间包，
    报 `cannot import name 'load_dataset' from 'datasets' (unknown location)`
 2. **FineWeb2-HQ 每行带 768 维 embedding**：上游列被原样写进输出，中文那份比正文大 9.3 倍；下载
@@ -232,33 +250,104 @@ python3 -m datatools.prepare configs/mixture_v1.json --scale 0.001 --out_dir dat
 6. **LCS 复核只看文档前 2000 个单元、且对整篇算**：书里更靠后的泄漏不会被比对，短题目的词又会从
    整页各处被零散凑齐。改为在共享 n-gram 处对齐后再算。之前以为抓到的"MATH-500 真泄漏"其实是
    一份和题目共享三角形面积行列式记号的公式表
+7. **`--probe` 打印完结果后卡死不退出**：pyarrow 25 在还有 parquet 读请求没完成时退出，会死锁在
+   线程池的析构里（工作线程在解释器收尾时被 CPython 结束，析构一直在等它）。`del` + `gc.collect()`
+   和关掉 `pre_buffer` 都不管用。`prepare` 的入口改成跑完 atexit 后直接 `os._exit`
+8. **去污染不查代码**：评测集只有数学和 MMLU。补了 HumanEval（164）和 MBPP（500），参考实现放
+   `answer`，这样 `return [x for x in strings if substring in x]` 这类短惯用写法只做精确匹配，
+   不会误杀用到它的代码文件（放 `solution` 就会，测试里断言了）
+9. **starcoderdata 的内容里带仓库元数据**：49% 的文件第一行是
+   `<reponame>…<filename>…<gh_stars>…`。新加 `cleaners`，代码源用 `starcoder_metadata` 在过滤前删掉
+   这一行；只删整行都是元数据段的，代码里的 `'-f <filename>'` 不动。修完后 0 篇带标记
+10. **散文用的重复度规则在删正常代码**：字符 10-gram 重复度拒掉 15% 的代码文件，2k 字符以内 2%、
+   超过 2 万字符 57%；232 篇里只有 10 篇是生成代码。代码源关掉这条后保留率 80% → 94%，
+   同样 200 万 token 从 1238 篇变成 869 篇（中位数 1840 → 2481 字符），长文件不再被系统性删掉
+11. **`--progress_every` 从不打印或刷屏**：文档按 tokenize 批次（256 篇）一起计数，取模判断对 500
+   永远不成立、对 128 每一行都成立（1200 篇刷了 945 行）。改为跨过下一个整数倍时打印
+12. **重复行比例把单独一行的 `"""`、`)`、`},` 也算进去**，docstring 多的代码文件因此显得一半是重复行。
+   改为只统计含字母或数字的行，所有源通用（导航菜单的行都有字，照样抓得到）。在 1557 个代码文件上
+   这条规则的拒绝 27 → 17 篇，数学 20 → 18，其余源已保留的文档没有一篇因此被拒；上表是改完后
+   重跑的结果
 
 **值得在消融里核实的观察（没改）**：中文 `min_chars: 200` 删掉 12% 的文档，`min_cjk_ratio: 0.5`
-删掉 7%。后者可能专删中英混排的技术文章，而这正是代码/数学能力需要的。见 §8。
+删掉 7%。后者可能专删中英混排的技术文章，而这正是代码/数学能力需要的，见 §8。代码里 2.4% 的文件
+头部带生成标记（以 Django migration 为主），**决定不过滤**：按标记过滤会误删 Colab / nbdev 导出的
+人写代码，大段重复的生成文件已经被重复行规则拦下。
 
 验收（已满足）：每个源 `fill` ≈ 100%，没有 `ran out of data`；没有哪条规则删掉大半；
 `split.top_matches` 里没有一项删掉大量文档。
 
-### 步骤 4：消融 #1（中文占比）和 #5（词表大小）
-这两个决定其余所有配置，所以先做。代理模型用现有 29M 默认配置，每组 0.3–0.5B token。
-**每组都要先 `tokenize_corpus` 成 `.bin` 再训**：JSONL 读取器每篇只取前 `max_seq_len` 个 token，
-冒烟语料上实际配比被改写成书籍 0.2%（应为 6.4%），在 JSONL 上做配比消融测的不是配比。
+### 步骤 4：消融 #1（中文占比）和 #5（词表大小）⏳ 正在跑
+这两个决定其余所有配置，所以先做。
 
-- 消融 #1：中文占比 0% / 15% / 30% / 45%（其余按比例缩放）
-- 消融 #5：词表 16k / 32k / 48k
+```bash
+python3 run_ablation.py configs/ablation_v1.json plan   # 各组配比、数据池大小、产物清单；不动任何文件
+python3 run_ablation.py configs/ablation_v1.json run    # 全部阶段；被打断后重跑同一条命令续上
+```
 
-评测不能只看 PPL（跨配比不可比，因为 token 分布不同）。要看：
-中英各自的 holdout PPL（同一 tokenizer 下才可比）、算术任务准确率（复用
-`envs/arithmetic.py` 的评测集）、代码补全执行通过率、**语言混淆率**（中文 prompt 下输出
-英文的比例，双语小模型的典型故障）。
+六组，每组 3 亿 token（按各组自己的分词器计）。代理模型 `--dim 512 --n_layers 8 --n_heads 8`，
+非 embedding 参数 25.7M，三种词表一样；seq 512、batch 32、lr 1e-3、bf16：
 
-记录和对比这一层已经有了：每次训练自动写 `{save_dir}/runs/{run_id}/`（配置 + git commit +
-数据指纹 + 逐点指标 + 失败原因），`analyze_runs.py compare --metric loss --split val` 直接横向比，
-`analyze_runs.py plot --out report.html` 出自包含的曲线报告。验证集指标走
-`--val_data_path` / `--val_every`。
+| 组 | 词表 | zh_web | en_web | code | math | books | synthetic | 本机预计 |
+|----|------|------:|------:|-----:|-----:|------:|---------:|--------:|
+| zh00_v32k | 32k | 0% | 40.0% | 28.6% | 20.0% | 7.1% | 4.3% | 4.0 h |
+| zh15_v32k | 32k | 15% | 34.0% | 24.3% | 17.0% | 6.1% | 3.6% | 4.0 h |
+| zh30_v32k | 32k | 30% | 28.0% | 20.0% | 14.0% | 5.0% | 3.0% | 4.0 h |
+| zh45_v32k | 32k | 45% | 22.0% | 15.7% | 11.0% | 3.9% | 2.4% | 4.0 h |
+| zh30_v16k | 16k | 30% | 28.0% | 20.0% | 14.0% | 5.0% | 3.0% | 3.4 h |
+| zh30_v48k | 48k | 30% | 28.0% | 20.0% | 14.0% | 5.0% | 3.0% | 4.9 h |
 
-**还需要新写**：消融编排脚本（按维度生成各组 mixture spec → 依次跑 → 汇总成一张表）。
-`analyze_runs.py` 负责后半段，前半段还没有。
+预计耗时来自同一代理在 MPS + bf16 上实测的吞吐：32k 2.08 万 token/s（19.2GB），16k 2.43 万，
+48k 1.70 万（24.2GB）。
+
+设计（规则写在 `datatools/ablation.py` 的模块文档里，README「数据消融」一节有用法）：
+
+- **一个数据池，所有组从里面切**：`prepare` 只拉一次，约 7.7 亿个 zh_6400 token（每个源取任何一组
+  需要的最大量，乘 1.75 的余量，再除以 train 划分的占比）。每组取每个源的**前**若干篇，15% 组的中文
+  是 30% 组的前缀
+- **配额按各组自己的分词器计数**，每组训练的 token 数相同。余量 1.75 覆盖的是新词表比 zh_6400
+  压缩得更好（冒烟语料上最多 1.57 倍，代码 / 48k）。不够时切数据那一步报错，不会静默少给
+- **三个分词器在同一份样本上训**：数据池 train 划分里按基础配比取的 1 亿个 zh_6400 token。
+  `train_tokenizer.py` 改成了数字逐位切分（原来 `1987` 是一个 token，`2024` 切成 `20|24`，`12345`
+  切成 `12|345`，算术没有一致的单位）。冒烟语料上 32k 词表的代价：数学 3.47 → 3.19 字符/token，
+  其余源 0–3%
+- **评测在数据池的 holdout 上**：每个源的 bits per byte（跨词表可比）、按基础配比加权的平均、
+  语言混淆率（中文开头续写成英文的比例，以及反过来）、4-shot 一位数 / 两位数加法。
+  代码执行通过率没做：这个规模的基座模型大概率全是 0，区分不出组；代码先看 bpb
+- 已知偏差：窗口固定 512 token，词表大的组每个窗口覆盖的文本更多，bpb 对大词表略有利
+
+搭的时候发现并修掉的问题：
+
+1. **验证集只看了第一个源**：`build_val_loader` 按文件顺序读，`--val_batches 20` 只评估前 20 个
+   batch，而 `prepare` 写出的划分按源分组，那 33 万个 token 全是中文。中文 0% 那组的 val 曲线会完全
+   测在它没训过的语言上。现在验证集按一个固定排列读，每次评估还是同一批样本，但样本取自整个划分。
+   pretrain / SFT / KD / DPO 共用这个函数，一起修好了
+2. **数据池按全部文档定量，但组和分词器样本只读 train 划分**：正式配置里 val + holdout 只占 1%，被
+   余量掩盖了；端到端测试用 20% 时直接切不够。现在目标除以 train 的占比
+3. 端到端测试另外说明了余量为什么必须有：合成的重复代码上，300 词表的小分词器反而比 zh_6400
+   压缩得好 1.34 倍，1.3 的余量不够，报错信息准确指向了「加大 `pool_margin`」
+
+产物：`results/ablation_v1/report.md`（汇总表）、每组的 `probes.json`、`runs/` 里的完整曲线
+（`analyze_runs.py compare results/ablation_v1/zh*_v32k --metric loss --split val`）。
+
+**进度**（2026-10-03）：数据、分词器、六组语料都已就绪，19:51 开始训练，按实测吞吐（每秒约 2.0–2.2 万
+token，32k 词表每组约 4.1 小时）六组 10-04 晚上训完，然后自动跑评测和汇总。
+
+- 跑在 `screen` 会话 `whetstone-ablation` 里，不依赖 Cursor：`screen -r whetstone-ablation` 接上去看，
+  `Ctrl-A D` 离开。日志 `results/ablation_v1/run.log`，中断后重跑 `zsh results/ablation_v1/run.sh` 续上
+- 一开始是挂在 agent 的 shell 下跑的，那样退出 Cursor 会连带杀掉训练；训到第 1900 步时停掉，
+  在 `screen` 里从头重跑，没有用续训（续训不保证数据顺序和不中断时一样）。两次第 51 步的 loss
+  都是 9.2713，固定种子下可复现
+
+- 数据池 18:36–19:14（38 分钟，网络是瓶颈）：6 个源 fill 都是 100%；train 489,537 / val 2,544 /
+  holdout 2,466 篇。中文保留率 89%（`too_short` 14,233、`low_cjk_ratio` 7,894），代码 95%，数学 90%，
+  书籍 300 本。去污染删 252 篇，过半是误杀，见 §8 第 7 条
+- 分词器 29–39 秒一个；每组切 3 亿 token 约 1 分钟，六组都在配额上方 0.05% 以内
+- 第一组（zh00_v32k）第 1000 步 val loss 6.12。比同期训练 loss 高很多是预期的：验证集里 31% 是这组
+  没见过的中文
+- **消融从一个固定在 `eea8acb` 的 worktree 里跑**（`../whetstone-ablation-v1`，`datasets/`、
+  `results/` 是指回主仓库的软链接），这样一天里主仓库切分支、改代码都不会让后面几组用上另一份代码。
+  跑完之前别删它；中断了就在那个目录里重跑同一条 `run` 命令续上
 
 ### 步骤 5：正式数据集 + 重训 tokenizer
 ```bash
@@ -329,14 +418,14 @@ PPO critic、PRM（过程奖励模型）、MoE、多卡并行、推理服务化�
 | 加速器 | 无 | **Apple M5 Pro，MPS** | CUDA |
 | `--device` 默认 | `cpu` | **`mps`**（自动选）| `cuda` |
 | `--dtype` | 只能 `float32` | `bfloat16` | `bfloat16` |
-| 数据 | `datasets/` 是空的 | 有评测集 `datasets/eval/` 和冒烟语料 `datasets/smoke/`（git 忽略）| 需重新拉 |
+| 数据 | `datasets/` 是空的 | 有评测集 `datasets/eval/`、完整冒烟语料 `datasets/smoke_full/`，以及 memmap 端到端用过的无代码版 `datasets/smoke/`（git 忽略）| 需重新拉 |
 
 本地环境搭建：
 
 ```bash
 uv venv --python 3.12 && source .venv/bin/activate
 uv pip install -r requirements.txt
-HF_HUB_OFFLINE=1 python -m pytest tests/ -q     # 399 passed
+HF_HUB_OFFLINE=1 python -m pytest tests/ -q     # 483 passed，其中端到端消融测试约 30 秒
 ```
 
 要注意的几点：
@@ -353,8 +442,8 @@ HF_HUB_OFFLINE=1 python -m pytest tests/ -q     # 399 passed
   （`build_autocast_scaler` 里的逻辑），别以为是 bug
 - 系统自带的 Python 是 3.9，**跑不了**（`transformers` 5.x 要 3.10+）。必须用 3.12 的 venv
 - **`bigcode/starcoderdata`（代码语料）和 `big_math` 是 gated 的**（自动批准），要先在 HF 上接受条款，
-  再 `hf auth login`（或设 `HF_TOKEN`）。其余语料和五个去污染评测集都不需要。现在本机没有 token，
-  请求都是匿名的，限速也更紧
+  再 `hf auth login`（或设 `HF_TOKEN`）。其余语料和七个去污染评测集都不需要。本机已登录并接受了
+  starcoderdata 的条款，`big_math` 还没有。`hf` 命令在 venv 里（`.venv/bin/hf`），系统 Python 没有
 - **磁盘预算**：10B token 的 JSONL 约 30GB，预 tokenize 成 `uint16` 后约 20GB，
   加上 HF 缓存，留 100GB 比较稳妥。不要下全量语料——FineWeb2-HQ 的 `cmn_Hani` 是 784GB，
   我们用 `streaming=True` 只取需要的量
@@ -381,18 +470,34 @@ HF_HUB_OFFLINE=1 python -m pytest tests/ -q     # 399 passed
    63% 是正常的，不是碎片化
 9. **JSONL 预训练读取器每篇只取前 `max_seq_len` 个 token**，不报错、loss 照常下降，但配比已被改写
    （冒烟语料上只用到 28% 的 token、书籍 1%）。正式训练和消融一律用 `tokenize_corpus` 产出的 `.bin`
+10. **自己写的脚本流式读 HF parquet、读到一半就退出，会卡死在退出阶段**（pyarrow 25：在途的读请求
+   拿不到 GIL，线程池析构永远等下去）。`prepare` 已经规避了；临时脚本结束时先 flush，
+   再 `os._exit(0)`
+11. **跨词表别比 loss**。词表大的每个 token 要预测的信息更多，val loss 只在同一词表内可比；
+   消融的结论看 `probes.json` 里每个源的 bits per byte
 
 ---
 
 ## 8. 未决的问题
 
-1. ~~§3.1 和 §3.2 谁先做？~~ 3.1 已完成。3.2 可以先用 `--max_seq_len 1024` 绕过，等要上 2048 再改
+1. ~~§3.1 和 §3.2 谁先做？~~ 都已完成
 2. **中文过滤阈值会不会专删技术文章？** 冒烟里 `min_cjk_ratio: 0.5` 删掉 7% 的中文文档，中英混排、
    带代码片段的技术文章最容易落到这条线以下，而它们正对代码/数学能力有用。抽 50 篇被拒的看一眼
    再决定，可以作为消融 #1 的附带项
-3. **代码任务的沙箱怎么做？** 阶段 B 的核心设计问题。子进程 + 超时是底线，要不要上容器取决于
+3. ~~代码要不要过滤生成文件？~~ 不过滤（已定）。2.4% 的文件带生成标记，按标记过滤会误删 Colab /
+   nbdev 导出的人写代码，大段重复的生成文件已经被重复行规则拦下
+4. ~~`duplicate_lines` 对代码偏严~~ 已改：只统计含字母或数字的行（§4 步骤 3 第 12 条）。考虑过再豁免
+   短行，在代码上能多放回 4 篇，但多出来的都是比例卡在 0.50 上下的边界文件，为此给代码单独加一个
+   参数不值
+5. **代码任务的沙箱怎么做？** 阶段 B 的核心设计问题。子进程 + 超时是底线，要不要上容器取决于
    数据源可信度
-4. **租什么卡、租多久？** 取决于 §3.3 的实测结果。如果显存宽裕，`docs/corpus-plan.md` 里
+7. **去污染会被只有通用题干的选择题误杀，出正式数据集之前要修**。消融数据池（0.77B token）的去污染
+   删了 252 篇，其中 136 篇来自两道 TAL-SCQ5K 题：题干只有 `下列说法正确的是．` 和
+   `下列说法中正确的是（~ ~ ~ ）．`，内容全在选项里。题干按自身长度索引（8 个字，刚好够
+   `MIN_GRAM`），于是命中每一篇带这句话的文档。MMLU 的 `Which one of the following statements is
+   true:`（10 篇）同理。修法：`fetch_evals` 把选项拼进 `question` 再索引，模型看到的题目本来就带选项。
+   这只占数据池文档的 0.05%，而且所有组共用同一个数据池，不影响消融
+6. **租什么卡、租多久？** 取决于 §3.3 的实测结果。如果显存宽裕，`docs/corpus-plan.md` 里
    ~185M / 18B token 的档位也在射程内
 
 改名已全部完成：代码、文档、远端仓库都是 **`irroca/Whetstone`**。如果你手上还有指向旧名的

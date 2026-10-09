@@ -535,8 +535,11 @@ def add_common_train_args(
 def build_val_loader(dataset_cls, args, tokenizer, **dataset_kwargs):
     """DataLoader over ``--val_data_path``, or ``None`` when none was given.
 
-    Never shuffled: the evaluation set must be identical between runs and
-    between evaluations within a run, or the curve measures the sampler.
+    The order is one fixed permutation, so every evaluation in this run and the
+    next sees the same batches; otherwise the curve measures the sampler. Not
+    file order, because ``--val_batches`` reads only the first batches and a
+    split written grouped by source (``prepare``'s are) would then be measured
+    on its first source alone.
     """
     from torch.utils.data import DataLoader
 
@@ -544,10 +547,11 @@ def build_val_loader(dataset_cls, args, tokenizer, **dataset_kwargs):
     if not path or not os.path.exists(path):
         return None
     dataset = dataset_cls(path, tokenizer, max_length=args.max_seq_len, **dataset_kwargs)
+    order = torch.randperm(len(dataset), generator=torch.Generator().manual_seed(0)).tolist()
     return DataLoader(
         dataset,
         batch_size=args.batch_size,
-        shuffle=False,
+        sampler=order,
         num_workers=getattr(args, "num_workers", 0),
     )
 

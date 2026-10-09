@@ -8,7 +8,9 @@
   "decontaminate": {
     "against": [
       "datasets/eval/gsm8k.jsonl",
+      "datasets/eval/humaneval.jsonl",
       "datasets/eval/math500.jsonl",
+      "datasets/eval/mbpp.jsonl",
       "datasets/eval/mmlu.jsonl",
       "datasets/eval/tal_scq5k_cn.jsonl",
       "datasets/eval/tal_scq5k_en.jsonl"
@@ -68,7 +70,7 @@
     {
       "name": "code",
       "weight": 0.2,
-      "note": "starcoderdata Python: ships file contents, unlike Stack-Edu which is SWHIDs only",
+      "note": "starcoderdata Python: ships file contents, unlike Stack-Edu which is SWHIDs only. max_repetition is off: character 10-gram repetition grows with file length and rejected 57% of files over 20k chars, nearly all ordinary code",
       "hf": {
         "path": "bigcode/starcoderdata",
         "data_dir": "python",
@@ -78,12 +80,15 @@
         ]
       },
       "text_field": "content",
+      "cleaners": [
+        "starcoder_metadata"
+      ],
       "filters": {
         "min_chars": 100,
         "max_chars": 60000,
         "max_digit_ratio": 0.3,
         "max_symbol_ratio": 0.6,
-        "max_repetition": 0.5,
+        "max_repetition": null,
         "max_duplicate_lines": 0.5
       }
     },

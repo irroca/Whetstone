@@ -83,7 +83,7 @@ RL 只能去刷格式奖励。100M 是让 accuracy 产生方差的最低门槛�
 
 | 用途 | 模型 | token | 单次耗时* |
 |------|------|-------|----------|
-| 配比消融 | 29M（现有默认，vocab 6400 或 32k 小词表变体） | 0.3–0.5B | 1.5–4 h |
+| 配比消融 | `dim512 L8`（非 embedding 25.7M，加上 16k–48k 词表的 embedding 共 34–51M） | 0.3B | 3.4–4.9 h（本机 MPS 实测吞吐） |
 | 正式训练 | ~100M | 8–10B | 3–4 天 |
 
 一次消融几小时，一晚上能跑 3–4 组，这才有可能真的比较配比而不是拍脑袋。
@@ -261,13 +261,15 @@ RL 阶段要做算术和代码。这组配比里 34% 是代码和数学，且数
 | 5 | 词表大小 | 16k / 32k / 48k | 压缩率提升 vs 嵌入层参数占用的权衡 |
 | 6 | 单阶段 vs 两阶段 | 全程同配比 vs 后 20% 上采样代码数学 | SmolLM2 的多阶段结论在 10B 尺度上还成立吗 |
 
-消融 1 和 5 优先——它们决定其余所有配置。
+消融 1 和 5 优先——它们决定其余所有配置。两者合在 `configs/ablation_v1.json` 里，共六组，
+用 `run_ablation.py` 跑（设计和进度见 `status.md` §4 步骤 4）。
 
 **评测指标**（不能只看 PPL，PPL 跨配比不可比，因为 token 分布不同）：
-- 中英各自的 holdout PPL（同一 tokenizer 下才可比）
-- 算术任务准确率（复用 `envs/arithmetic.py` 的评测集）
-- 代码：简单函数补全的执行通过率
-- 语言混淆率：中文 prompt 下输出英文的比例（双语小模型的典型故障）
+- 每个源各自的 holdout **bits per byte**：按 UTF-8 字节归一化，跨词表也可比，比「同一 tokenizer
+  下的 PPL」多覆盖了消融 #5
+- 算术：4-shot 一位数 / 两位数加法的精确匹配
+- 代码：简单函数补全的执行通过率。**暂缓**：这个规模的基座模型大概率全组为 0，先看代码的 bpb
+- 语言混淆率：中文 prompt 下输出英文的比例（双语小模型的典型故障），以及反过来
 
 ---
 
@@ -285,9 +287,11 @@ RL 阶段要做算术和代码。这组配比里 34% 是代码和数学，且数
 7. **去污染是必做项。** SmolLM2 的做法是对 GSM8K / MATH / MMLU 做 13-gram 匹配 +
    最长公共子序列重叠率 0.6 阈值，已在 `datatools.decontaminate` 实现。真实语料上的冒烟发现，
    标点算作单元、短答案按自身长度建索引会造成大面积误杀（删掉 3.9% 的文档，几乎全是误杀），
-   现在标点不算单元、短答案只做精确匹配，规则和数据见 README「数据工具」。
+   现在标点不算单元、短答案只做精确匹配，规则和数据见 README「数据工具」。代码部分对照
+   HumanEval / MBPP（参考实现放 `answer`，短函数体只精确匹配，惯用写法不会误杀）。
 8. **`bigcode/starcoderdata` 是 gated 的**（2026-10-03 本地实测：`DatasetNotFoundError: ... is a
-   gated dataset on the Hub`）。自动批准，但需要账号接受条款并配置 token。
+   gated dataset on the Hub`）。自动批准，但需要账号接受条款并配置 token。同日已接受条款，
+   probe 六个源全部 `ok`。
 9. **FineWeb2-HQ 每行带一个 768 维 embedding**（它的质量分类器用的）。整行保留时中文这一份比正文
    大 9.3 倍；parquet 又是按整个行组流式读的，不裁列时下载量是正文的十几倍。spec 里用
    `hf.columns` 只读 `text`。
@@ -295,6 +299,17 @@ RL 阶段要做算术和代码。这组配比里 34% 是代码和数学，且数
     原来的 `max_chars: 400000` 会筛掉 32% 的书且专挑长篇。现为 200 万，只排除多卷合集。
     另有约 5% 不是英文（法、意、拉丁、德），拉丁字母占比照样过线，用 `where` 按
     `metadata.language` 过滤。
+11. **starcoderdata 的文件内容里带着仓库元数据**：49% 的文件第一行是
+    `<reponame>…<filename>…<gh_stars>…`（StarCoder 训练时的序列化格式，三段随机出现）。
+    代码源用 `cleaners: ["starcoder_metadata"]` 在过滤前删掉这一行。
+12. **字符 10-gram 重复度不适用于代码**：它随文件长度单调上升，冒烟里拒掉 15% 的代码文件，
+    超过 2 万字符的拒掉 57%，几乎都是正常源码。代码源已关掉这条（`max_repetition: null`）。
+13. **重复行比例把结构行也算进去**：单独一行的 `"""`、`)`、`},` 让 docstring 多的代码文件显得
+    一半是重复行。现在只统计含字母或数字的行，所有源通用（导航菜单的行都有字，照样抓得到）。
+    代码的这条拒绝 27 → 17 篇，数学 20 → 18，其余源没有新增拒绝。
+14. **生成代码不过滤**（决定）：保留的代码里 2.4% 的文件头部带生成标记，以 Django migration 为主。
+    按标记过滤会连 Colab / nbdev 导出的文件一起删掉，那些是人写的；真正大段重复的生成文件
+    （比如 Qt 的调色板代码）已经被重复行规则拦下。
 
 ---
 
@@ -313,11 +328,12 @@ python3 -m datatools.prepare configs/mixture_v1.json --dry_run
 python3 -m datatools.prepare configs/mixture_v1.json --out_dir datasets/prepared
 ```
 
-流程顺序是 **拉取 → 质量过滤 → 去重 → 去污染 → 划分 → manifest**：
+流程顺序是 **拉取 → 清洗 → 质量过滤 → 去重 → 去污染 → 划分 → manifest**：
 
 | 阶段 | 模块 | 要点 |
 |------|------|------|
 | 拉取 | `prepare.py` | HF 流式（`streaming=True`），按 token 预算边数边停，不下全量 |
+| 清洗 | `cleaners.py` | 过滤前按名字改写文本，目前只有删 StarCoder 元数据行的 `starcoder_metadata` |
 | 过滤 | `filters.py` | 长度、语种比例、重复度、符号/数字占比、行级重复；每条拒绝都归因到具体规则 |
 | 去重 | `dedup.py` | 精确 + MinHash 近重复（源内） |
 | 去污染 | `decontaminate.py` | 13-gram 重叠 + 可选 LCS 比例，CJK 按字符切、拉丁按词切，标点不算单元；manifest 列出删文档最多的评测项 |
@@ -331,7 +347,7 @@ python3 -m datatools.prepare configs/mixture_v1.json --out_dir datasets/prepared
 完整的执行顺序、验收标准和阻塞项见 [`docs/status.md`](status.md)。概要：
 
 1. ~~拉评测集闭上去污染的环（`fetch_evals --update_spec`）~~ 已完成
-2. ~~`--scale 0.001` 小规模跑通管线~~ 已完成（代码源除外，等 HF token），发现的问题见上面第 8–10 条
+2. ~~`--scale 0.001` 小规模跑通管线~~ 已完成（含代码源），发现的问题见上面第 8–14 条
 3. 跑消融 #1（中文占比）和 #5（词表大小）——它们决定其余所有配置
 4. 按定下的配比产出正式数据集，用它重训 tokenizer
 5. 租卡做 ~100M / ~10B token 的正式预训练（前提：`status.md` §3 的三件工程事已完成）

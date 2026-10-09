@@ -13,7 +13,10 @@ workflow is a set of CLI scripts:
 - `python3 -m datatools.fetch_evals` → `python3 -m datatools.prepare <spec>` → `train_tokenizer.py`
  — the data pipeline, which runs *before* any training. See `docs/corpus-plan.md`.
 - `train_tokenizer.py --data <prepared jsonl> --out <dir> --vocab_size N` — train a BPE tokenizer
- on prepared corpus files. It no longer reads a hardcoded path.
+ on prepared corpus files. It no longer reads a hardcoded path. **Digits are split one per token**
+ (a `Digits` pre-tokenizer before `ByteLevel`), as in Llama and Qwen: byte-level BPE alone made
+ `1987` one token, `2024` `20|24` and `12345` `12|345`, which leaves arithmetic no consistent unit.
+ Keep it.
 - `pretrain.py` → `sft.py` → `distill.py` → `dpo.py` → `grpo.py` — the five-stage training pipeline
  (Pretrain → SFT → real Knowledge Distillation → DPO → GRPO/RLVR). `distill.py` does real KD (frozen
  teacher, CE + temperature-scaled KL on assistant tokens via `losses.kd_loss`), not the old fake
@@ -76,9 +79,16 @@ rather than duplicating commands here.
  exactly once per epoch and `X`/`Y` stay `max_seq_len - 1` long, like the JSONL reader. A test
  asserts the stored documents equal what `PretrainDataset` feeds the model; keep them equal.
  - `SFTDataset` / `PreferenceDataset` still load whole files, which is fine at SFT scale.
-- **One thing will still break at real scale** (`docs/status.md` §3): `model.py` materializes
- the full `(B, heads, q_len, kv_len)` attention score matrix instead of using
- `F.scaled_dot_product_attention`. Fine for the CPU tests; blocking at `--max_seq_len 2048`.
+- **Attention goes through `F.scaled_dot_product_attention`, except on MPS.**
+ - Only a full forward with no cache and no padding mask (`is_causal=True`) and single-token
+ decode (no mask) pass `attn_mask=None`; that is what lets CUDA pick flash attention. Do not
+ pass `is_causal=True` with a cache: SDPA aligns it top-left, so a multi-token continuation
+ would see the wrong keys. Cached continuation and padding build an explicit boolean mask.
+ - `Attention.use_sdpa = False` selects the explicit-score reference; tests compare the two
+ paths on every masking case, plus training gradients.
+ - MPS always takes the explicit path on purpose. Measured on an M5 Pro, torch 2.14, bf16:
+ SDPA was 8% slower (29M proxy, seq 512) and saved only 15% memory at seq 2048, so it
+ still materializes the scores there. On CPU it halves activation memory at seq 2048.
 - **No datasets or checkpoints are committed.** Training scripts expect JSONL under `datasets/`,
   which is git-ignored along with `results*/` and `*.pth`. Build real data with
   `datatools.prepare`, or generate synthetic task data with `envs.generate_data`; the committed
@@ -132,10 +142,27 @@ rather than duplicating commands here.
  - **Run `prepare --probe 3` before a real `prepare`.** Sources are pulled serially, so a broken
  source (gated repo, wrong config name, renamed field) otherwise only fails after every source
  before it has finished. The probe reports all of them at once and exits 1 if any is not `ok`.
+ - **`prepare`'s `__main__` runs the atexit handlers and then calls `os._exit`, on purpose.**
+ pyarrow 25 deadlocks in a static thread pool's destructor if a parquet read is still in flight
+ when the process exits; a probe always is in that state (it abandons each stream after a few
+ rows), and Ctrl-C mid-source can be. Don't turn it back into a plain `main()` call.
  - `to_record` **projects** each row onto its schema's fields and drops every upstream column;
  `prepare_source` then adds a `source` tag (needed to split merged val data per language). Do
  not go back to passing rows through: FineWeb2-HQ ships a 768-float embedding per document,
  which made the Chinese slice 9.3x the size of its text.
+ - `to_record` also applies the source's `cleaners` (`datatools/cleaners.py`, named in the spec,
+ unknown names raise) to pretrain text, so filters, exact dedup and token counts see the
+ cleaned document. `starcoder_metadata` removes the `<reponame>…<filename>…<gh_stars>…` first
+ line that 49% of starcoderdata files carry, and only when that whole line is metadata: a
+ `'-f <filename>'` inside the code is content.
+ - **`max_repetition` is off for the code source on purpose.** Character 10-gram repetition
+ grows with file length (indentation, boilerplate): on the smoke corpus it rejected 2% of code
+ files under 2k chars and 57% of those over 20k, nearly all ordinary source. Don't re-enable it
+ for consistency with the prose sources.
+ - `duplicate_line_ratio` counts only lines with a letter or digit: a lone `"""` or `)` is
+ structure, and counting it rejected docstring-heavy code. Generated code (Django migrations,
+ protobuf) is deliberately **not** filtered: marker-based rules also hit Colab/nbdev exports,
+ which are hand-written.
  - `hf.columns` (parquet sources only; Gutenberg is `jsonl.gz`) limits which columns are
  downloaded. Parquet streams whole row groups, so without it zh_web also downloads every
  embedding before the first row comes out. Projection alone is not enough: fsspec reads 5MiB
@@ -170,10 +197,30 @@ rather than duplicating commands here.
     batch but never emitted. Don't regress either.
   - `datatools/fetch_evals.py` pulls benchmarks into the repo's `{"question","answer"}` schema, so
     one file serves both `prepare`'s `decontaminate.against` and `grpo.py --eval_path`. Converters
-    are pure functions tested offline against recorded rows — update the recorded row when a
-    field name changes upstream rather than loosening the converter. **A mixture spec with an
+ are pure functions tested offline against recorded rows — update the recorded row when a
+ field name changes upstream rather than loosening the converter. Code sets (HumanEval, MBPP)
+ carry their tests and put the reference code in `answer`, not `solution`: short answers only
+ match exactly, whereas a `solution` is indexed at its own length, and a 10-unit idiom like
+ `return [x for x in strings if substring in x]` would then flag every file that uses it. **A mixture spec with an
     empty `decontaminate.against` silently checks nothing**, so run `fetch_evals
     --decontamination_only --update_spec <spec>` before `prepare`.
+- **Data ablations run through `run_ablation.py <spec> {plan,run,pool,tokenizers,data,train,probe,report}`**
+ (`configs/ablation_v1.json`; the data side is `datatools/ablation.py`, the evaluations `probes.py`).
+ Every stage skips finished outputs, so a killed run resumes by repeating the command.
+ - Every arm is cut from **one pool** that `prepare` pulls once from a derived spec, taking each
+ source's **first** documents in pool order: the 15% arm's Chinese pages are a prefix of the 30%
+ arm's. Don't sample arms independently; they would then also differ in which pages they drew.
+ - Quotas and `tokens_per_arm` are counted **in the arm's own tokenizer, bos/eos included**, so arms
+ train on equal tokens and a share is what the model sees. `prepare` counts the pool in zh_6400,
+ which compresses worse, hence `pool_margin`; pool targets are also divided by the train fraction,
+ since arms and the tokenizer sample read only `train.jsonl`. A pool too small for a quota makes
+ `cut_corpus` raise and leave no files: that is the intended signal to raise the margin.
+ - Anything that moves the pool targets (arms, `tokens_per_arm`, margin, the mixture) makes
+ `check_pool` refuse the existing pool. Delete `data_dir/pool` and pull again.
+ - Compare arms on **per-source bits per byte** (`probes.bits_per_byte`), not on loss: a larger vocab
+ predicts more information per token, so val loss is comparable only within one vocabulary.
+ - `tests/test_run_ablation.py` runs every stage on tiny local data. It takes ~30s, nearly all of it
+ subprocess startup (`prepare` and two `pretrain.py` runs each import torch and transformers).
 - **Every stage records its run to `{save_dir}/runs/{run_id}/`** via `runlog.RunRecorder`
  (`meta.json` / `metrics.jsonl` / `summary.json`). Review with `analyze_runs.py`
  (`list` / `show` / `compare` / `plot`). No tracker service is involved; `swanlab` stays optional
@@ -189,7 +236,10 @@ rather than duplicating commands here.
     the same row as the step's training metrics files reward/kl/entropy under the held-out split.
 - **Held-out metrics come from `evaluate.py`**, wired through `--val_data_path` / `--val_every` /
  `--val_batches`. `evaluate_lm` is token-weighted, not batch-averaged, so the number does not
- drift with batch composition. For DPO watch `accuracy`, not loss: DPO loss keeps falling while
+ drift with batch composition. `build_val_loader` reads the set in **one fixed permutation**, not
+ file order: `--val_batches` evaluates only the first batches, and `prepare` writes splits grouped
+ by source, so file order measured val loss on zh_web alone. Every evaluation still sees the same
+ batches. For DPO watch `accuracy`, not loss: DPO loss keeps falling while
  the model merely sharpens an ordering it already had.
 - **Common training CLI flags come from `train_utils.add_common_train_args(parser, **overrides)`**
  (`--save_dir`, `--epochs`, `--batch_size`, `--learning_rate`, `--device`, `--use_wandb`,
