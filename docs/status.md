@@ -11,7 +11,7 @@
 **消融 #1（中文占比）和 #5（词表大小）已跑完**（§4 步骤 4）：定为中文 20%、32k 词表、10B token，
 词表就用消融里评测过的那个（`tokenizer/v1_32k`），配比是 `configs/mixture_v2.json`。
 
-**正式数据集正在本机生成**（§4 步骤 5，10-09 20:49 重新开始，预计 10-10 凌晨到上午出完）。训练代码已经为租卡
+**正式数据集正在本机生成**（§4 步骤 5，10-09 20:49 重新开始，预计 10-10 03:00 前后出完）。训练代码已经为租卡
 准备好：四个阶段共用一个训练循环，续训与不中断逐位一致，checkpoint 原子写入，有 `bench_train.py`
 在开卡第一个小时量吞吐和显存、`probes.py` 评测任意 checkpoint（§3.4）。下一步是租卡正式预训练，
 完整计划在 §4 步骤 6。
@@ -89,7 +89,7 @@
 
 ```bash
 git clone https://github.com/irroca/Whetstone.git && cd Whetstone
-HF_HUB_OFFLINE=1 python3 -m pytest tests/ -q      # 应为 507 passed（含 #13）
+HF_HUB_OFFLINE=1 python3 -m pytest tests/ -q      # 应为 509 passed（含 #13）
 ```
 
 下面这段记录下来，是因为它是一个很容易再犯一次的坑：
@@ -454,20 +454,22 @@ done
 - **五个公开源经 `hf-mirror.com`**，进程看不到 HF token（`HF_TOKEN_PATH=/nonexistent`）。断网之后，
   到官方 CDN（`us.gcp.cdn.hf.co`）的单条连接只有 120–350 KB/s，镜像有 3 MB/s，抽查的 10MB 逐字节
   相同。zh_web 实测约 3000 万 token/分钟，是第一次构建的 3 倍，五个源约 5 小时
-- **gated 的 starcoderdata 带 token 走官方源**，拉进 `datasets/mixture_v2_code/`，完成后连同完成标记
-  挪进 `datasets/mixture_v2/sources/`。这一路受慢线路所限，约 270–390 万 token/分钟，2.29B 要
-  10–14 小时，是整个构建的瓶颈
-- **决定把 starcoderdata 也切到镜像**，前提是用一个专门新建的 fine-grained token，只能读公开 gated
-  仓库，存为 `~/.cache/huggingface/token.mirror`，构建完就删掉。`switch_code.sh`（screen
-  `whetstone-switch`）等这个文件出现后，先向官方确认 token 的权限（必须是 fine-grained、没有任何
-  针对具体账号的权限、没有写权限），再经镜像 probe 一次，然后停掉官方源那一路，启动
-  `code_mirror.sh`（screen `whetstone-code`）。任何一步不满足，它只记日志，官方源那一路照常跑。
-  切换之后，原 `run.sh` 会在公开源拉完时以 `EXIT=1 (open lane 0, code lane 143)` 退场，这是预期的，
-  `code_mirror.sh` 随后自动重跑 `run.sh` 收尾
+- **gated 的 starcoderdata 单独一路**，拉进 `datasets/mixture_v2_code/`，完成后连同完成标记挪进
+  `datasets/mixture_v2/sources/`。20:49 起带主 token 走官方源，受慢线路所限只有 270–390 万
+  token/分钟，2.29B 要 10–14 小时。**21:33 切到镜像，从头重拉**，约 4500 万 token/分钟，
+  预计 22:25 拉完。镜像这一路由 `code_mirror.sh`（screen `whetstone-code`）跑
+- **主 token 不发给镜像**。镜像用的是专门新建的 fine-grained token，存为
+  `~/.cache/huggingface/token.mirror`，只经 `HF_TOKEN_PATH` 传给进程。`switch_code.sh` 先向官方
+  核对权限，要求是 fine-grained、没有针对具体账号的权限、没有写权限。实际这个 token 还带了个人名下
+  仓库的只读权限，检查没通过；用户确认接受后手动切换（见 `run.log` 的 `[switch]` 行）。
+  **构建完成后在 HF 上删掉这个 token，并 `rm ~/.cache/huggingface/token.mirror`**
+- 切换之后，原 `run.sh` 会在公开源拉完时以 `EXIT=1 (open lane 0, code lane 143)` 退场，这是预期的；
+  `code_mirror.sh` 等它放开锁，再自动重跑 `run.sh` 收尾
 
-两路都完成后，`prepare` 离线再跑一遍，复用全部六个源，只做去污染和划分，然后 tokenize。
-不切换的话预计 10-10 上午出完，切换后约凌晨 4 点。20:31–20:46 那一次走的是慢线路，日志在
-`run.attempt2.log`。
+两路都完成后，`prepare` 离线再跑一遍，复用全部六个源，只做去污染和划分，然后 tokenize。现在的瓶颈
+是公开源那一路：zh_web 之后还有 en_web 3.2B、math 1.6B、books 0.57B、synthetic_textbook 0.34B，
+按约 3200 万 token/分钟，预计 10-10 01:00 前后拉完，整个构建约 03:00 出完。20:31–20:46 那一次走的
+是慢线路，日志在 `run.attempt2.log`。
 
 **第一次构建丢了 3.6 小时**（日志 `results/data_v2/run.attempt1.log`）：16:30 起跑，19:56 断网约
 13 分钟，HF 客户端自己的重试扛了过去，20:09 已拉到 zh_web 的 1954M/2000M；但断网期间又手动起了
@@ -489,6 +491,7 @@ done
 大量文档；`train.bin` 约 20GB（10B 个 `uint16`）。`.bin` 绑定分词器指纹，换词表必须重跑
 `tokenize_corpus`（不重跑会直接报错）。上传到服务器的就是 `datasets/mixture_v2/` 下的
 `{train,val}.{bin,idx,meta.json}`、`holdout.jsonl`（给 `probes.py`）和 `manifest.json`。
+验收之后删掉镜像用的 `token.mirror`（HF 上删 token，本地 `rm`）。
 
 **v1_32k 让所有旧 checkpoint 失效**——`resolve_model_config` 会在 `vocab_size` 不匹配时直接报错，
 这是设计如此。
