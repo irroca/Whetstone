@@ -11,7 +11,7 @@
 **消融 #1（中文占比）和 #5（词表大小）已跑完**（§4 步骤 4）：定为中文 20%、32k 词表、10B token，
 词表就用消融里评测过的那个（`tokenizer/v1_32k`），配比是 `configs/mixture_v2.json`。
 
-**正式数据集正在本机生成**（§4 步骤 5，10-09 20:31 重新开始，预计 10-10 傍晚前出完）。训练代码已经为租卡
+**正式数据集正在本机生成**（§4 步骤 5，10-09 20:49 重新开始，预计 10-10 下午出完）。训练代码已经为租卡
 准备好：四个阶段共用一个训练循环，续训与不中断逐位一致，checkpoint 原子写入，有 `bench_train.py`
 在开卡第一个小时量吞吐和显存、`probes.py` 评测任意 checkpoint（§3.4）。下一步是租卡正式预训练，
 完整计划在 §4 步骤 6。
@@ -112,7 +112,7 @@ HF_HUB_OFFLINE=1 python3 -m pytest tests/ -q      # 应为 507 passed（含 #13�
 | [#10](https://github.com/irroca/Whetstone/pull/10) | memmap 预训练语料 + 数据管线首次真实数据冒烟 | 已合并（squash），但只含前 4 个提交 |
 | [#11](https://github.com/irroca/Whetstone/pull/11) | 消融编排 + 补上 #10 合并后才推的 5 个提交（SDPA、代码源修复）| 已合并（squash）|
 | [#12](https://github.com/irroca/Whetstone/pull/12) | 消融结论、正式配比与词表、去污染修复、共享训练循环、GPU 准备 | 已合并（squash）|
-| [#13](https://github.com/irroca/Whetstone/pull/13) | `prepare` 锁输出目录、按源续跑（正式数据集就是用它重跑的）| 待合并 |
+| [#13](https://github.com/irroca/Whetstone/pull/13) | `prepare` 锁输出目录、按源续跑、`--only`（正式数据集就是用它重跑的）| 待合并 |
 
 **教训**：stacked PR 要么严格按自下而上的顺序合，要么在合之前把上层 PR 的 base 直接改成 `main`。
 `squash` 合并会切断祖先关系，所以一旦顺序错了，后续那个 PR 的内容不会自动跟过来，
@@ -448,9 +448,18 @@ done
 
 **进度**：前两条已完成（七个评测集重拉、六个源 probe 全部 `ok`）。后两条由
 `zsh results/data_v2/run.sh` 在 `screen` 会话 `whetstone-data` 里跑，日志 `results/data_v2/run.log`，
-代码固定在 worktree `../whetstone-data-v2` 的 `1e8dbdf`（PR #13 的提交；`datasets` 是指回主仓库的
-软链接）。10-09 20:31 重新开始。zh_web 实测约 970 万 token/分钟，照此拉完 10B 约 17 小时，
-之后去污染和 tokenize 还要几个小时；网络是瓶颈。
+代码固定在 worktree `../whetstone-data-v2` 的 `cebd574`（PR #13 的提交；`datasets` 是指回主仓库的
+软链接）。10-09 20:49 开始，分两路并行拉：
+
+- **五个公开源经 `hf-mirror.com`**，进程看不到 HF token（`HF_TOKEN_PATH=/nonexistent`）。断网之后，
+  到官方 CDN（`us.gcp.cdn.hf.co`）的单条连接只有 120–350 KB/s，镜像有 3 MB/s，抽查的 10MB 逐字节
+  相同。zh_web 实测约 3000 万 token/分钟，是第一次构建的 3 倍，五个源约 5 小时
+- **gated 的 starcoderdata 带 token 走官方源**，拉进 `datasets/mixture_v2_code/`，完成后连同完成标记
+  挪进 `datasets/mixture_v2/sources/`。这一路受慢线路所限，约 270 万 token/分钟，2.29B 要 14 小时
+  左右，是整个构建的瓶颈
+
+两路都完成后，`prepare` 离线再跑一遍，复用全部六个源，只做去污染和划分，然后 tokenize。
+预计 10-10 下午 1–2 点出完。20:31–20:46 那一次走的是慢线路，日志在 `run.attempt2.log`。
 
 **第一次构建丢了 3.6 小时**（日志 `results/data_v2/run.attempt1.log`）：16:30 起跑，19:56 断网约
 13 分钟，HF 客户端自己的重试扛了过去，20:09 已拉到 zh_web 的 1954M/2000M；但断网期间又手动起了

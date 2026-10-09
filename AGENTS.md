@@ -153,6 +153,11 @@ rather than duplicating commands here.
  rest from their start; there is no checkpoint inside a source. A second run on the same
  directory exits instead of starting: two runs truncate each other's files, which is how the
  first formal build lost 3.6 hours of zh_web while the hub client was riding out an outage.
+ `--only NAME...` pulls just those sources and stops before decontamination; markers do not
+ depend on the directory, so a source pulled elsewhere can be moved into `sources/` with its
+ marker. **Never send the HF token to a mirror**: the formal build pulls the five open sources
+ through `hf-mirror.com` with `HF_TOKEN_PATH=/nonexistent`, and only the gated starcoderdata from
+ the hub with the token.
  - **`prepare`'s `__main__` runs the atexit handlers and then calls `os._exit`, on purpose.**
  pyarrow 25 deadlocks in a static thread pool's destructor if a parquet read is still in flight
  when the process exits; a probe always is in that state (it abandons each stream after a few
