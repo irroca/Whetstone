@@ -11,7 +11,7 @@
 **消融 #1（中文占比）和 #5（词表大小）已跑完**（§4 步骤 4）：定为中文 20%、32k 词表、10B token，
 词表就用消融里评测过的那个（`tokenizer/v1_32k`），配比是 `configs/mixture_v2.json`。
 
-**正式数据集正在本机生成**（§4 步骤 5，10-09 16:30 开始，约 11–13 小时）。训练代码已经为租卡
+**正式数据集正在本机生成**（§4 步骤 5，10-09 20:31 重新开始，预计 10-10 傍晚前出完）。训练代码已经为租卡
 准备好：四个阶段共用一个训练循环，续训与不中断逐位一致，checkpoint 原子写入，有 `bench_train.py`
 在开卡第一个小时量吞吐和显存、`probes.py` 评测任意 checkpoint（§3.4）。下一步是租卡正式预训练，
 完整计划在 §4 步骤 6。
@@ -89,7 +89,7 @@
 
 ```bash
 git clone https://github.com/irroca/Whetstone.git && cd Whetstone
-HF_HUB_OFFLINE=1 python3 -m pytest tests/ -q      # 应为 502 passed（含 #12）
+HF_HUB_OFFLINE=1 python3 -m pytest tests/ -q      # 应为 507 passed（含 #13）
 ```
 
 下面这段记录下来，是因为它是一个很容易再犯一次的坑：
@@ -111,7 +111,8 @@ HF_HUB_OFFLINE=1 python3 -m pytest tests/ -q      # 应为 502 passed（含 #12�
 | [#9](https://github.com/irroca/Whetstone/pull/9) | 训练记录与复盘体系（`runlog` + 验证集 + `analyze_runs.py`）| 已合并 |
 | [#10](https://github.com/irroca/Whetstone/pull/10) | memmap 预训练语料 + 数据管线首次真实数据冒烟 | 已合并（squash），但只含前 4 个提交 |
 | [#11](https://github.com/irroca/Whetstone/pull/11) | 消融编排 + 补上 #10 合并后才推的 5 个提交（SDPA、代码源修复）| 已合并（squash）|
-| [#12](https://github.com/irroca/Whetstone/pull/12) | 消融结论、正式配比与词表、去污染修复、共享训练循环、GPU 准备 | 待合并（#11 合并后已 rebase 到 `main`，每个提交的 tree 不变）|
+| [#12](https://github.com/irroca/Whetstone/pull/12) | 消融结论、正式配比与词表、去污染修复、共享训练循环、GPU 准备 | 已合并（squash）|
+| [#13](https://github.com/irroca/Whetstone/pull/13) | `prepare` 锁输出目录、按源续跑（正式数据集就是用它重跑的）| 待合并 |
 
 **教训**：stacked PR 要么严格按自下而上的顺序合，要么在合之前把上层 PR 的 base 直接改成 `main`。
 `squash` 合并会切断祖先关系，所以一旦顺序错了，后续那个 PR 的内容不会自动跟过来，
@@ -445,11 +446,19 @@ for s in val holdout train; do
 done
 ```
 
-**进度**：前两条已完成（七个评测集重拉、六个源 probe 全部 `ok`）。后两条 10-09 16:30 起在
-`screen` 会话 `whetstone-data` 里跑，固定在 `d400431` 的 worktree `../whetstone-data-v2` 里
-（`datasets` 是指回主仓库的软链接），预计 11–13 小时，网络是瓶颈。`d400431` 是 rebase 前的提交，
-日志和 manifest 记的都是它；PR #12 里的 `f56f110` 与它的 tree 完全相同。日志
-`results/data_v2/run.log`；中断了就重跑 `zsh results/data_v2/run.sh`，已完成的步骤会跳过。
+**进度**：前两条已完成（七个评测集重拉、六个源 probe 全部 `ok`）。后两条由
+`zsh results/data_v2/run.sh` 在 `screen` 会话 `whetstone-data` 里跑，日志 `results/data_v2/run.log`，
+代码固定在 worktree `../whetstone-data-v2` 的 `1e8dbdf`（PR #13 的提交；`datasets` 是指回主仓库的
+软链接）。10-09 20:31 重新开始。zh_web 实测约 970 万 token/分钟，照此拉完 10B 约 17 小时，
+之后去污染和 tokenize 还要几个小时；网络是瓶颈。
+
+**第一次构建丢了 3.6 小时**（日志 `results/data_v2/run.attempt1.log`）：16:30 起跑，19:56 断网约
+13 分钟，HF 客户端自己的重试扛了过去，20:09 已拉到 zh_web 的 1954M/2000M；但断网期间又手动起了
+两份 `run.sh`，它们以 `"w"` 重开 `sources/zh_web.jsonl`，把它截成一个表面 7.9GB、实际只有 339MB
+数据的稀疏文件。现在两层都防住了：`run.sh` 整体加锁（`zsystem flock`），`prepare` 锁 `--out_dir`，
+第二份都会直接退出。`prepare` 按源续跑，`run.sh` 在它失败时每 10 分钟自动重试、最多 8 次，
+每次只重拉没完成的那个源。**日志里刷 `Retrying` 时不要手动重启**，那是客户端在正常重试；
+任务真的退出了，`run.sh` 会自己接上。
 
 **出数据之前修掉的去污染误杀**（原 §8 第 7 条）：选择题的通用题干（`下列说法正确的是．`、
 `Which of the following statements is true?`）按自身长度索引，命中每一篇带这句话的文档。
@@ -625,6 +634,9 @@ HF_HUB_OFFLINE=1 python -m pytest tests/ -q     # 502 passed，其中端到端�
    再 `os._exit(0)`
 11. **跨词表别比 loss**。词表大的每个 token 要预测的信息更多，val loss 只在同一词表内可比；
    消融的结论看 `probes.json` 里每个源的 bits per byte
+12. **`prepare` 的日志刷 `Retrying` / `Got disconnected from remote data host` 不等于任务挂了**。
+   HF 客户端会自己重试（实测扛过 13 分钟断网）。在它重试时再起一份，正是第一次正式构建丢掉
+   3.6 小时的原因；现在第二份会被锁拒掉，而 `prepare` 真退出了就重跑同一条命令，已完成的源会复用
 
 ---
 

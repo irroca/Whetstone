@@ -146,6 +146,13 @@ rather than duplicating commands here.
  - **Run `prepare --probe 3` before a real `prepare`.** Sources are pulled serially, so a broken
  source (gated repo, wrong config name, renamed field) otherwise only fails after every source
  before it has finished. The probe reports all of them at once and exits 1 if any is not `ok`.
+ - **`prepare` resumes per source and locks `--out_dir`.** A source is pulled into
+ `<name>.jsonl.partial`, renamed when complete, then marked by `<name>.jsonl.done.json` (its
+ report, the file size, and the source settings, budget and tokenizer fingerprint it was pulled
+ with). Rerunning the same command reuses every source whose marker still matches and pulls the
+ rest from their start; there is no checkpoint inside a source. A second run on the same
+ directory exits instead of starting: two runs truncate each other's files, which is how the
+ first formal build lost 3.6 hours of zh_web while the hub client was riding out an outage.
  - **`prepare`'s `__main__` runs the atexit handlers and then calls `os._exit`, on purpose.**
  pyarrow 25 deadlocks in a static thread pool's destructor if a parquet read is still in flight
  when the process exits; a probe always is in that state (it abandons each stream after a few
