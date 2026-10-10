@@ -11,11 +11,12 @@
 **消融 #1（中文占比）和 #5（词表大小）已跑完**（§4 步骤 4）：定为中文 20%、32k 词表、10B token，
 词表就用消融里评测过的那个（`tokenizer/v1_32k`），配比是 `configs/mixture_v2.json`。
 
-**正式数据集已生成并验收**（§4 步骤 5，10-10 02:25）：99.1 亿训练 token，`train.bin` 19.8GB，
-在本机 `datasets/mixture_v2/`，等着上传。训练代码已经为租卡
-准备好：四个阶段共用一个训练循环，续训与不中断逐位一致，checkpoint 原子写入，有 `bench_train.py`
-在开卡第一个小时量吞吐和显存、`probes.py` 评测任意 checkpoint（§3.4）。下一步是租卡正式预训练，
-完整计划在 §4 步骤 6。
+**正式数据集已生成并验收**（§4 步骤 5，10-10 02:25）：99.1 亿训练 token，`train.bin` 19.8GB。
+**已经传到 AutoDL 的一台 H800 实例**，在实例上按 `SHA256SUMS` 逐文件核对过；无卡模式下能做的准备
+（环境、全量测试、用真实数据在 CPU 上预检）也都做完了。训练代码已经为租卡准备好：四个阶段共用
+一个训练循环，续训与不中断逐位一致，checkpoint 原子写入，有 `bench_train.py` 在开卡第一个小时量
+吞吐和显存、`probes.py` 评测任意 checkpoint（§3.4）。下一步是开卡正式预训练，步骤在 §4 步骤 6，
+脚本在 `scripts/autodl/`。
 
 仓库里现有的一切数字都是 29M 玩具规模的**实现验证**，或 3 亿 token 消融代理模型的**相对比较**，
 不是能力声明。
@@ -114,6 +115,9 @@ HF_HUB_OFFLINE=1 python3 -m pytest tests/ -q      # 应为 509 passed（含 #13�
 | [#11](https://github.com/irroca/Whetstone/pull/11) | 消融编排 + 补上 #10 合并后才推的 5 个提交（SDPA、代码源修复）| 已合并（squash）|
 | [#12](https://github.com/irroca/Whetstone/pull/12) | 消融结论、正式配比与词表、去污染修复、共享训练循环、GPU 准备 | 已合并（squash）|
 | [#13](https://github.com/irroca/Whetstone/pull/13) | `prepare` 锁输出目录、按源续跑、`--only`（正式数据集就是用它重跑的）| 已合并（squash）|
+| [#14](https://github.com/irroca/Whetstone/pull/14) | 交接文档：正式数据集已完成并验收 | 已合并（squash）|
+| [#15](https://github.com/irroca/Whetstone/pull/15) | 交接文档：开卡前核对（试跑要加 `--val_every`、上传前先压缩）| 已合并（squash）|
+| [#16](https://github.com/irroca/Whetstone/pull/16) | `scripts/autodl/`：续传上传、实例上校验、CPU 预检、开卡后的 bench / 试跑 / 正式启动 | 待合并 |
 
 **教训**：stacked PR 要么严格按自下而上的顺序合，要么在合之前把上层 PR 的 base 直接改成 `main`。
 `squash` 合并会切断祖先关系，所以一旦顺序错了，后续那个 PR 的内容不会自动跟过来，
@@ -519,42 +523,55 @@ done
 | A800 80GB | 15–18 万 | 15–19 小时 | ¥75–120 |
 | H800 80GB | 25–40 万 | 7–11 小时 | ¥60–160 |
 
-**无卡模式下先做完的事**（AutoDL 无卡模式 0.5 核 / 2GB / ¥0.1 每小时，不占 GPU）：
+**无卡模式下先做完的事**（AutoDL 无卡模式 0.5 核 / 2GB 内存 / ¥0.1 每小时，不占 GPU）。脚本都在
+`scripts/autodl/`：`upload*.sh` 在本机（macOS）跑，其余在实例上跑，数据和结果的路径按 AutoDL
+的 `/root/autodl-tmp` 写死。10-10 在一台 H800 实例上全部做完：
 
-1. 选 PyTorch 2.x + CUDA 12 + Python 3.12 的镜像，`git clone`，`pip install -r requirements.txt`
-2. 上传 `datasets/mixture_v2/` 下步骤 5 列出的文件（约 20GB）到 `/root/autodl-tmp/mixture_v2/`。
-   `train.bin` 先在本机压缩：`zstd -T0 -3 train.bin` 把 19.8GB 压到 12.3GB，只要几秒。用
-   `rsync -P` 传，断了能续；服务器上 `zstd -d --rm train.bin.zst` 解开（没有 zstd 就
-   `apt install zstd`）。然后在那个目录里 `sha256sum -c --ignore-missing SHA256SUMS`，没传的
-   `holdout.bin` 等会被跳过
-3. `HF_HUB_OFFLINE=1 python -m pytest tests/ -q`（0.5 核会慢，但能跑）
-4. 写好启动脚本（见下），确认路径都指向 `/root/autodl-tmp`
+1. 代码和环境：镜像是 PyTorch 2.8 + CUDA 12.8 + Python 3.12（`/root/miniconda3`），torch 就用镜像
+   自带的。经 `network_turbo` `git clone` GitHub 时返回 503 或 `early EOF`，改成在本机
+   `git bundle create` 后传上去再 clone；`pip install -r requirements.txt` 走镜像源
+2. 数据：本机 `zsh scripts/autodl/upload.sh`。`train.bin` 压成 12.3GB 的 `.zst`，切成 46 段 256MiB，
+   8 个连接并行传；每段在服务器上核对过大小才改名，每轮先查服务器上已有什么、只补缺的，断了重跑
+   同一条命令就是续传。12.8GB 传了 72 分钟，瓶颈是本机上行（当时只有约 3.5 MB/s）。传完在实例上
+   `bash scripts/autodl/finish_upload.sh`：逐段核 sha256、解压，再按 `SHA256SUMS` 核对全部文件
+3. `source scripts/autodl/env.sh && python -m pytest tests/ -q`：508 passed、1 skipped（只在 MPS 上跑的
+   那个）。这次用了 58 分钟，其中 `test_run_ablation.py` 的两个测试约占半小时；当时还没有 `env.sh`，
+   torch 按宿主机的核数开线程（见下面 AutoDL 的坑）
+4. `bash scripts/autodl/preflight.sh`（约 2.5 分钟）：按正式的 2048 窗口打开 `train.bin` / `val.bin`
+   （分词器指纹和文件大小在这一步核对）并解码两端；再让两层的小模型在 CPU 上读真实的 `val.bin` 跑
+   4 次更新（验证、保存各两次），probes 加载存下的权重，对 holdout 每个来源的前 3 篇（截到 1000 字）
+   跑一遍。实例上 4 次更新的 loss 和 probes 的数值都与本机逐位一致，数据、路径、分词器和依赖版本在
+   开卡前就验过了，开卡后要排查的只剩 CUDA 本身。训练读 `val.bin` 而不读 `train.bin`、probes 只用
+   截短的文档，都是因为 2GB 内存（见下面 AutoDL 的坑）
 
 无卡模式做不了的：任何 CUDA 相关的（吞吐、显存、编译、flash 检查），以及重 CPU 的活（别在上面
 跑 `prepare` 或 `tokenize_corpus`，在本机做完再传）。
 
 **开卡后的第一个小时**：
 
-1. `nvidia-smi`；`python -c "import torch; print(torch.cuda.is_available(), torch.cuda.get_device_name())"`
-2. `bench_train.py`（§3.3 的命令，`--peak_tflops` 按卡填）：选最大不 OOM、吞吐最高的 micro-batch，
-   定编译开不开；**flash attention 必须是 `ok`**
-3. 用正式命令试跑，`--save_dir` 换成临时目录，再加 `--max_steps 200 --save_step 100 --val_every 100`：
-   loss 在降，第 100 / 200 步各出一次验证（验证只在 `--val_every` 的整数倍上跑，正式命令的 500 在
-   200 步内一次都不会触发）。过了第 100 步 kill 一次，用同一条命令加
+1. `nvidia-smi`（看是 SXM 还是 PCIe，决定下一步的 `PEAK_TFLOPS`）；
+   `python -c "import torch; print(torch.cuda.is_available(), torch.cuda.get_device_name())"`
+2. `PEAK_TFLOPS=989 bash scripts/autodl/bench.sh`（989 是 H800 SXM 的 bf16 稠密峰值）：选最大不 OOM、
+   吞吐最高的 micro-batch，定编译开不开；**flash attention 必须是 `ok`**
+3. `BATCH=… ACCUM=… bash scripts/autodl/trial.sh`：正式命令换到临时目录，再加 `--max_steps 200
+   --save_step 100 --val_every 100`。loss 在降，第 100 / 200 步各出一次验证（验证只在 `--val_every`
+   的整数倍上跑，正式命令的 500 在 200 步内一次都不会触发）。过了第 100 步 kill 一次，同一条命令加
    `--resume_from <临时目录>/latest_checkpoint.pth` 续上。有 `--max_steps` 时学习率调度按它算，
    200 步会完整走一遍预热和余弦，loss 应该明显下降；也因此续训时 `--max_steps` 不能改。
    确认后删掉临时目录
-4. 正式启动，挂在 `tmux` / `screen` 里，命令后接 `; /usr/bin/shutdown`，跑完自动关机停止计费
+4. `BATCH=… ACCUM=… COMPILE=… bash scripts/autodl/start_pretrain.sh`：在 `screen pretrain` 里跑
+   `pretrain.sh`，日志写到 `results/pretrain_v2/train.log`。进程崩了就从最新 checkpoint 续训（最多
+   4 次），训完跑 probes，最后关机停止计费（`NO_SHUTDOWN=1` 不关机）
 
-**正式命令**（A800 的例子；`--batch_size` 以 bench 为准，`batch_size × accumulation_steps × 2047`
-保持约 50 万 token，共约 1.9 万次更新）：
+**正式命令**（`scripts/autodl/pretrain.sh` 跑的就是这条；`--batch_size` 以 bench 为准，
+`batch_size × accumulation_steps × 2047` 保持约 50 万 token，共约 1.9 万次更新）：
 
 ```bash
 python3 pretrain.py --dim 768 --n_layers 12 --n_heads 12 --n_kv_heads 3 \
   --tokenizer_path tokenizer/v1_32k --max_seq_len 2048 \
   --data_path /root/autodl-tmp/mixture_v2/train.bin --val_data_path /root/autodl-tmp/mixture_v2/val.bin \
   --epochs 1 --batch_size 16 --accumulation_steps 16 --learning_rate 6e-4 \
-  --log_step 10 --val_every 500 --val_batches 50 --save_step 500 \
+  --log_step 10 --val_every 500 --val_batches 50 --save_step 500 --num_workers 2 \
   --dtype bfloat16 --compile True --save_dir /root/autodl-tmp/results/pretrain_v2
 ```
 
@@ -566,8 +583,8 @@ python3 pretrain.py --dim 768 --n_layers 12 --n_heads 12 --n_kv_heads 3 \
   不联网，AutoDL 连不上 HF 也不影响
 - 按上面的例子共 18,919 次更新，最后一次验证在第 18,500 次，之后的 419 次没有验证；训完的评测靠
   下面的 `probes.py`
-- 训完：`probes.py --checkpoint .../pretrain_final.pth --holdout .../holdout.jsonl
-  --tokenizer_path tokenizer/v1_32k`，把结果和 `runs/` 拷回本机，填 `docs/experiments.md`
+- 训完 `pretrain.sh` 会接着跑 `probes.py`，结果写到 `results/pretrain_v2/probes.json`；把它和
+  `runs/` 拷回本机，填 `docs/experiments.md`。关机不清数据盘（实例被释放才清），用无卡模式开机拷
 
 **AutoDL 的坑**：
 
@@ -576,8 +593,25 @@ python3 pretrain.py --dim 768 --n_layers 12 --n_heads 12 --n_kv_heads 3 \
 - `/root/autodl-tmp` 是本地数据盘，没有冗余，实例释放就没了；`/root/autodl-fs` 是同区域共享的
   文件存储（免费 20GB）；系统盘只有 30GB，**数据和 checkpoint 都别放系统盘**（一份带优化器状态的
   checkpoint 约 1.2GB）
-- 访问 HF / GitHub：`source /etc/network_turbo`，或 `export HF_ENDPOINT=https://hf-mirror.com`
+- 访问 HF / GitHub：`source /etc/network_turbo`，或 `export HF_ENDPOINT=https://hf-mirror.com`。
+  这个代理时好时坏（GitHub 返回过 503 和 `early EOF`），pip 走它反而更慢，只在子 shell 里开
 - 计费从开机到关机，跑完一定要关机
+- 单个 SSH 连接只有 1–2.5 MB/s，本机上行 24 MB/s 时也一样，所以 `upload.sh` 分段并行传
+- 网关会一次断开所有连接（10-10 16:17 断过一次）。ssh 连不上时返回 255，而 `xargs` 碰到 255 会
+  放弃剩下的全部输入，所以 `upload_part.sh` 失败时一律返回 1，由下一轮补传
+- 0.5 核跑满时（比如在跑测试），每次 SSH 握手要 10–25 秒；同时发起的连接一多，sshd 会直接断开
+  一部分（`MaxStartups`）
+- 无卡模式内存上限 2GB（`/sys/fs/cgroup/memory.max`；`top` 里的 1TB 是宿主机的），其中约 0.3GB 被
+  AutoDL 自带的 jupyter / tensorboard / autopanel 占着。python 进程到 1.5GB 上下就被 SIGKILL（退出码
+  137，cgroup 的 `oom_kill` 计数却是 0）。在 `train.bin` 上训练怎么都放不下：2048 窗口时 fp32 logits
+  在反向里就要约 1GB，窗口越短，采样器的排列（一个 Python 列表）又越大。probes 的 bits per byte 会同时
+  留着两批 16 个窗口的 logits，窗口 128 时也有约 1GB。测试也要 1GB 以上，和 preflight 别同时跑
+- `nproc` 报的是宿主机的 176 核，不是实例的 CPU 配额，torch 照它开线程池。无卡模式只有 0.5 核时，
+  preflight 的 91 个线程让 2M 小模型的一次更新要 188 秒，设 `OMP_NUM_THREADS=1` 后 1.4 秒。实例端
+  脚本都先 source `scripts/autodl/env.sh`，它按 `/sys/fs/cgroup/cpu.max` 设线程数，顺带设好 conda
+  的 PATH（screen 里的 shell 没有）和 `HF_HUB_OFFLINE`
+- 长任务放进 `screen -dmS`（镜像里没有 tmux）
+- 无卡模式下 `nvidia-smi` 报权限错误，属于正常现象
 
 ### 步骤 7：重建后训练四阶段
 SFT / KD / DPO 的数据要基于新语料和可验证任务重做（`envs.generate_data` 负责算术那部分；
@@ -700,8 +734,8 @@ HF_HUB_OFFLINE=1 python -m pytest tests/ -q     # 502 passed，其中端到端�
 5. **代码任务的沙箱怎么做？** 阶段 B 的核心设计问题。子进程 + 超时是底线，要不要上容器取决于
    数据源可信度
 7. ~~去污染会被只有通用题干的选择题误杀~~ 已修：选项拼进题目，消融数据池上删除 252 → 57 篇（§4 步骤 5）
-6. **租什么卡？** 估算见 §4 步骤 6，A800 / H800 都在 ¥160 以内；以 `bench_train.py` 的实测为准。
-   如果显存和预算宽裕，`docs/corpus-plan.md` 里 ~185M / 18B token 的档位也在射程内
+6. ~~租什么卡？~~ 租了 AutoDL 的 H800。micro-batch 和编译开关等开卡后 `bench.sh` 的实测；
+   `docs/corpus-plan.md` 里 ~185M / 18B token 的档位，等这一轮的结果出来再看
 8. **去污染对通用写法偏严**。正式数据集上，单项删得最多的是一个纯公式答案（`x^8 + … + 1`，141 篇），
    以及 MBPP / HumanEval 参考解里的教科书算法（冒泡排序、DP 表初始化，合计约 400 篇）。这些项
    通篇都是通用写法，LCS 放不回来。代价只是少了约 0.005% 的文档，这一版不改；下次重建可以考虑让

@@ -304,6 +304,14 @@ rather than duplicating commands here.
   `--compile` and reports tok/s, peak memory, TFLOPS and MFU (`--peak_tflops`), plus whether the
   training forward reaches flash attention on CUDA. `probes.py` is also a CLI that runs the three
   probes on any checkpoint against a `prepare` holdout.
+- **`scripts/autodl/` launches the formal run on an AutoDL instance**: upload from a Mac, verify,
+  CPU preflight, then bench, trial and the formal run (order in `docs/status.md` §4 step 6).
+  - The instance-side scripts source `env.sh`, which sets `OMP_NUM_THREADS` from
+    `/sys/fs/cgroup/cpu.max`. The instance reports the host's 176 cores, and at the no-GPU 0.5
+    CPU torch's 91 threads made one update of a 2M model take 188 s instead of 1.4 s.
+  - The no-GPU instance has 2GB, so `preflight.sh` trains on `val.bin` and probes shortened
+    documents. Pointing it at `train.bin` gets it killed: no window length fits, since fp32 logits
+    over the 32k vocabulary and the sampler's permutation trade off against each other.
 - **`eval_ppl.py` wraps text pretrain-style** (`bos_token + text + eos_token`, matching
   `dataset.PretrainDataset`) before tokenizing, so PPL is computed on the same input distribution
   the model was trained on — don't strip that wrapping when touching `calculate_ppl`.
