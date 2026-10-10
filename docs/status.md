@@ -522,8 +522,11 @@ done
 **无卡模式下先做完的事**（AutoDL 无卡模式 0.5 核 / 2GB / ¥0.1 每小时，不占 GPU）：
 
 1. 选 PyTorch 2.x + CUDA 12 + Python 3.12 的镜像，`git clone`，`pip install -r requirements.txt`
-2. 上传 `datasets/mixture_v2/` 下步骤 5 列出的文件（约 20GB）到 `/root/autodl-tmp/mixture_v2/`，
-   然后在那个目录里 `sha256sum -c --ignore-missing SHA256SUMS`（没传的 `holdout.bin` 等会被跳过）
+2. 上传 `datasets/mixture_v2/` 下步骤 5 列出的文件（约 20GB）到 `/root/autodl-tmp/mixture_v2/`。
+   `train.bin` 先在本机压缩：`zstd -T0 -3 train.bin` 把 19.8GB 压到 12.3GB，只要几秒。用
+   `rsync -P` 传，断了能续；服务器上 `zstd -d --rm train.bin.zst` 解开（没有 zstd 就
+   `apt install zstd`）。然后在那个目录里 `sha256sum -c --ignore-missing SHA256SUMS`，没传的
+   `holdout.bin` 等会被跳过
 3. `HF_HUB_OFFLINE=1 python -m pytest tests/ -q`（0.5 核会慢，但能跑）
 4. 写好启动脚本（见下），确认路径都指向 `/root/autodl-tmp`
 
@@ -535,8 +538,12 @@ done
 1. `nvidia-smi`；`python -c "import torch; print(torch.cuda.is_available(), torch.cuda.get_device_name())"`
 2. `bench_train.py`（§3.3 的命令，`--peak_tflops` 按卡填）：选最大不 OOM、吞吐最高的 micro-batch，
    定编译开不开；**flash attention 必须是 `ok`**
-3. 用正式命令加 `--max_steps 200 --save_step 100` 试跑：loss 在降、验证在出数；中途 kill 一次，
-   用 `--resume_from <save_dir>/latest_checkpoint.pth` 续上。确认后删掉这个目录
+3. 用正式命令试跑，`--save_dir` 换成临时目录，再加 `--max_steps 200 --save_step 100 --val_every 100`：
+   loss 在降，第 100 / 200 步各出一次验证（验证只在 `--val_every` 的整数倍上跑，正式命令的 500 在
+   200 步内一次都不会触发）。过了第 100 步 kill 一次，用同一条命令加
+   `--resume_from <临时目录>/latest_checkpoint.pth` 续上。有 `--max_steps` 时学习率调度按它算，
+   200 步会完整走一遍预热和余弦，loss 应该明显下降；也因此续训时 `--max_steps` 不能改。
+   确认后删掉临时目录
 4. 正式启动，挂在 `tmux` / `screen` 里，命令后接 `; /usr/bin/shutdown`，跑完自动关机停止计费
 
 **正式命令**（A800 的例子；`--batch_size` 以 bench 为准，`batch_size × accumulation_steps × 2047`
@@ -554,6 +561,11 @@ python3 pretrain.py --dim 768 --n_layers 12 --n_heads 12 --n_kv_heads 3 \
 - 学习率 6e-4、50 万 token 的 batch 是 GPT-3 125M 的设定；10% 线性预热后余弦退到 10%
 - `--save_step 500` 约半小时一次；实例被回收就用同一条命令加 `--resume_from` 续上，数据顺序与
   不中断时完全相同（§3.4）
+- 本机已用这条命令在真实数据上冒烟（MPS，batch 2，6 次更新，中间续训一次）：99.5M 参数，初始 loss
+  10.6（≈ ln 32768），验证正常，checkpoint 1.19GB，续训从第 7 个 batch 接上。加载分词器和训练全程
+  不联网，AutoDL 连不上 HF 也不影响
+- 按上面的例子共 18,919 次更新，最后一次验证在第 18,500 次，之后的 419 次没有验证；训完的评测靠
+  下面的 `probes.py`
 - 训完：`probes.py --checkpoint .../pretrain_final.pth --holdout .../holdout.jsonl
   --tokenizer_path tokenizer/v1_32k`，把结果和 `runs/` 拷回本机，填 `docs/experiments.md`
 
