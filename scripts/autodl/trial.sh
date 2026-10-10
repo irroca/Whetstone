@@ -3,7 +3,7 @@
 # and 200; a run killed after 100 continues with
 #   bash scripts/autodl/trial.sh --resume_from /root/autodl-tmp/results/pretrain_v2_trial/latest_checkpoint.pth
 # With --max_steps the LR schedule spans those 200 updates, so do not change it when resuming.
-export PATH=/root/miniconda3/bin:$PATH HF_HUB_OFFLINE=1
+source "$(dirname "$0")/env.sh"
 cd "$(dirname "$0")/../.."
 python pretrain.py --dim 768 --n_layers 12 --n_heads 12 --n_kv_heads 3 \
   --tokenizer_path tokenizer/v1_32k --max_seq_len 2048 \

@@ -2,7 +2,7 @@
 # On the instance, after upload.sh: checks every part, joins and decompresses train.bin, verifies
 # every file against SHA256SUMS (written on the Mac right after tokenizing), then deletes the parts.
 set -euo pipefail
-export PATH=/root/miniconda3/bin:$PATH
+source "$(dirname "$0")/env.sh"
 cd /root/autodl-tmp/mixture_v2
 n=$(wc -l < parts/parts.sha256)
 (cd parts && sha256sum --quiet -c parts.sha256)

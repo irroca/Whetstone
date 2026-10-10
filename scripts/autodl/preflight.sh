@@ -7,7 +7,7 @@
 # fp32 logits over the 32k vocabulary take ~1GB in the backward pass, and on train.bin the sampler's
 # permutation of every window is a Python list of millions of ints. Not alongside the test suite.
 set -euo pipefail
-export PATH=/root/miniconda3/bin:$PATH HF_HUB_OFFLINE=1
+source "$(dirname "$0")/env.sh"
 cd "$(dirname "$0")/../.."
 data=/root/autodl-tmp/mixture_v2
 out=/root/autodl-tmp/results/preflight

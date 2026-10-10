@@ -1,7 +1,7 @@
 #!/bin/bash
 # Throughput, peak memory and MFU of the formal model on this card, to pick the micro-batch and
 # whether to compile. PEAK_TFLOPS is the card's dense bf16 peak (H800 SXM 989, A800 312).
-export PATH=/root/miniconda3/bin:$PATH HF_HUB_OFFLINE=1
+source "$(dirname "$0")/env.sh"
 cd "$(dirname "$0")/../.."
 mkdir -p /root/autodl-tmp/results
 python bench_train.py --tokenizer_path tokenizer/v1_32k --dim 768 --n_layers 12 --n_heads 12 \

@@ -3,7 +3,7 @@
 # crash it resumes from the latest checkpoint, which replays the exact data order of an
 # uninterrupted run; once the final weights exist it runs the probes. BATCH x ACCUM x 2047 should
 # stay near 0.5M tokens.
-export PATH=/root/miniconda3/bin:$PATH HF_HUB_OFFLINE=1
+source "$(dirname "$0")/env.sh"
 cd "$(dirname "$0")/../.."
 out=/root/autodl-tmp/results/pretrain_v2
 mkdir -p $out
