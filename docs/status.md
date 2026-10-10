@@ -1,6 +1,6 @@
 # 项目状态与路线（交接文档）
 
-**最后更新**：2026-10-09，本地 Mac session。
+**最后更新**：2026-10-10，本地 Mac session。
 本文档是新 session 的入口——先读这里，再读 `AGENTS.md`。
 
 ---
@@ -11,7 +11,8 @@
 **消融 #1（中文占比）和 #5（词表大小）已跑完**（§4 步骤 4）：定为中文 20%、32k 词表、10B token，
 词表就用消融里评测过的那个（`tokenizer/v1_32k`），配比是 `configs/mixture_v2.json`。
 
-**正式数据集正在本机生成**（§4 步骤 5，10-09 20:49 重新开始，预计 10-10 03:00 前后出完）。训练代码已经为租卡
+**正式数据集已生成并验收**（§4 步骤 5，10-10 02:25）：99.1 亿训练 token，`train.bin` 19.8GB，
+在本机 `datasets/mixture_v2/`，等着上传。训练代码已经为租卡
 准备好：四个阶段共用一个训练循环，续训与不中断逐位一致，checkpoint 原子写入，有 `bench_train.py`
 在开卡第一个小时量吞吐和显存、`probes.py` 评测任意 checkpoint（§3.4）。下一步是租卡正式预训练，
 完整计划在 §4 步骤 6。
@@ -112,7 +113,7 @@ HF_HUB_OFFLINE=1 python3 -m pytest tests/ -q      # 应为 509 passed（含 #13�
 | [#10](https://github.com/irroca/Whetstone/pull/10) | memmap 预训练语料 + 数据管线首次真实数据冒烟 | 已合并（squash），但只含前 4 个提交 |
 | [#11](https://github.com/irroca/Whetstone/pull/11) | 消融编排 + 补上 #10 合并后才推的 5 个提交（SDPA、代码源修复）| 已合并（squash）|
 | [#12](https://github.com/irroca/Whetstone/pull/12) | 消融结论、正式配比与词表、去污染修复、共享训练循环、GPU 准备 | 已合并（squash）|
-| [#13](https://github.com/irroca/Whetstone/pull/13) | `prepare` 锁输出目录、按源续跑、`--only`（正式数据集就是用它重跑的）| 待合并 |
+| [#13](https://github.com/irroca/Whetstone/pull/13) | `prepare` 锁输出目录、按源续跑、`--only`（正式数据集就是用它重跑的）| 已合并（squash）|
 
 **教训**：stacked PR 要么严格按自下而上的顺序合，要么在合之前把上层 PR 的 base 直接改成 `main`。
 `squash` 合并会切断祖先关系，所以一旦顺序错了，后续那个 PR 的内容不会自动跟过来，
@@ -433,7 +434,7 @@ python3 run_ablation.py configs/ablation_v1.json run    # 全部阶段；被打�
 - **消融从一个固定在 `eea8acb` 的 worktree 里跑**，这样一天里主仓库切分支、改代码都不会让后面几组
   用上另一份代码。跑完后已删除（数据和结果在主仓库的 `datasets/`、`results/` 里，worktree 里只是软链接）
 
-### 步骤 5：正式数据集 ⏳ 正在跑
+### 步骤 5：正式数据集 ✅ 已完成（10-10 02:25）
 分词器已定（步骤 4），这一步只剩出数据：
 
 ```bash
@@ -446,30 +447,26 @@ for s in val holdout train; do
 done
 ```
 
-**进度**：前两条已完成（七个评测集重拉、六个源 probe 全部 `ok`）。后两条由
-`zsh results/data_v2/run.sh` 在 `screen` 会话 `whetstone-data` 里跑，日志 `results/data_v2/run.log`，
-代码固定在 worktree `../whetstone-data-v2` 的 `cebd574`（PR #13 的提交；`datasets` 是指回主仓库的
-软链接）。10-09 20:49 开始，分两路并行拉：
+**过程**：前两条在 10-09 白天完成（七个评测集重拉、六个源 probe 全部 `ok`）。后两条由
+`zsh results/data_v2/run.sh` 跑，日志 `results/data_v2/run.log`。代码固定在一个 worktree 里的
+`cebd574`（PR #13 的提交，`datatools/` 与合并后的 `6ad41ee` 相同；worktree 已在构建后删除）。
+10-09 20:49 开始，分两路并行拉：
 
 - **五个公开源经 `hf-mirror.com`**，进程看不到 HF token（`HF_TOKEN_PATH=/nonexistent`）。断网之后，
   到官方 CDN（`us.gcp.cdn.hf.co`）的单条连接只有 120–350 KB/s，镜像有 3 MB/s，抽查的 10MB 逐字节
-  相同。zh_web 实测约 3000 万 token/分钟，是第一次构建的 3 倍，五个源约 5 小时
+  相同。约 3200 万 token/分钟，23:53 拉完
 - **gated 的 starcoderdata 单独一路**，拉进 `datasets/mixture_v2_code/`，完成后连同完成标记挪进
-  `datasets/mixture_v2/sources/`。20:49 起带主 token 走官方源，受慢线路所限只有 270–390 万
-  token/分钟，2.29B 要 10–14 小时。**21:33 切到镜像，从头重拉**，约 4500 万 token/分钟，
-  预计 22:25 拉完。镜像这一路由 `code_mirror.sh`（screen `whetstone-code`）跑
-- **主 token 不发给镜像**。镜像用的是专门新建的 fine-grained token，存为
-  `~/.cache/huggingface/token.mirror`，只经 `HF_TOKEN_PATH` 传给进程。`switch_code.sh` 先向官方
+  `datasets/mixture_v2/sources/`。先带主 token 走官方源，只有 270–390 万 token/分钟；21:33 切到镜像
+  从头重拉（`code_mirror.sh`），约 4500 万 token/分钟，22:28 拉完
+- **主 token 不发给镜像**。镜像用的是专门新建的 fine-grained token
+  （`~/.cache/huggingface/token.mirror`），只经 `HF_TOKEN_PATH` 传给进程。`switch_code.sh` 先向官方
   核对权限，要求是 fine-grained、没有针对具体账号的权限、没有写权限。实际这个 token 还带了个人名下
-  仓库的只读权限，检查没通过；用户确认接受后手动切换（见 `run.log` 的 `[switch]` 行）。
-  **构建完成后在 HF 上删掉这个 token，并 `rm ~/.cache/huggingface/token.mirror`**
-- 切换之后，原 `run.sh` 会在公开源拉完时以 `EXIT=1 (open lane 0, code lane 143)` 退场，这是预期的；
-  `code_mirror.sh` 等它放开锁，再自动重跑 `run.sh` 收尾
+  仓库的只读权限，检查没通过；用户确认接受后手动切换（见 `run.log` 的 `[switch]` 行）
+- 23:53 原 `run.sh` 按预期以 `EXIT=1 (open lane 0, code lane 143)` 退场（它的 code 那一路被停了），
+  `code_mirror.sh` 随即重跑 `run.sh`：两路都只复用完成标记；离线 `prepare` 做去污染和划分，
+  23:54–02:01；然后 tokenize，train 用了 23 分钟（约 720 万 token/s）；02:25 `EXIT=0`
 
-两路都完成后，`prepare` 离线再跑一遍，复用全部六个源，只做去污染和划分，然后 tokenize。现在的瓶颈
-是公开源那一路：zh_web 之后还有 en_web 3.2B、math 1.6B、books 0.57B、synthetic_textbook 0.34B，
-按约 3200 万 token/分钟，预计 10-10 01:00 前后拉完，整个构建约 03:00 出完。20:31–20:46 那一次走的
-是慢线路，日志在 `run.attempt2.log`。
+20:31–20:46 那一次走的是慢线路，日志在 `run.attempt2.log`。
 
 **第一次构建丢了 3.6 小时**（日志 `results/data_v2/run.attempt1.log`）：16:30 起跑，19:56 断网约
 13 分钟，HF 客户端自己的重试扛了过去，20:09 已拉到 zh_web 的 1954M/2000M；但断网期间又手动起了
@@ -487,11 +484,27 @@ done
 （zh 4 / en 4 / code 17 / math 31 / synthetic 1），剩下的基本是真泄漏：MBPP / HumanEval 的参考解
 出现在代码里，MATH / GSM8K 原题出现在 FineMath 里，TAL 原题出现在中文教育网页上。
 
-验收：manifest 里每个源 `fill` ≈ 100%、没有 `ran out of data`；`split.top_matches` 里没有一项删掉
-大量文档；`train.bin` 约 20GB（10B 个 `uint16`）。`.bin` 绑定分词器指纹，换词表必须重跑
-`tokenize_corpus`（不重跑会直接报错）。上传到服务器的就是 `datasets/mixture_v2/` 下的
-`{train,val}.{bin,idx,meta.json}`、`holdout.jsonl`（给 `probes.py`）和 `manifest.json`。
-验收之后删掉镜像用的 `token.mirror`（HF 上删 token，本地 `rm`）。
+**验收结果**（10-10）：
+
+- **配额**：六个源 `fill` 都是 100%，没有一个 `exhausted`，共 100.0 亿 token（按 v1_32k 计）。
+  train / val / holdout 各 8,393,795 / 42,451 / 42,680 篇
+- **占比**（`train.bin`）：zh_web 20.0%、en_web 32.0%、code 22.9%、math 16.0%、books 5.7%、
+  synthetic_textbook 3.4%，与 `mixture_v2.json` 一致
+- **去污染**：45,756 个评测项，删 1275 篇（0.015%），LCS 放回 6424 篇。`top_matches` 里删得最多的
+  一项是 141 篇：MATH-500 的一个答案 `x^8 + x^7 + … + x + 1`，删的是含这个多项式的普通数学文档。其后
+  几项多是 MBPP / HumanEval 参考解里的教科书写法（冒泡排序、DP 表初始化、递归 Fibonacci），这些
+  通用写法合计约 400 篇。误删只少一点数据，不会放进泄漏，所以没有重跑（§8 第 8 条）。GSM8K、TAL
+  原题那几项是真泄漏
+- **tokenize**：train 9,914,070,642 token（`train.bin` 19.8GB）、val 50,328,618、holdout
+  48,915,562。三个 `.bin` 都能被 `build_pretrain_dataset` 打开（指纹和大小校验通过）；每个抽 2000
+  篇，文档边界（bos 开头、eos 结尾）全对；最大 token id 是 32767，没有越界。`--max_seq_len 2048`
+  下 train 有 4,843,219 个窗口
+
+`.bin` 绑定分词器指纹，换词表必须重跑 `tokenize_corpus`（不重跑会直接报错）。上传到服务器的就是
+`datasets/mixture_v2/` 下的 `{train,val}.{bin,idx,meta.json}`、`holdout.jsonl`（给 `probes.py`）、
+`manifest.json` 和 `SHA256SUMS`。`SHA256SUMS` 覆盖三个 split 的 `.bin/.idx/.meta.json`、
+`holdout.jsonl` 和 `manifest.json`，传完在服务器上校验（见步骤 6）。镜像用的 `token.mirror` 已经
+不再需要：在 HF 上删掉这个 token，本地 `rm`。
 
 **v1_32k 让所有旧 checkpoint 失效**——`resolve_model_config` 会在 `vocab_size` 不匹配时直接报错，
 这是设计如此。
@@ -509,7 +522,8 @@ done
 **无卡模式下先做完的事**（AutoDL 无卡模式 0.5 核 / 2GB / ¥0.1 每小时，不占 GPU）：
 
 1. 选 PyTorch 2.x + CUDA 12 + Python 3.12 的镜像，`git clone`，`pip install -r requirements.txt`
-2. 上传 `datasets/mixture_v2/` 下步骤 5 列出的文件（约 20GB）到 `/root/autodl-tmp`
+2. 上传 `datasets/mixture_v2/` 下步骤 5 列出的文件（约 20GB）到 `/root/autodl-tmp/mixture_v2/`，
+   然后在那个目录里 `sha256sum -c --ignore-missing SHA256SUMS`（没传的 `holdout.bin` 等会被跳过）
 3. `HF_HUB_OFFLINE=1 python -m pytest tests/ -q`（0.5 核会慢，但能跑）
 4. 写好启动脚本（见下），确认路径都指向 `/root/autodl-tmp`
 
@@ -597,7 +611,7 @@ PPO critic、PRM（过程奖励模型）、MoE、多卡并行、推理服务化�
 | 加速器 | 无 | **Apple M5 Pro，MPS** | CUDA |
 | `--device` 默认 | `cpu` | **`mps`**（自动选）| `cuda` |
 | `--dtype` | 只能 `float32` | `bfloat16` | `bfloat16` |
-| 数据 | `datasets/` 是空的 | 评测集 `datasets/eval/`、冒烟语料 `datasets/smoke_full/`、消融数据 `datasets/ablation_v1/`，正式数据集 `datasets/mixture_v2/` 生成中（都被 git 忽略）| 从本机上传 `mixture_v2` |
+| 数据 | `datasets/` 是空的 | 评测集 `datasets/eval/`、冒烟语料 `datasets/smoke_full/`、消融数据 `datasets/ablation_v1/`，正式数据集 `datasets/mixture_v2/`（已完成，约 20GB 待上传；都被 git 忽略）| 从本机上传 `mixture_v2` |
 
 本地环境搭建：
 
@@ -676,6 +690,10 @@ HF_HUB_OFFLINE=1 python -m pytest tests/ -q     # 502 passed，其中端到端�
 7. ~~去污染会被只有通用题干的选择题误杀~~ 已修：选项拼进题目，消融数据池上删除 252 → 57 篇（§4 步骤 5）
 6. **租什么卡？** 估算见 §4 步骤 6，A800 / H800 都在 ¥160 以内；以 `bench_train.py` 的实测为准。
    如果显存和预算宽裕，`docs/corpus-plan.md` 里 ~185M / 18B token 的档位也在射程内
+8. **去污染对通用写法偏严**。正式数据集上，单项删得最多的是一个纯公式答案（`x^8 + … + 1`，141 篇），
+   以及 MBPP / HumanEval 参考解里的教科书算法（冒泡排序、DP 表初始化，合计约 400 篇）。这些项
+   通篇都是通用写法，LCS 放不回来。代价只是少了约 0.005% 的文档，这一版不改；下次重建可以考虑让
+   没有文字的公式答案只做精确匹配，或给代码参考解单独设更长的 n
 
 改名已全部完成：代码、文档、远端仓库都是 **`irroca/Whetstone`**。如果你手上还有指向旧名的
 clone，GitHub 会一直重定向，但建议顺手改掉：
