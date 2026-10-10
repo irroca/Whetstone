@@ -2,10 +2,11 @@
 # CPU check of the formal data path before paying for a GPU. train.bin and val.bin are opened
 # through MemmapPretrainDataset at the formal 2048 tokens (tokenizer fingerprint and size checks
 # included) and both ends of each are decoded; then a tiny model trains 4 updates with validation
-# and saving, and the probes run on it against the real holdout. That training reads val.bin at 512
-# tokens because the no-GPU instance has 2GB, ~0.3GB of it AutoDL's own services: at 2048 tokens
-# fp32 logits over the 32k vocabulary take ~1GB in the backward pass, and on train.bin the sampler's
-# permutation of every window is a Python list of millions of ints. Not alongside the test suite.
+# and saving, and the probes run on it against the first 20 holdout documents of each source. Both
+# are cut down because the no-GPU instance has 2GB, ~0.3GB of it AutoDL's own services. Training on
+# train.bin fits at no window length: at 2048 tokens fp32 logits over the 32k vocabulary take ~1GB
+# in the backward pass, and shorter windows grow the sampler's permutation, a Python list of
+# millions of ints. The probes read the whole holdout into memory. Not alongside the test suite.
 set -euo pipefail
 source "$(dirname "$0")/env.sh"
 cd "$(dirname "$0")/../.."
@@ -30,7 +31,20 @@ python pretrain.py --dim 64 --n_layers 2 --n_heads 4 --n_kv_heads 1 \
   --epochs 1 --batch_size 1 --accumulation_steps 2 --max_steps 4 --learning_rate 6e-4 \
   --log_step 1 --val_every 2 --val_batches 2 --save_step 2 --num_workers 2 \
   --dtype float32 --device cpu --save_dir $out
-python probes.py --checkpoint $out/pretrain_final.pth --holdout $data/holdout.jsonl \
+python - $data/holdout.jsonl $out/holdout_head.jsonl <<'EOF'
+import json
+import sys
+
+kept = {}
+with open(sys.argv[1], encoding="utf-8") as src, open(sys.argv[2], "w", encoding="utf-8") as dst:
+    for line in src:
+        source = json.loads(line)["source"]
+        if kept.get(source, 0) < 20:
+            kept[source] = kept.get(source, 0) + 1
+            dst.write(line)
+print("holdout head:", kept)
+EOF
+python probes.py --checkpoint $out/pretrain_final.pth --holdout $out/holdout_head.jsonl \
   --tokenizer_path tokenizer/v1_32k --device cpu --max_seq_len 512 --max_tokens_per_source 4096 \
   --confusion_prompts 2 --arithmetic_items 4 --out $out/probes.json
 ls -la $out
