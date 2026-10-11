@@ -2,7 +2,7 @@ import torch
 import pytest
 
 from config import LLMConfig
-from model import Attention, Whetstone
+from model import Attention, Whetstone, apply_rotary_emb, precompute_pos_cis
 
 
 def _tiny_model(**kwargs):
@@ -188,6 +188,28 @@ def test_kv_cache_mask_wrong_length_raises():
     with pytest.raises(ValueError):
         model(cont, past_key_values=out1.past_key_values, use_cache=True, start_pos=5,
               attention_mask=bad_mask)
+
+
+@pytest.mark.parametrize("dtype", [torch.float32, torch.bfloat16])
+def test_rope_multiplies_each_pair_by_its_complex_rotation(dtype):
+    """The real-valued rotation must equal the complex form it replaced: the pair
+    (x[2i], x[2i+1]) at position t times e^{i t theta^(-2i/d)}, computed in fp32."""
+    torch.manual_seed(0)
+    seq, head_dim, theta = 10, 16, 1e6
+    freqs = 1.0 / (theta ** (torch.arange(0, head_dim, 2).float() / head_dim))
+    angles = torch.outer(torch.arange(seq).float(), freqs)
+    rotation = torch.polar(torch.ones_like(angles), angles)[None, :, None, :]
+
+    def reference(x):
+        pairs = torch.view_as_complex(x.float().reshape(*x.shape[:-1], -1, 2))
+        return torch.view_as_real(pairs * rotation).flatten(3).to(dtype)
+
+    xq = torch.randn(2, seq, 4, head_dim).to(dtype)
+    xk = torch.randn(2, seq, 2, head_dim).to(dtype)
+    q, k = apply_rotary_emb(xq, xk, precompute_pos_cis(head_dim, seq, theta))
+    assert q.dtype == k.dtype == dtype
+    torch.testing.assert_close(q, reference(xq))
+    torch.testing.assert_close(k, reference(xk))
 
 
 @torch.no_grad()

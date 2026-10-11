@@ -24,36 +24,29 @@ class RMSNorm(nn.Module):
         # 计算x每个元素的均方根归一化，再乘以学习参数
         return self.weight * (x.float() * torch.rsqrt(x.pow(2).mean(-1, keepdim=True) + self.eps)).type_as(x)
 
-# 预先计算位置编码（旋转位置编码，RoPE）的复数形式
+# 预先计算旋转位置编码（RoPE）的 e^{iθ}，形状 (end, dim // 2, 2)，最后一维是 (cos θ, sin θ)。
+# 不存成复数张量：Inductor 不为复数算子生成 kernel，编译后的 RoPE 会拆成一串 eager 算子
 def precompute_pos_cis(dim: int, end: int = int(32 * 1024), theta: float = 1e6):
-    # 计算频率因子      
+    # 计算频率因子
     freqs = 1.0 / (theta ** (torch.arange(0, dim, 2)[: (dim // 2)].float() / dim))
     # 生成时间步长向量
     t = torch.arange(end, device=freqs.device)  # type: ignore
     # 计算外积，得到每个时间步对应的角度
     freqs = torch.outer(t, freqs).float()  # type: ignore
-    # 将幅度固定为1，通过极坐标得到复数表示
-    pos_cis = torch.polar(torch.ones_like(freqs), freqs)  # complex64
-    return pos_cis
+    return torch.stack((freqs.cos(), freqs.sin()), dim=-1)
 
-# 应用旋转位置编码到查询和键（xq, xk）
+# 应用旋转位置编码到查询和键（xq, xk）：相邻两维 (x[2i], x[2i+1]) 当作一个复数乘以 e^{iθ}，按实部虚部展开
 def apply_rotary_emb(xq, xk, pos_cis):
-    # 定义辅助函数，调整pos_cis的形状以匹配输入张量
-    def unite_shape(pos_cis, x):
-        ndim = x.ndim
-        assert 0 <= 1 < ndim
-        # 确保pos_cis的形状为 (序列长度, head维度)
-        assert pos_cis.shape == (x.shape[1], x.shape[-1])
-        shape = [d if i == 1 or i == ndim - 1 else 1 for i, d in enumerate(x.shape)]
-        return pos_cis.view(*shape)
-    # 将xq和xk转换为复数形式，便于与位置编码相乘
-    xq_ = torch.view_as_complex(xq.float().reshape(*xq.shape[:-1], -1, 2))
-    xk_ = torch.view_as_complex(xk.float().reshape(*xk.shape[:-1], -1, 2))
-    pos_cis = unite_shape(pos_cis, xq_)
-    # 应用旋转位置编码后再转换回实数表示，并展平最后一维
-    xq_out = torch.view_as_real(xq_ * pos_cis).flatten(3)
-    xk_out = torch.view_as_real(xk_ * pos_cis).flatten(3)
-    return xq_out.type_as(xq), xk_out.type_as(xk)
+    # pos_cis 的形状必须是 (序列长度, head维度 // 2, 2)
+    assert pos_cis.shape == (xq.shape[1], xq.shape[-1] // 2, 2)
+    cos, sin = pos_cis[None, :, None, :, 0], pos_cis[None, :, None, :, 1]
+
+    def rotate(x):
+        pairs = x.float().reshape(*x.shape[:-1], -1, 2)
+        real, imag = pairs[..., 0], pairs[..., 1]
+        return torch.stack((real * cos - imag * sin, real * sin + imag * cos), dim=-1).flatten(3).type_as(x)
+
+    return rotate(xq), rotate(xk)
 
 # 重复键和值，类似于torch.repeat_interleave实现，用于复制KV头
 def repeat_kv(x: torch.Tensor, n_rep: int) -> torch.Tensor:
