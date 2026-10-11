@@ -121,7 +121,7 @@ HF_HUB_OFFLINE=1 python3 -m pytest tests/ -q      # Mac 上 512 passed、1 skipp
 | [#14](https://github.com/irroca/Whetstone/pull/14) | 交接文档：正式数据集已完成并验收 | 已合并（squash）|
 | [#15](https://github.com/irroca/Whetstone/pull/15) | 交接文档：开卡前核对（试跑要加 `--val_every`、上传前先压缩）| 已合并（squash）|
 | [#16](https://github.com/irroca/Whetstone/pull/16) | `scripts/autodl/`：续传上传、实例上校验、CPU 预检、开卡后的 bench / 试跑 / 正式启动 | 已合并（squash）|
-| #17 | H800 上的吞吐优化（损失一起编译、实数 RoPE、原生 GQA、cuDNN 注意力），正式预训练开跑 | 待合并 |
+| [#17](https://github.com/irroca/Whetstone/pull/17) | H800 上的吞吐优化（损失一起编译、实数 RoPE、原生 GQA、cuDNN 注意力），正式预训练开跑 | 待合并 |
 
 **教训**：stacked PR 要么严格按自下而上的顺序合，要么在合之前把上层 PR 的 base 直接改成 `main`。
 `squash` 合并会切断祖先关系，所以一旦顺序错了，后续那个 PR 的内容不会自动跟过来，
