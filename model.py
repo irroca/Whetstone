@@ -109,20 +109,21 @@ class Attention(nn.Module):
         kv_len = xk.shape[1]
         offset = kv_len - q_len
         key_mask = self._key_mask(attention_mask, bsz, q_len, kv_len, past_key_value is not None)
-        # 调整查询、键和值的维度，为多头注意力做准备；对于键和值，需重复复制n_rep次
-        xq, xk, xv = (
-            xq.transpose(1, 2),
-            repeat_kv(xk, self.n_rep).transpose(1, 2),
-            repeat_kv(xv, self.n_rep).transpose(1, 2)
-        )
+        xq = xq.transpose(1, 2)
         dropout_p = self.attn_dropout.p if self.training else 0.0
         # MPS 上 SDPA 训练时仍然物化 score 矩阵（seq 2048 只省 15% 显存），而且比显式路径慢 8%
         use_sdpa = self.use_sdpa and x.device.type != "mps"
         if use_sdpa and key_mask is None and (offset == 0 or q_len == 1):
             # 不带缓存的整段前向（q_len == kv_len，is_causal 的左上角对齐恰好正确）和单 token 解码
-            # （能看全部 key）都不需要显式 mask，SDPA 才能选不物化 score 矩阵的 kernel
-            output = F.scaled_dot_product_attention(xq, xk, xv, dropout_p=dropout_p, is_causal=q_len > 1)
+            # （能看全部 key）都不需要显式 mask，SDPA 才能选不物化 score 矩阵的 kernel；
+            # 这些 kernel 直接读 n_kv_heads 个头（enable_gqa），不用 repeat_kv 复制出 n_heads 份
+            output = F.scaled_dot_product_attention(
+                xq, xk.transpose(1, 2), xv.transpose(1, 2),
+                dropout_p=dropout_p, is_causal=q_len > 1, enable_gqa=self.n_rep > 1,
+            )
         else:
+            # 对于键和值，需重复复制n_rep次
+            xk, xv = repeat_kv(xk, self.n_rep).transpose(1, 2), repeat_kv(xv, self.n_rep).transpose(1, 2)
             # 因果掩码：query 行 i 对应绝对位置 offset+i，只能看 key<=offset+i
             # 形状必须是 (q_len, kv_len)，修复 cache 续写时误用 q_len x q_len 的经典 bug
             mask = torch.ones(q_len, kv_len, device=x.device, dtype=torch.bool).tril(diagonal=offset)
