@@ -87,6 +87,14 @@ rather than duplicating commands here.
  would see the wrong keys. Cached continuation and padding build an explicit boolean mask.
  - `Attention.use_sdpa = False` selects the explicit-score reference; tests compare the two
  paths on every masking case, plus training gradients.
+ - The unmasked path passes the `n_kv_heads` K/V heads with `enable_gqa`; only the masked and
+ explicit paths `repeat_kv`.
+ - `set_attention_backend("cudnn")` (`pretrain.py --attention_backend`) makes that path try
+ cuDNN's fused attention before flash: 1.5x faster on an H800 PCIe at the formal run's shape,
+ and PyTorch's own order ranks cuDNN after math, so it is never picked unasked. The order is
+ entered **inside** `Attention.forward` on purpose: `torch.compile` ignores an `sdpa_kernel`
+ around the compiled call and the global `enable_*_sdp` switches, while eager honours both, so
+ moving it out silently goes back to flash once compiled.
  - MPS always takes the explicit path on purpose. Measured on an M5 Pro, torch 2.14, bf16:
  SDPA was 8% slower (29M proxy, seq 512) and saved only 15% memory at seq 2048, so it
  still materializes the scores there. On CPU it halves activation memory at seq 2048.
@@ -298,17 +306,24 @@ rather than duplicating commands here.
     real throughput on CUDA; `optimizer_step` syncs once per update for the grad norm.
   - `save_checkpoint` / `save_final_weights` write through `atomic_torch_save` (temp file, fsync,
     `os.replace`): a rented instance can be reclaimed mid-write.
-  - `pretrain.py --compile` compiles only the training forward; evaluation and saving use the raw
-    module. RoPE's complex multiply is not fused by Inductor (it falls back to eager).
+  - `pretrain.py --compile` compiles the forward **together with the loss** (`trainer.lm_loss_fn`);
+    evaluation and saving use the raw module. Compiling only the model left an eager
+    cross-entropy that upcast the whole logits tensor to fp32 and back-propagated an fp32
+    gradient of the same size: 14% of a step at vocab 32768 on an H800.
+  - RoPE is real-valued (cos/sin pairs) on purpose: Inductor generates no kernels for complex
+    operators, and the complex form ran as a chain of eager kernels (5% of a step).
+    `docs/status.md` §3.3 has the full H800 profile and the gain of each change.
 - **`bench_train.py`** times the real pretraining step on random ids over `--batch_sizes` ×
-  `--compile` and reports tok/s, peak memory, TFLOPS and MFU (`--peak_tflops`), plus whether the
-  training forward reaches flash attention on CUDA. `probes.py` is also a CLI that runs the three
-  probes on any checkpoint against a `prepare` holdout.
+  `--compile` × `--attention_backends` and reports tok/s, peak memory, TFLOPS and MFU
+  (`--peak_tflops`), plus whether the training forward reaches the flash and the cuDNN attention
+  kernels on CUDA. `probes.py` is also a CLI that runs the three probes on any checkpoint against
+  a `prepare` holdout.
 - **`scripts/autodl/` launches the formal run on an AutoDL instance**: upload from a Mac, verify,
   CPU preflight, then bench, trial and the formal run (order in `docs/status.md` §4 step 6).
   - The instance-side scripts source `env.sh`, which sets `OMP_NUM_THREADS` from
     `/sys/fs/cgroup/cpu.max`. The instance reports the host's 176 cores, and at the no-GPU 0.5
-    CPU torch's 91 threads made one update of a 2M model take 188 s instead of 1.4 s.
+    CPU torch's 91 threads made one update of a 2M model take 188 s instead of 1.4 s. It also
+    sets `PYTHONUNBUFFERED=1`: the logs are files, and block buffering held back every line.
   - The no-GPU instance has 2GB, so `preflight.sh` trains on `val.bin` and probes shortened
     documents. Pointing it at `train.bin` gets it killed: no window length fits, since fp32 logits
     over the 32k vocabulary and the sampler's permutation trade off against each other.

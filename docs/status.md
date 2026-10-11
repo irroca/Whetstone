@@ -1,6 +1,6 @@
 # 项目状态与路线（交接文档）
 
-**最后更新**：2026-10-10，本地 Mac session。
+**最后更新**：2026-10-11，H800 开卡 session。
 本文档是新 session 的入口——先读这里，再读 `AGENTS.md`。
 
 ---
@@ -15,8 +15,11 @@
 **已经传到 AutoDL 的一台 H800 实例**，在实例上按 `SHA256SUMS` 逐文件核对过；无卡模式下能做的准备
 （环境、全量测试、用真实数据在 CPU 上预检）也都做完了。训练代码已经为租卡准备好：四个阶段共用
 一个训练循环，续训与不中断逐位一致，checkpoint 原子写入，有 `bench_train.py` 在开卡第一个小时量
-吞吐和显存、`probes.py` 评测任意 checkpoint（§3.4）。下一步是开卡正式预训练，步骤在 §4 步骤 6，
-脚本在 `scripts/autodl/`。
+吞吐和显存、`probes.py` 评测任意 checkpoint（§3.4）。
+
+**正式预训练 10-11 14:15 在 H800 PCIe 上开跑**（commit e223385，§4 步骤 6）。开跑前先花一小时
+把训练步从 27.1 万提到 34.2 万 token/s（+26%，MFU 25% → 32%，前后 loss 一致，过程记在 §3.3），
+10B token 从约 10.2 小时缩到约 8.1 小时，预计 22:30 前后训完；训完自动跑 probes 并关机。
 
 仓库里现有的一切数字都是 29M 玩具规模的**实现验证**，或 3 亿 token 消融代理模型的**相对比较**，
 不是能力声明。
@@ -68,8 +71,8 @@
 - `trainer.py`：pretrain / SFT / KD / DPO 共用的 epoch 循环，各阶段只提供「一个 batch 怎么算损失」
 - 日志、验证、存档只在优化器更新之后发生；续训从同一批数据、同一个随机数状态接着跑
 - `build_optimizer`：只对矩阵做 weight decay，β₂ = 0.95，CUDA 上用 fused AdamW；`--max_steps`；
-  `pretrain.py --compile`
-- `bench_train.py`：吞吐、峰值显存、MFU、flash attention 检查
+  `pretrain.py --compile`（前向和损失一起编译）、`--attention_backend cudnn`（§3.3）
+- `bench_train.py`：吞吐、峰值显存、MFU，flash / cuDNN 注意力检查，`--attention_backends` 对比后端
 
 ### 调研与决策（`docs/corpus-plan.md`）
 - 语料候选清单（中英 web / 代码 / 数学 / 书籍 / 可验证任务），含规模、许可证、获取上的坑
@@ -91,7 +94,7 @@
 
 ```bash
 git clone https://github.com/irroca/Whetstone.git && cd Whetstone
-HF_HUB_OFFLINE=1 python3 -m pytest tests/ -q      # 应为 509 passed（含 #13）
+HF_HUB_OFFLINE=1 python3 -m pytest tests/ -q      # Mac 上 512 passed、1 skipped（只在 CUDA 上跑的）；CI 上另有一个只在 MPS 上跑的也 skip
 ```
 
 下面这段记录下来，是因为它是一个很容易再犯一次的坑：
@@ -117,7 +120,8 @@ HF_HUB_OFFLINE=1 python3 -m pytest tests/ -q      # 应为 509 passed（含 #13�
 | [#13](https://github.com/irroca/Whetstone/pull/13) | `prepare` 锁输出目录、按源续跑、`--only`（正式数据集就是用它重跑的）| 已合并（squash）|
 | [#14](https://github.com/irroca/Whetstone/pull/14) | 交接文档：正式数据集已完成并验收 | 已合并（squash）|
 | [#15](https://github.com/irroca/Whetstone/pull/15) | 交接文档：开卡前核对（试跑要加 `--val_every`、上传前先压缩）| 已合并（squash）|
-| [#16](https://github.com/irroca/Whetstone/pull/16) | `scripts/autodl/`：续传上传、实例上校验、CPU 预检、开卡后的 bench / 试跑 / 正式启动 | 待合并 |
+| [#16](https://github.com/irroca/Whetstone/pull/16) | `scripts/autodl/`：续传上传、实例上校验、CPU 预检、开卡后的 bench / 试跑 / 正式启动 | 已合并（squash）|
+| #17 | H800 上的吞吐优化（损失一起编译、实数 RoPE、原生 GQA、cuDNN 注意力），正式预训练开跑 | 待合并 |
 
 **教训**：stacked PR 要么严格按自下而上的顺序合，要么在合之前把上层 PR 的 base 直接改成 `main`。
 `squash` 合并会切断祖先关系，所以一旦顺序错了，后续那个 PR 的内容不会自动跟过来，
@@ -132,8 +136,8 @@ HF_HUB_OFFLINE=1 python3 -m pytest tests/ -q      # 应为 509 passed（含 #13�
 
 ## 3. 开始正式训练之前的工程事
 
-都是在 CPU 上跑不出来、但一上真实规模就会立刻爆的问题。3.1、3.2、3.4 已完成，3.3 留给开卡后的
-第一个小时：
+都是在 CPU 上跑不出来、但一上真实规模就会立刻爆的问题。3.1、3.2、3.4 已完成，3.3 在开卡后的
+第一个小时量完并做了优化：
 
 ### 3.1 ~~【阻塞】`dataset.py` 把整个 JSONL 读进内存~~（已完成）
 
@@ -207,27 +211,86 @@ loss 在两条路径上一致到小数点后 3–4 位。**MPS 上的 SDPA 训�
 - **正式训练在本机不可行**：10B token 即便 mps+bf16 也要约 **13 天**。租卡的计划不变
 - 假设的 30k token/s 对这台 Mac 明显偏乐观。租到卡之后要**重新量一遍**再排时间
 
-还没量的：`--batch_size` / `--max_seq_len` 的 OOM 边界（本机 48GB 统一内存不紧张，
-8GB 的 5060Ti 或租来的卡才是真约束），以及 SDPA 在 CUDA 上的提升（§3.2，CPU 和 MPS 已量）。
-**这些留给开卡后的第一个小时**，用 `bench_train.py` 一条命令量完（§4 步骤 6）。它跑的就是
-`pretrain.py` 的训练步（同一个模型、优化器、autocast、损失），只是数据换成随机 token：
-
-```bash
-python3 bench_train.py --tokenizer_path tokenizer/v1_32k --dim 768 --n_layers 12 --n_heads 12 \
-  --n_kv_heads 3 --max_seq_len 2048 --batch_sizes 8 16 32 --compile False True \
-  --peak_tflops 312 --out results/bench.json
-```
-
-每个 micro-batch × 编译开关输出 token/s、每次更新耗时、峰值显存、TFLOPS 和 MFU，OOM 记一行
-继续下一个；CUDA 上先检查训练前向能不能走 flash attention（只允许 flash 后端跑一次前向，
-不能就报原因）。FLOPs 按每个矩阵权重 6 次 + 因果注意力 `6 × 层数 × seq × dim` 算：
-100M 目标在 seq 2048 是 0.71 GFLOP/token。
-
 本机 MPS + bf16 的参考（100M，seq 512，后台在跑数据任务）：batch 4 6.1k token/s，batch 8 7.4k。
 
-已做：`torch.compile`（`pretrain.py --compile`，只包训练前向）、fused AdamW（CUDA 上自动）。
-没做：gradient checkpointing（100M 在 80GB 卡上用不着），以及 RoPE 改成实数实现：现在的复数乘法
-Inductor 不能融合，退回 eager 执行，开编译时大约损失 1–2%，等实测编译的收益再决定。
+#### H800 上的实测与优化（10-11，正式训练开跑前）
+
+`bench_train.py` 跑的就是 `pretrain.py` 的训练步（同一个模型、优化器、autocast、损失，共用
+`trainer.lm_loss_fn`），只是数据换成随机 token；每个配置输出 token/s、每次更新耗时、峰值显存、
+TFLOPS 和 MFU，OOM 记一行继续下一个，CUDA 上先检查训练前向能不能分别走 flash 和 cuDNN 的注意力
+kernel。FLOPs 按每个矩阵权重 6 次 + 因果注意力 `6 × 层数 × seq × dim` 算：100M 目标在 seq 2048 是
+0.71 GFLOP/token。
+
+```bash
+PEAK_TFLOPS=756 bash scripts/autodl/bench.sh    # 编译开/关 × 注意力 default/cudnn × batch 16/32/64
+```
+
+**卡**：租到的是 H800 **PCIe**（80GB，功耗墙 350W，bf16 稠密峰值 756 TFLOPS，不是 SXM 的 989）。
+满载时一直顶着功耗墙（`nvidia-smi` 的降频原因是 SW power cap），SM 频率在 1215–1725 MHz 之间，
+低于标称的 1755；下面的 MFU 都按 756 算，按实际频率算的可达峰值大约只有 600 出头。
+
+**起点**（`main` 的 ecaf51d，累积 8 步）：不编译 batch 16 / 32 是 17.4 / 17.7 万 token/s（MFU 16.5%），
+编译后 26.3 / 26.9 万（MFU 25%），batch 64 OOM。batch 翻倍只多 2%，瓶颈不在 batch，在每个 token
+花的时间上。用 `torch.profiler` 看编译后一次更新的 GPU 时间：
+
+| 去向 | 占比 | 说明 |
+|---|---:|---|
+| 矩阵乘 | 34% | 约 475 TFLOPS，标称峰值的 63%，不差 |
+| flash attention（PyTorch 自带的 FA2） | 25% | FLOPs 只占 16%，只跑到约 120 TFLOPS |
+| 交叉熵，在编译区外 eager 执行 | 14% | 只编译了模型：bf16 logits 先整块转成 fp32 再 log_softmax，反向还要把同样大的 fp32 梯度先填零 |
+| Inductor 融合的逐元素（RMSNorm、SwiGLU 及其反向）| 21% | 带宽受限 |
+| RoPE 的复数乘法 | 5% | Inductor 不给复数算子生成 kernel，退回一串 eager kernel |
+
+**逐个改、逐个量**（每行在上一行基础上，同一时段、batch 32、编译；每行是 `throughput` 分支上的
+一个提交，`results/bench_ablation/<commit>.json`）：
+
+| 改动 | token/s | 增益 | 峰值显存 | MFU |
+|---|---:|---:|---:|---:|
+| 起点（ecaf51d）| 270,547 | — | 42.2GB | 25.4% |
+| 损失和前向一起编译（`trainer.lm_loss_fn`，46c459d）| 297,306 | +9.9% | 26.3GB | 27.9% |
+| RoPE 改成 cos/sin 实数运算，配对方式不变（ffbb829）| 312,217 | +5.0% | 26.3GB | 29.3% |
+| SDPA 直接读 3 个 KV 头（`enable_gqa`），不再 `repeat_kv`（c122a93）| 312,790 | +0.2% | 24.6GB | 29.4% |
+| 注意力先用 cuDNN（`--attention_backend cudnn`，f823f0a）| 342,222 | +9.4% | 24.6GB | 32.1% |
+
+合计 **+26.5%**；cuDNN 下 batch 16 / 64 是 33.4 / 34.5 万（13.2 / 47.4GB），64 不再 OOM。真实训练
+（数据加载和日志都算上）稳态 33.8–34.0 万 token/s，优化前的试跑是 26.7 万（都按两次日志之间算）。
+
+单测注意力（`(16, 12, 2047, 64)`，因果，bf16，前向 + 反向）：flash 2.66 ms（116 TFLOPS），cuDNN 1.74 ms
+（177 TFLOPS），开 GQA 后 2.63 / 1.70 ms；memory-efficient 后端 5.51 ms，且不支持 GQA。cuDNN 和 flash
+的输出、梯度相对差在 1e-3 量级，是 bf16 舍入。
+
+**cuDNN 这一步的坑，值得单独记**：PyTorch 2.8 的默认顺序是 flash 优先、cuDNN 排在 math 之后，不指定
+永远选不到。而 `torch.compile` 不理会被编译函数**外面**的 `sdpa_kernel(...)`（只允许 cuDNN 也一样），
+也不理会 `torch.backends.cuda.enable_flash_sdp(False)` 这类全局开关，编译出来照样是 flash；eager 下这两种
+写法都生效，所以很容易以为已经换了后端。只有在被编译的函数**里面**进入
+`sdpa_kernel(order, set_priority=True)` 才生效，所以顺序放在 `Attention.forward` 里、由
+`set_attention_backend` 设置；`torch._dynamo.explain` 确认这样仍是一张图、零 graph break。
+
+**试了没用的**：
+- batch 64：只比 32 多 0.9%，`--val_batches 50` 的验证量却要翻倍，正式训练用 32 × 8
+- Inductor 的 `coordinate_descent_tuning`：+0.75%，和同一配置两次 bench 的差距（约 0.5%）一个量级
+- `max_autotune`（加上前者）：344,435，与只开前者相同，cuBLAS 选的 GEMM 已经是最好的
+
+**没做的**：QKV、W1/W3 合并成一次 GEMM（窄的 K/V 投影只占 GEMM FLOPs 的 4.8%，估计整体 ≤1%，
+还要动参数结构）；FP8（dim 768 的 GEMM 太小，量化开销会吃掉收益，还改数值）；FA3（PyTorch 2.8 的
+SDPA 里没有）；gradient checkpointing（显存本来就够）。
+
+**优化后的 profile**（batch 32，cuDNN）：矩阵乘 45%（约 470 TFLOPS），融合逐元素 25%（按读写字节算已经
+贴着 2 TB/s 的显存带宽），注意力 24%（其中反向占三分之二），交叉熵 5%，GPU 空闲不到 3%。剩下的大头要么
+是带宽瓶颈，要么要换更快的注意力 kernel。
+
+**数值没变**：同样的种子、数据顺序和 200 步调度，优化前后的试跑（`scripts/autodl/trial.sh`，
+batch 32 × 8）：
+
+| | 第 30 步 | 第 40 步 | 第 50 步 | 第 100 步 val | 第 200 步 | 第 200 步 val |
+|---|---:|---:|---:|---:|---:|---:|
+| 优化前（ecaf51d，FA2、复数 RoPE、eager 交叉熵）| 7.3287 | 7.1592 | 7.0193 | 6.2978 | 5.7904 | 5.8321 |
+| 优化后（e223385）| 7.3360 | 7.1622 | 7.0264 | 6.2998 | 5.7896 | 5.8311 |
+
+差别在 0.1% 以内，到第 200 步只剩 0.001，是换了注意力 kernel 和归约顺序后的正常抖动。
+
+已做：`torch.compile`（前向和损失一起编译）、fused AdamW（CUDA 上自动）、实数 RoPE、原生 GQA、
+cuDNN 注意力。
 
 ### 3.4 ~~训练循环在梯度累积和续训上的问题~~（已完成）
 
@@ -514,14 +577,15 @@ done
 这是设计如此。
 
 ### 步骤 6：正式预训练（~100M / 10B token，租卡）
-本机 MPS 跑 10B token 要约 13 天（§3.3），所以租卡。按 0.71 GFLOP/token、MFU 35–45% 估
-（**开卡后用 `bench_train.py` 的实测替换**）：
+本机 MPS 跑 10B token 要约 13 天（§3.3），所以租卡。开卡前按 0.71 GFLOP/token、MFU 35–45% 估的，
+最后一行是实测：
 
-| 卡 | 估计吞吐 | 10B token | 费用（按 AutoDL 时价） |
+| 卡 | 吞吐 | 10B token | 费用（按 AutoDL 时价） |
 |----|--------:|--------:|------:|
-| RTX 4090 24GB | 7–9 万 token/s | 31–40 小时 | ¥60–110 |
-| A800 80GB | 15–18 万 | 15–19 小时 | ¥75–120 |
-| H800 80GB | 25–40 万 | 7–11 小时 | ¥60–160 |
+| RTX 4090 24GB | 估 7–9 万 token/s | 31–40 小时 | ¥60–110 |
+| A800 80GB | 估 15–18 万 | 15–19 小时 | ¥75–120 |
+| H800 80GB | 估 25–40 万 | 7–11 小时 | ¥60–160 |
+| **H800 PCIe 80GB（实测）** | **34 万**（优化前 27 万）| **约 8.1 小时**（优化前 10.2）| 按实例时价 |
 
 **无卡模式下先做完的事**（AutoDL 无卡模式 0.5 核 / 2GB 内存 / ¥0.1 每小时，不占 GPU）。脚本都在
 `scripts/autodl/`：`upload*.sh` 在本机（macOS）跑，其余在实例上跑，数据和结果的路径按 AutoDL
@@ -549,35 +613,41 @@ done
 
 **开卡后的第一个小时**：
 
-1. `nvidia-smi`（看是 SXM 还是 PCIe，决定下一步的 `PEAK_TFLOPS`）；
+1. `nvidia-smi`（看是 SXM 还是 PCIe，决定下一步的 `PEAK_TFLOPS`；10-11 租到的是 PCIe）；
    `python -c "import torch; print(torch.cuda.is_available(), torch.cuda.get_device_name())"`
-2. `PEAK_TFLOPS=989 bash scripts/autodl/bench.sh`（989 是 H800 SXM 的 bf16 稠密峰值）：选最大不 OOM、
-   吞吐最高的 micro-batch，定编译开不开；**flash attention 必须是 `ok`**
+2. `PEAK_TFLOPS=756 bash scripts/autodl/bench.sh`（756 / 989 是 H800 PCIe / SXM 的 bf16 稠密峰值）：
+   选吞吐最高的 micro-batch，定编译和注意力后端；**flash 和 cudnn 两个注意力 kernel 都必须是 `ok`**。
+   换了卡型就重量一遍 §3.3 的优化，cuDNN 在别的卡上不一定比 flash 快
 3. `BATCH=… ACCUM=… bash scripts/autodl/trial.sh`：正式命令换到临时目录，再加 `--max_steps 200
    --save_step 100 --val_every 100`。loss 在降，第 100 / 200 步各出一次验证（验证只在 `--val_every`
    的整数倍上跑，正式命令的 500 在 200 步内一次都不会触发）。过了第 100 步 kill 一次，同一条命令加
    `--resume_from <临时目录>/latest_checkpoint.pth` 续上。有 `--max_steps` 时学习率调度按它算，
    200 步会完整走一遍预热和余弦，loss 应该明显下降；也因此续训时 `--max_steps` 不能改。
    确认后删掉临时目录
-4. `BATCH=… ACCUM=… COMPILE=… bash scripts/autodl/start_pretrain.sh`：在 `screen pretrain` 里跑
-   `pretrain.sh`，日志写到 `results/pretrain_v2/train.log`。进程崩了就从最新 checkpoint 续训（最多
+4. `BATCH=… ACCUM=… COMPILE=… ATTENTION=… bash scripts/autodl/start_pretrain.sh`：在 `screen pretrain`
+   里跑 `pretrain.sh`，日志写到 `results/pretrain_v2/train.log`。进程崩了就从最新 checkpoint 续训（最多
    4 次），训完跑 probes，最后关机停止计费（`NO_SHUTDOWN=1` 不关机）
 
-**正式命令**（`scripts/autodl/pretrain.sh` 跑的就是这条；`--batch_size` 以 bench 为准，
-`batch_size × accumulation_steps × 2047` 保持约 50 万 token，共约 1.9 万次更新）：
+10-11 实际的经过：bench 之后用 profile 找瓶颈、逐个优化并逐个提交量增益（§3.3，约一小时）；试跑先在
+旧代码上做了 kill / 续训（第 100 步存档后杀掉，续训接上，第 200 步 val 5.832），再用新代码重跑一遍核对
+loss 没变；然后 `BATCH=32 ACCUM=8 COMPILE=True ATTENTION=cudnn bash scripts/autodl/start_pretrain.sh`，
+14:15 开跑。
+
+**正式命令**（`scripts/autodl/pretrain.sh` 跑的就是这条；`batch_size × accumulation_steps × 2047`
+保持约 50 万 token，共 18,919 次更新）：
 
 ```bash
 python3 pretrain.py --dim 768 --n_layers 12 --n_heads 12 --n_kv_heads 3 \
   --tokenizer_path tokenizer/v1_32k --max_seq_len 2048 \
   --data_path /root/autodl-tmp/mixture_v2/train.bin --val_data_path /root/autodl-tmp/mixture_v2/val.bin \
-  --epochs 1 --batch_size 16 --accumulation_steps 16 --learning_rate 6e-4 \
+  --epochs 1 --batch_size 32 --accumulation_steps 8 --learning_rate 6e-4 \
   --log_step 10 --val_every 500 --val_batches 50 --save_step 500 --num_workers 2 \
-  --dtype bfloat16 --compile True --save_dir /root/autodl-tmp/results/pretrain_v2
+  --dtype bfloat16 --compile True --attention_backend cudnn --save_dir /root/autodl-tmp/results/pretrain_v2
 ```
 
 - 学习率 6e-4、50 万 token 的 batch 是 GPT-3 125M 的设定；10% 线性预热后余弦退到 10%
-- `--save_step 500` 约半小时一次；实例被回收就用同一条命令加 `--resume_from` 续上，数据顺序与
-  不中断时完全相同（§3.4）
+- `--save_step 500` 在 H800 PCIe 上约 13 分钟一次，验证同样频率、每次约 10 秒；实例被回收就用同一条
+  命令加 `--resume_from` 续上，数据顺序与不中断时完全相同（§3.4）
 - 本机已用这条命令在真实数据上冒烟（MPS，batch 2，6 次更新，中间续训一次）：99.5M 参数，初始 loss
   10.6（≈ ln 32768），验证正常，checkpoint 1.19GB，续训从第 7 个 batch 接上。加载分词器和训练全程
   不联网，AutoDL 连不上 HF 也不影响
@@ -610,8 +680,13 @@ python3 pretrain.py --dim 768 --n_layers 12 --n_heads 12 --n_kv_heads 3 \
   preflight 的 91 个线程让 2M 小模型的一次更新要 188 秒，设 `OMP_NUM_THREADS=1` 后 1.4 秒。实例端
   脚本都先 source `scripts/autodl/env.sh`，它按 `/sys/fs/cgroup/cpu.max` 设线程数，顺带设好 conda
   的 PATH（screen 里的 shell 没有）和 `HF_HUB_OFFLINE`
-- 长任务放进 `screen -dmS`（镜像里没有 tmux）
+- 长任务放进 `screen -dmS`（镜像里没有 tmux）。输出重定向到文件时 Python 按块缓冲，`train.log` 里
+  一行进度都看不到，`env.sh` 为此设了 `PYTHONUNBUFFERED=1`；进度以 `runs/*/metrics.jsonl` 为准（逐行
+  flush）
 - 无卡模式下 `nvidia-smi` 报权限错误，属于正常现象
+- 开卡模式是 20 核（`cpu.max` 2000000/100000）、120GB 内存；`env.sh` 照样按配额设线程数
+- H800 PCIe 满载时一直顶着 350W 功耗墙，SM 频率在 1215–1725 MHz 之间浮动，吞吐随温度略降
+  （正式训练开头几分钟从 34.4 万降到 34.0 万）
 
 ### 步骤 7：重建后训练四阶段
 SFT / KD / DPO 的数据要基于新语料和可验证任务重做（`envs.generate_data` 负责算术那部分；

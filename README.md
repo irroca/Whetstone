@@ -77,7 +77,7 @@ datatools/   envs/   configs/   tests/   docs/   tokenizer/
 | `dataset.py` | Pretrain / SFT / Preference(DPO) 数据集与 assistant loss mask |
 | `losses.py` / `train_utils.py` | CE/KD/DPO/GRPO loss；共享训练工具与 CLI |
 | `trainer.py` | pretrain / SFT / KD / DPO 共用的训练循环（梯度累积、验证、存档、精确续训）|
-| `bench_train.py` | 训练步的吞吐、峰值显存、MFU 与 flash attention 检查，租卡后先跑它 |
+| `bench_train.py` | 训练步的吞吐、峰值显存、MFU 与 flash / cuDNN 注意力检查，租卡后先跑它 |
 | `runlog.py` / `evaluate.py` | 每次训练的完整记录；held-out 验证指标 |
 | `datatools/` | 语料管线：统计、过滤、去重、去污染、划分、配比编排、评测集拉取 |
 | `envs/` | 可验证奖励环境（RLVR）与各阶段数据生成 |
@@ -111,9 +111,10 @@ for s in train val holdout; do
     --tokenizer tokenizer/v1_32k --out datasets/mixture_v2/$s
 done
 
-# 5. 在 GPU 上先量吞吐、显存和 MFU，按结果定 micro-batch 和要不要编译
+# 5. 在 GPU 上先量吞吐、显存和 MFU，按结果定 micro-batch、要不要编译、注意力用哪个后端
 python3 bench_train.py --tokenizer_path tokenizer/v1_32k --dim 768 --n_layers 12 --n_heads 12 \
-  --n_kv_heads 3 --max_seq_len 2048 --batch_sizes 8 16 32 --compile False True --peak_tflops 312
+  --n_kv_heads 3 --max_seq_len 2048 --batch_sizes 8 16 32 --compile False True \
+  --attention_backends default cudnn --peak_tflops 312
 
 # 6. 五个阶段（架构只在第一步声明，后续自动继承；完整参数见 docs/status.md §4 步骤 6）
 python3 pretrain.py --dim 768 --n_layers 12 --n_heads 12 --n_kv_heads 3 \
@@ -727,7 +728,8 @@ python3 analyze_grpo.py results_a/grpo_metrics.jsonl results_b/grpo_metrics.json
 - 优化器：AdamW，只对矩阵做 weight decay（`--weight_decay 0.1`），betas 默认 `(0.9, 0.95)`，
   CUDA 上用 fused 实现
 - `--max_steps N`：训 N 次更新就停，学习率调度按 N 展开。`pretrain.py --compile True` 用
-  `torch.compile` 编译训练前向
+  `torch.compile` 把训练前向和损失一起编译；`--attention_backend cudnn` 让注意力先用 cuDNN 的
+  kernel（H800 PCIe 上比 flash 快 1.5 倍，换卡先用 `bench_train.py --attention_backends` 量）
 
 - `--device` 统一默认按 cuda > mps > cpu 自动选择（`train_utils.resolve_device()`，五个训练脚本 +
   `eval_ppl.py` + `chat.py` 一致）。
