@@ -2,6 +2,7 @@ import math
 import struct
 import inspect
 import time
+from contextlib import nullcontext
 
 from config import LLMConfig
 from typing import Any, Optional, Tuple, List
@@ -10,6 +11,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch import nn
+from torch.nn.attention import SDPBackend, sdpa_kernel
 from transformers import PreTrainedModel
 from transformers.modeling_outputs import CausalLMOutputWithPast
 
@@ -64,6 +66,8 @@ def repeat_kv(x: torch.Tensor, n_rep: int) -> torch.Tensor:
 class Attention(nn.Module):
      # False 时走显式构造 score 矩阵的参考实现：单测用它逐位置对照 SDPA，MPS 上一律走它
      use_sdpa = True
+     # 不带 mask 的 SDPA 依次尝试的后端，由 set_attention_backend 设置；None 时由 PyTorch 选
+     sdpa_backends = None
 
      def __init__(self, args: LLMConfig):
         super().__init__()
@@ -116,11 +120,14 @@ class Attention(nn.Module):
         if use_sdpa and key_mask is None and (offset == 0 or q_len == 1):
             # 不带缓存的整段前向（q_len == kv_len，is_causal 的左上角对齐恰好正确）和单 token 解码
             # （能看全部 key）都不需要显式 mask，SDPA 才能选不物化 score 矩阵的 kernel；
-            # 这些 kernel 直接读 n_kv_heads 个头（enable_gqa），不用 repeat_kv 复制出 n_heads 份
-            output = F.scaled_dot_product_attention(
-                xq, xk.transpose(1, 2), xv.transpose(1, 2),
-                dropout_p=dropout_p, is_causal=q_len > 1, enable_gqa=self.n_rep > 1,
-            )
+            # 这些 kernel 直接读 n_kv_heads 个头（enable_gqa），不用 repeat_kv 复制出 n_heads 份。
+            # 后端顺序必须在这里设：torch.compile 不理会被编译函数外面的 sdpa_kernel 和全局开关
+            backends = self.sdpa_backends
+            with sdpa_kernel(list(backends), set_priority=True) if backends else nullcontext():
+                output = F.scaled_dot_product_attention(
+                    xq, xk.transpose(1, 2), xv.transpose(1, 2),
+                    dropout_p=dropout_p, is_causal=q_len > 1, enable_gqa=self.n_rep > 1,
+                )
         else:
             # 对于键和值，需重复复制n_rep次
             xk, xv = repeat_kv(xk, self.n_rep).transpose(1, 2), repeat_kv(xv, self.n_rep).transpose(1, 2)
@@ -164,6 +171,20 @@ class Attention(nn.Module):
                 f"got attention_mask.shape={tuple(attention_mask.shape)}"
             )
         return key_mask != 0
+
+
+# PyTorch 自己的顺序是 flash 优先，cuDNN 排在 math 之后，不指定永远选不到。H800 PCIe 上
+# (16, 12, 2047, 64) 的因果 bf16 前向加反向：cuDNN 1.70 ms，flash 2.63 ms
+ATTENTION_BACKENDS = {
+    "default": None,
+    "cudnn": (SDPBackend.CUDNN_ATTENTION, SDPBackend.FLASH_ATTENTION,
+              SDPBackend.EFFICIENT_ATTENTION, SDPBackend.MATH),
+}
+
+
+def set_attention_backend(name: str) -> None:
+    """Backend order of every model's unmasked attention; a backend that rejects the inputs is skipped."""
+    Attention.sdpa_backends = ATTENTION_BACKENDS[name]
 
 # 前馈神经网络模块
 class FeedForward(nn.Module):

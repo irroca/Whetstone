@@ -9,7 +9,7 @@ from transformers import AutoTokenizer
 
 from dataset import build_pretrain_dataset
 from evaluate import evaluate_lm
-from model import Whetstone
+from model import ATTENTION_BACKENDS, Whetstone, set_attention_backend
 from runlog import RunRecorder
 from train_utils import (
     add_common_train_args,
@@ -46,7 +46,15 @@ def main():
         help="torch.compile the training forward and loss: a one-off compile, then fused norm, "
              "activation and cross-entropy kernels. Evaluation and checkpoints use the uncompiled module",
     )
+    parser.add_argument(
+        "--attention_backend",
+        choices=sorted(ATTENTION_BACKENDS),
+        default="default",
+        help="SDPA backend order: 'cudnn' tries cuDNN's fused attention before flash, 1.5x faster "
+             "on an H800; bench_train.py --attention_backends compares them on a card",
+    )
     args = parser.parse_args()
+    set_attention_backend(args.attention_backend)
 
     os.makedirs(args.save_dir, exist_ok=True)
     set_seed(args.seed)

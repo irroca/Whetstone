@@ -2,7 +2,7 @@ import torch
 import pytest
 
 from config import LLMConfig
-from model import Attention, Whetstone, apply_rotary_emb, precompute_pos_cis
+from model import Attention, Whetstone, apply_rotary_emb, precompute_pos_cis, set_attention_backend
 
 
 def _tiny_model(**kwargs):
@@ -72,6 +72,40 @@ def test_sdpa_training_gradients_match_explicit_scores(monkeypatch):
 
     for sdpa, explicit in zip(*_both_paths(monkeypatch, grads)):
         torch.testing.assert_close(sdpa, explicit, rtol=1e-4, atol=1e-6)
+
+
+def _logits_and_grads(model, x):
+    model.zero_grad()
+    logits = model(x).logits
+    logits.float().logsumexp(-1).mean().backward()
+    return [logits.detach()] + [p.grad.clone() for p in model.parameters()]
+
+
+def test_cudnn_first_falls_through_where_cudnn_cannot_run(monkeypatch):
+    """On CPU no cuDNN kernel exists: the order must fall through to the default result."""
+    monkeypatch.setattr(Attention, "sdpa_backends", None)
+    torch.manual_seed(0)
+    model = _tiny_model().train()
+    x = torch.randint(0, 128, (2, 12))
+    default = _logits_and_grads(model, x)
+    set_attention_backend("cudnn")
+    for got, want in zip(_logits_and_grads(model, x), default):
+        torch.testing.assert_close(got, want, rtol=1e-6, atol=1e-7)
+
+
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="cuDNN attention needs CUDA")
+def test_cudnn_attention_matches_flash_on_cuda(monkeypatch):
+    monkeypatch.setattr(Attention, "sdpa_backends", None)
+    torch.manual_seed(0)
+    model = _tiny_model(dim=256, n_heads=4, n_kv_heads=2, max_seq_len=512).cuda().train()
+    x = torch.randint(0, 128, (2, 511), device="cuda")
+    results = []
+    for name in ("default", "cudnn"):
+        set_attention_backend(name)
+        with torch.autocast("cuda", dtype=torch.bfloat16):
+            results.append(_logits_and_grads(model, x))
+    for flash, cudnn in zip(*results):
+        assert (cudnn.float() - flash.float()).norm() <= 2e-2 * flash.float().norm()
 
 
 @torch.no_grad()

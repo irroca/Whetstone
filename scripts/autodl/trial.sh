@@ -10,5 +10,6 @@ python pretrain.py --dim 768 --n_layers 12 --n_heads 12 --n_kv_heads 3 \
   --data_path /root/autodl-tmp/mixture_v2/train.bin --val_data_path /root/autodl-tmp/mixture_v2/val.bin \
   --epochs 1 --batch_size ${BATCH:-16} --accumulation_steps ${ACCUM:-16} --learning_rate 6e-4 \
   --log_step 10 --val_every 100 --val_batches 50 --save_step 100 --num_workers 2 \
-  --dtype bfloat16 --compile ${COMPILE:-True} --save_dir /root/autodl-tmp/results/pretrain_v2_trial \
+  --dtype bfloat16 --compile ${COMPILE:-True} --attention_backend ${ATTENTION:-cudnn} \
+  --save_dir /root/autodl-tmp/results/pretrain_v2_trial \
   --max_steps 200 "$@"
