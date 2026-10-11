@@ -91,15 +91,31 @@ class _Meter:
         return float(self.loss) / self.count, means
 
 
-def lm_step(model, args, ctx) -> StepFn:
+def lm_loss_fn(model, compile: bool = False):
+    """``(X, Y, mask) -> masked next-token cross-entropy`` of ``model``.
+
+    ``compile`` compiles the forward together with the loss. Compiled alone, the
+    forward hands the loss its whole bf16 logits tensor, which eager
+    cross-entropy upcasts to fp32 and back-propagates through an fp32 gradient
+    of the same size: 14% of a pretraining step at vocab 32768 on an H800.
+    """
+
+    def loss_fn(X, Y, mask):
+        return masked_cross_entropy(model(X).logits, Y, mask)
+
+    return torch.compile(loss_fn) if compile else loss_fn
+
+
+def lm_step(model, args, ctx, compile: bool = False) -> StepFn:
     """Masked next-token cross-entropy: the whole step for pretrain and SFT."""
+    loss_fn = lm_loss_fn(model, compile)
 
     def step(batch):
         X, Y, mask = batch
         tokens = int(mask.sum())
         X, Y, mask = (t.to(args.device, non_blocking=True) for t in (X, Y, mask))
         with ctx:
-            loss = masked_cross_entropy(model(X).logits, Y, mask)
+            loss = loss_fn(X, Y, mask)
         return loss, {"loss": loss}, tokens
 
     return step

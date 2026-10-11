@@ -1,13 +1,14 @@
 """Throughput, peak memory and MFU of the pretraining step, to size a GPU run.
 
 Runs the step ``pretrain.py`` runs (model, AdamW, autocast, masked cross-entropy)
-on random token ids, so it needs no data, over a grid of micro-batch sizes and
-``torch.compile`` on/off. On CUDA it also checks that the training forward
-reaches the flash-attention kernel.
+on random token ids, so it needs no data, over a grid of micro-batch sizes,
+``torch.compile`` on/off and attention backend orders. On CUDA it also checks
+that the training forward reaches the flash and cuDNN attention kernels.
 
     python3 bench_train.py --tokenizer_path tokenizer/v1_32k --dim 768 --n_layers 12 \\
         --n_heads 12 --n_kv_heads 3 --max_seq_len 2048 --batch_sizes 8 16 32 \\
-        --compile False True --peak_tflops 312 --out results/bench.json
+        --compile False True --attention_backends default cudnn --peak_tflops 312 \\
+        --out results/bench.json
 """
 
 from __future__ import annotations
@@ -21,8 +22,8 @@ import time
 import torch
 from transformers import AutoTokenizer
 
-from losses import masked_cross_entropy
-from model import Whetstone
+from model import ATTENTION_BACKENDS, Attention, Whetstone, set_attention_backend
+from trainer import lm_loss_fn
 from train_utils import (
     accelerator_type,
     add_model_args,
@@ -70,39 +71,46 @@ def _is_oom(exc: BaseException) -> bool:
     return isinstance(exc, torch.cuda.OutOfMemoryError) or "out of memory" in str(exc).lower()
 
 
-def flash_attention_check(config, args) -> str:
-    """Run one training forward with every SDPA backend but flash disabled.
+def attention_kernel_check(config, args):
+    """Run one training forward per fused SDPA backend, with only that backend allowed.
 
-    Flash needs fp16/bf16 inputs, a supported head size and no explicit mask;
-    the model passes ``attn_mask=None`` only for an unpadded full forward, so
-    a regression there shows up as this check failing, not as a silent slowdown.
+    Flash and cuDNN need fp16/bf16 inputs, a supported head size and no explicit
+    mask; the model passes ``attn_mask=None`` only for an unpadded full forward,
+    so a regression there shows up as this check failing, not as a silent slowdown.
     """
     if accelerator_type(args.device) != "cuda":
         return "n/a (not CUDA)"
-    from torch.nn.attention import SDPBackend, sdpa_kernel
+    from torch.nn.attention import SDPBackend
 
     model = Whetstone(config).to(args.device)
     ctx, _ = build_autocast_scaler(args.device, args.dtype)
     x = torch.randint(config.vocab_size, (1, args.max_seq_len - 1), device=args.device)
+    saved, results = Attention.sdpa_backends, {}
     try:
-        with sdpa_kernel(SDPBackend.FLASH_ATTENTION), ctx:
-            model(x)
-        return "ok"
-    except RuntimeError as exc:
-        return f"unavailable: {str(exc).strip().splitlines()[0]}"
+        for name, backend in (("flash", SDPBackend.FLASH_ATTENTION), ("cudnn", SDPBackend.CUDNN_ATTENTION)):
+            Attention.sdpa_backends = (backend,)
+            try:
+                with ctx:
+                    model(x)
+                results[name] = "ok"
+            except RuntimeError as exc:
+                results[name] = f"unavailable: {str(exc).strip().splitlines()[0]}"
     finally:
+        Attention.sdpa_backends = saved
         del model
         gc.collect()
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
+    return results
 
 
-def bench(config, args, batch_size: int, compiled: bool) -> dict:
+def bench(config, args, batch_size: int, compiled: bool, attention: str = "default") -> dict:
     set_seed(0)
+    set_attention_backend(attention)
     model = Whetstone(config).to(args.device)
     optimizer = build_optimizer(model, args)
     ctx, scaler = build_autocast_scaler(args.device, args.dtype)
-    forward = torch.compile(model) if compiled else model
+    loss_fn = lm_loss_fn(model, compiled)
     model.train()
 
     # pretrain feeds max_seq_len - 1 positions: X and Y are one window shifted by one token
@@ -115,11 +123,11 @@ def bench(config, args, batch_size: int, compiled: bool) -> dict:
     def update():
         for _ in range(args.accumulation_steps):
             with ctx:
-                loss = masked_cross_entropy(forward(x).logits, y, mask) / args.accumulation_steps
+                loss = loss_fn(x, y, mask) / args.accumulation_steps
             (scaler.scale(loss) if scaler is not None else loss).backward()
         optimizer_step(model, optimizer, scaler, args.grad_clip)
 
-    row = {"batch_size": batch_size, "compile": compiled}
+    row = {"batch_size": batch_size, "compile": compiled, "attention": attention}
     try:
         for _ in range(args.warmup):
             update()
@@ -147,7 +155,7 @@ def bench(config, args, batch_size: int, compiled: bool) -> dict:
         if args.peak_tflops:
             row["mfu"] = row["tflops"] / args.peak_tflops
     finally:
-        del model, optimizer, forward
+        del model, optimizer, loss_fn
         gc.collect()
         if compiled:
             torch._dynamo.reset()
@@ -168,6 +176,10 @@ def main(argv=None) -> int:
     parser.add_argument("--dtype", type=str, default="bfloat16")
     parser.add_argument("--batch_sizes", type=int, nargs="+", default=[8, 16])
     parser.add_argument("--compile", type=str2bool, nargs="+", default=[False])
+    parser.add_argument(
+        "--attention_backends", nargs="+", choices=sorted(ATTENTION_BACKENDS), default=["default"],
+        help="SDPA backend orders to compare, as pretrain.py --attention_backend",
+    )
     parser.add_argument(
         "--accumulation_steps", type=int, default=1,
         help="micro-batches per optimizer update, as in training: the update is amortized over them",
@@ -190,23 +202,27 @@ def main(argv=None) -> int:
     device_name = torch.cuda.get_device_name() if accelerator_type(args.device) == "cuda" else args.device
     print(f"device: {device_name}  torch {torch.__version__}  dtype {args.dtype}  "
           f"{per_token / 1e9:.3f} GFLOP/token at seq {args.max_seq_len}")
-    flash = flash_attention_check(config, args)
-    print(f"flash attention: {flash}")
+    kernels = attention_kernel_check(config, args)
+    print(f"attention kernels: {kernels}")
 
     rows = []
-    print(f"{'batch':>5} {'compile':>7} {'tok/s':>10} {'update s':>9} {'mem GB':>7} {'TFLOPS':>7} {'MFU':>6}")
-    for compiled in args.compile:
-        for batch_size in args.batch_sizes:
-            row = bench(config, args, batch_size, compiled)
-            rows.append(row)
-            if row["status"] != "ok":
-                print(f"{batch_size:>5} {str(compiled):>7} {row['status']:>10}")
-                continue
-            print(
-                f"{batch_size:>5} {str(compiled):>7} {row['tokens_per_s']:>10,.0f} {row['update_s']:>9.3f} "
-                f"{_cell(row['peak_memory_gb'], '.1f'):>7} {row['tflops']:>7.1f} "
-                f"{_cell(row.get('mfu'), '.1%'):>6}"
-            )
+    print(f"{'attention':>9} {'batch':>5} {'compile':>7} {'tok/s':>10} {'update s':>9} {'mem GB':>7} "
+          f"{'TFLOPS':>7} {'MFU':>6}")
+    for attention in args.attention_backends:
+        for compiled in args.compile:
+            for batch_size in args.batch_sizes:
+                row = bench(config, args, batch_size, compiled, attention)
+                rows.append(row)
+                head = f"{attention:>9} {batch_size:>5} {str(compiled):>7}"
+                if row["status"] != "ok":
+                    print(f"{head} {row['status']:>10}")
+                    continue
+                print(
+                    f"{head} {row['tokens_per_s']:>10,.0f} {row['update_s']:>9.3f} "
+                    f"{_cell(row['peak_memory_gb'], '.1f'):>7} {row['tflops']:>7.1f} "
+                    f"{_cell(row.get('mfu'), '.1%'):>6}"
+                )
+    set_attention_backend("default")
 
     if args.out:
         os.makedirs(os.path.dirname(args.out) or ".", exist_ok=True)
@@ -216,7 +232,7 @@ def main(argv=None) -> int:
                 "max_seq_len": args.max_seq_len, "accumulation_steps": args.accumulation_steps,
                 "config": {k: getattr(config, k) for k in ("dim", "n_layers", "n_heads", "n_kv_heads",
                                                              "hidden_dim", "vocab_size")},
-                "flops_per_token": per_token, "flash_attention": flash, "rows": rows,
+                "flops_per_token": per_token, "attention_kernels": kernels, "rows": rows,
             }, fh, indent=2)
         print(f"wrote {args.out}")
     return 0

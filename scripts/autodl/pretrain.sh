@@ -12,7 +12,7 @@ args=(--dim 768 --n_layers 12 --n_heads 12 --n_kv_heads 3
       --data_path /root/autodl-tmp/mixture_v2/train.bin --val_data_path /root/autodl-tmp/mixture_v2/val.bin
       --epochs 1 --batch_size ${BATCH:-16} --accumulation_steps ${ACCUM:-16} --learning_rate 6e-4
       --log_step 10 --val_every 500 --val_batches 50 --save_step 500 --num_workers 2
-      --dtype bfloat16 --compile ${COMPILE:-True} --save_dir $out)
+      --dtype bfloat16 --compile ${COMPILE:-True} --attention_backend ${ATTENTION:-cudnn} --save_dir $out)
 for attempt in 1 2 3 4; do
   [ -f $out/pretrain_final.pth ] && break
   resume=()

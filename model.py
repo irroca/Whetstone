@@ -2,6 +2,7 @@ import math
 import struct
 import inspect
 import time
+from contextlib import nullcontext
 
 from config import LLMConfig
 from typing import Any, Optional, Tuple, List
@@ -10,6 +11,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch import nn
+from torch.nn.attention import SDPBackend, sdpa_kernel
 from transformers import PreTrainedModel
 from transformers.modeling_outputs import CausalLMOutputWithPast
 
@@ -24,36 +26,29 @@ class RMSNorm(nn.Module):
         # 计算x每个元素的均方根归一化，再乘以学习参数
         return self.weight * (x.float() * torch.rsqrt(x.pow(2).mean(-1, keepdim=True) + self.eps)).type_as(x)
 
-# 预先计算位置编码（旋转位置编码，RoPE）的复数形式
+# 预先计算旋转位置编码（RoPE）的 e^{iθ}，形状 (end, dim // 2, 2)，最后一维是 (cos θ, sin θ)。
+# 不存成复数张量：Inductor 不为复数算子生成 kernel，编译后的 RoPE 会拆成一串 eager 算子
 def precompute_pos_cis(dim: int, end: int = int(32 * 1024), theta: float = 1e6):
-    # 计算频率因子      
+    # 计算频率因子
     freqs = 1.0 / (theta ** (torch.arange(0, dim, 2)[: (dim // 2)].float() / dim))
     # 生成时间步长向量
     t = torch.arange(end, device=freqs.device)  # type: ignore
     # 计算外积，得到每个时间步对应的角度
     freqs = torch.outer(t, freqs).float()  # type: ignore
-    # 将幅度固定为1，通过极坐标得到复数表示
-    pos_cis = torch.polar(torch.ones_like(freqs), freqs)  # complex64
-    return pos_cis
+    return torch.stack((freqs.cos(), freqs.sin()), dim=-1)
 
-# 应用旋转位置编码到查询和键（xq, xk）
+# 应用旋转位置编码到查询和键（xq, xk）：相邻两维 (x[2i], x[2i+1]) 当作一个复数乘以 e^{iθ}，按实部虚部展开
 def apply_rotary_emb(xq, xk, pos_cis):
-    # 定义辅助函数，调整pos_cis的形状以匹配输入张量
-    def unite_shape(pos_cis, x):
-        ndim = x.ndim
-        assert 0 <= 1 < ndim
-        # 确保pos_cis的形状为 (序列长度, head维度)
-        assert pos_cis.shape == (x.shape[1], x.shape[-1])
-        shape = [d if i == 1 or i == ndim - 1 else 1 for i, d in enumerate(x.shape)]
-        return pos_cis.view(*shape)
-    # 将xq和xk转换为复数形式，便于与位置编码相乘
-    xq_ = torch.view_as_complex(xq.float().reshape(*xq.shape[:-1], -1, 2))
-    xk_ = torch.view_as_complex(xk.float().reshape(*xk.shape[:-1], -1, 2))
-    pos_cis = unite_shape(pos_cis, xq_)
-    # 应用旋转位置编码后再转换回实数表示，并展平最后一维
-    xq_out = torch.view_as_real(xq_ * pos_cis).flatten(3)
-    xk_out = torch.view_as_real(xk_ * pos_cis).flatten(3)
-    return xq_out.type_as(xq), xk_out.type_as(xk)
+    # pos_cis 的形状必须是 (序列长度, head维度 // 2, 2)
+    assert pos_cis.shape == (xq.shape[1], xq.shape[-1] // 2, 2)
+    cos, sin = pos_cis[None, :, None, :, 0], pos_cis[None, :, None, :, 1]
+
+    def rotate(x):
+        pairs = x.float().reshape(*x.shape[:-1], -1, 2)
+        real, imag = pairs[..., 0], pairs[..., 1]
+        return torch.stack((real * cos - imag * sin, real * sin + imag * cos), dim=-1).flatten(3).type_as(x)
+
+    return rotate(xq), rotate(xk)
 
 # 重复键和值，类似于torch.repeat_interleave实现，用于复制KV头
 def repeat_kv(x: torch.Tensor, n_rep: int) -> torch.Tensor:
@@ -71,6 +66,8 @@ def repeat_kv(x: torch.Tensor, n_rep: int) -> torch.Tensor:
 class Attention(nn.Module):
      # False 时走显式构造 score 矩阵的参考实现：单测用它逐位置对照 SDPA，MPS 上一律走它
      use_sdpa = True
+     # 不带 mask 的 SDPA 依次尝试的后端，由 set_attention_backend 设置；None 时由 PyTorch 选
+     sdpa_backends = None
 
      def __init__(self, args: LLMConfig):
         super().__init__()
@@ -116,20 +113,24 @@ class Attention(nn.Module):
         kv_len = xk.shape[1]
         offset = kv_len - q_len
         key_mask = self._key_mask(attention_mask, bsz, q_len, kv_len, past_key_value is not None)
-        # 调整查询、键和值的维度，为多头注意力做准备；对于键和值，需重复复制n_rep次
-        xq, xk, xv = (
-            xq.transpose(1, 2),
-            repeat_kv(xk, self.n_rep).transpose(1, 2),
-            repeat_kv(xv, self.n_rep).transpose(1, 2)
-        )
+        xq = xq.transpose(1, 2)
         dropout_p = self.attn_dropout.p if self.training else 0.0
         # MPS 上 SDPA 训练时仍然物化 score 矩阵（seq 2048 只省 15% 显存），而且比显式路径慢 8%
         use_sdpa = self.use_sdpa and x.device.type != "mps"
         if use_sdpa and key_mask is None and (offset == 0 or q_len == 1):
             # 不带缓存的整段前向（q_len == kv_len，is_causal 的左上角对齐恰好正确）和单 token 解码
-            # （能看全部 key）都不需要显式 mask，SDPA 才能选不物化 score 矩阵的 kernel
-            output = F.scaled_dot_product_attention(xq, xk, xv, dropout_p=dropout_p, is_causal=q_len > 1)
+            # （能看全部 key）都不需要显式 mask，SDPA 才能选不物化 score 矩阵的 kernel；
+            # 这些 kernel 直接读 n_kv_heads 个头（enable_gqa），不用 repeat_kv 复制出 n_heads 份。
+            # 后端顺序必须在这里设：torch.compile 不理会被编译函数外面的 sdpa_kernel 和全局开关
+            backends = self.sdpa_backends
+            with sdpa_kernel(list(backends), set_priority=True) if backends else nullcontext():
+                output = F.scaled_dot_product_attention(
+                    xq, xk.transpose(1, 2), xv.transpose(1, 2),
+                    dropout_p=dropout_p, is_causal=q_len > 1, enable_gqa=self.n_rep > 1,
+                )
         else:
+            # 对于键和值，需重复复制n_rep次
+            xk, xv = repeat_kv(xk, self.n_rep).transpose(1, 2), repeat_kv(xv, self.n_rep).transpose(1, 2)
             # 因果掩码：query 行 i 对应绝对位置 offset+i，只能看 key<=offset+i
             # 形状必须是 (q_len, kv_len)，修复 cache 续写时误用 q_len x q_len 的经典 bug
             mask = torch.ones(q_len, kv_len, device=x.device, dtype=torch.bool).tril(diagonal=offset)
@@ -170,6 +171,20 @@ class Attention(nn.Module):
                 f"got attention_mask.shape={tuple(attention_mask.shape)}"
             )
         return key_mask != 0
+
+
+# PyTorch 自己的顺序是 flash 优先，cuDNN 排在 math 之后，不指定永远选不到。H800 PCIe 上
+# (16, 12, 2047, 64) 的因果 bf16 前向加反向：cuDNN 1.70 ms，flash 2.63 ms
+ATTENTION_BACKENDS = {
+    "default": None,
+    "cudnn": (SDPBackend.CUDNN_ATTENTION, SDPBackend.FLASH_ATTENTION,
+              SDPBackend.EFFICIENT_ATTENTION, SDPBackend.MATH),
+}
+
+
+def set_attention_backend(name: str) -> None:
+    """Backend order of every model's unmasked attention; a backend that rejects the inputs is skipped."""
+    Attention.sdpa_backends = ATTENTION_BACKENDS[name]
 
 # 前馈神经网络模块
 class FeedForward(nn.Module):

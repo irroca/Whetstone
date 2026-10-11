@@ -20,12 +20,14 @@ def test_flops_per_token_counts_every_matmul_once_and_causal_attention():
 def test_the_benchmark_runs_on_cpu_and_reports_mfu(tmp_path, capsys):
     out = tmp_path / "bench.json"
     argv = [*TINY, "--max_seq_len", "17", "--device", "cpu", "--dtype", "float32",
-            "--batch_sizes", "1", "2", "--steps", "2", "--warmup", "1", "--peak_tflops", "1", "--out", str(out)]
+            "--batch_sizes", "1", "2", "--attention_backends", "default", "cudnn",
+            "--steps", "2", "--warmup", "1", "--peak_tflops", "1", "--out", str(out)]
     assert bench_train.main(argv) == 0
 
     result = json.loads(out.read_text())
-    assert result["flash_attention"] == "n/a (not CUDA)"
-    assert [row["batch_size"] for row in result["rows"]] == [1, 2]
+    assert result["attention_kernels"] == "n/a (not CUDA)"
+    assert [(row["attention"], row["batch_size"]) for row in result["rows"]] == [
+        ("default", 1), ("default", 2), ("cudnn", 1), ("cudnn", 2)]
     for row in result["rows"]:
         assert row["status"] == "ok"
         assert row["tokens_per_s"] > 0

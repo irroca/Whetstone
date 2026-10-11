@@ -5,6 +5,7 @@ source "$(dirname "$0")/env.sh"
 cd "$(dirname "$0")/../.."
 mkdir -p /root/autodl-tmp/results
 python bench_train.py --tokenizer_path tokenizer/v1_32k --dim 768 --n_layers 12 --n_heads 12 \
-  --n_kv_heads 3 --max_seq_len 2048 --batch_sizes ${BATCH_SIZES:-16 32 64} --compile False True \
+  --n_kv_heads 3 --max_seq_len 2048 --batch_sizes ${BATCH_SIZES:-16 32 64} \
+  --compile ${COMPILE_GRID:-False True} --attention_backends ${ATTENTION_GRID:-default cudnn} \
   --accumulation_steps 8 --peak_tflops ${PEAK_TFLOPS:?set PEAK_TFLOPS, e.g. 989 for H800 SXM} \
   --out /root/autodl-tmp/results/bench.json
