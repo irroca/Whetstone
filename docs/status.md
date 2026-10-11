@@ -121,7 +121,7 @@ HF_HUB_OFFLINE=1 python3 -m pytest tests/ -q      # Mac 上 512 passed、1 skipp
 | [#14](https://github.com/irroca/Whetstone/pull/14) | 交接文档：正式数据集已完成并验收 | 已合并（squash）|
 | [#15](https://github.com/irroca/Whetstone/pull/15) | 交接文档：开卡前核对（试跑要加 `--val_every`、上传前先压缩）| 已合并（squash）|
 | [#16](https://github.com/irroca/Whetstone/pull/16) | `scripts/autodl/`：续传上传、实例上校验、CPU 预检、开卡后的 bench / 试跑 / 正式启动 | 已合并（squash）|
-| [#17](https://github.com/irroca/Whetstone/pull/17) | H800 上的吞吐优化（损失一起编译、实数 RoPE、原生 GQA、cuDNN 注意力），正式预训练开跑 | 待合并 |
+| [#17](https://github.com/irroca/Whetstone/pull/17) | H800 上的吞吐优化（损失一起编译、实数 RoPE、原生 GQA、cuDNN 注意力），正式预训练开跑 | 已合并（squash）|
 
 **教训**：stacked PR 要么严格按自下而上的顺序合，要么在合之前把上层 PR 的 base 直接改成 `main`。
 `squash` 合并会切断祖先关系，所以一旦顺序错了，后续那个 PR 的内容不会自动跟过来，
@@ -288,6 +288,29 @@ batch 32 × 8）：
 | 优化后（e223385）| 7.3360 | 7.1622 | 7.0264 | 6.2998 | 5.7896 | 5.8311 |
 
 差别在 0.1% 以内，到第 200 步只剩 0.001，是换了注意力 kernel 和归约顺序后的正常抖动。
+
+**`nvidia-smi` 的利用率 100%、显存 45GB / 80GB 说明不了算力用满没有**（正式训练第 4,160 步，10-11 16:05）：
+
+- **利用率是时间占比，不是算力占比**。`utilization.gpu` 是采样周期内至少有一个 kernel 在跑的时间比例，
+  一个只用 1 个 SM 的 kernel 一直跑也是 100%。它只说明 GPU 没在等数据加载和 Python：profile 里空闲不到
+  3%，正式训练稳态 33.78 万 token/s（两次日志之间的中位数），比 bench 只慢 1.3%
+- **显存是容量，多用不会更快**。cuDNN、编译下 batch 16 / 32 / 64 的峰值分配是 13.2 / 24.6 / 47.4GB，
+  吞吐 33.4 / 34.2 / 34.5 万 token/s，显存多用 3.6 倍只快 3%。batch 16 一个 micro-batch 已有 3.3 万个
+  token，每个矩阵乘的行数早就够铺满 114 个 SM；慢在 768 宽的窄矩阵和下面说的非矩阵乘部分，加 batch 解决不了
+- **45GB 里约 16–20GB 是验证留下的**（按张量大小推算，没在进程里量）。验证跑未编译的模型，
+  `token_logprobs` 对 `(32, 2047, 32768)` 的 logits 做 `log_softmax(logits.float())`：bf16 的 logits
+  4GB，fp32 拷贝和 log_softmax 的输出各 8GB。PyTorch 的缓存分配器用完不还给驱动，`nvidia-smi` 看到的是
+  保留量，即训练的约 25GB 加上这一份。80GB 的卡上不影响速度，换 24GB 的卡要先把验证改成分块算
+- **算力看 MFU**：33.78 万 token/s × 0.710 GFLOP/token = 240 TFLOPS，是标称 756 的 31.7%。但这张卡一直
+  顶着 350W 功耗墙（正式训练中 `nvidia-smi dmon` 逐秒采样：345–346W，SM 1125–1320 MHz，最高 1755）：按
+  114 个 SM × 每时钟 4096 次 bf16 运算 × 实际频率，可达峰值只有 525–616 TFLOPS，MFU 合 39–46%（采样均值
+  1220 MHz 下是 42%）。作为参照，Llama 3 405B 在 H100 上是 38–43%，那个规模的时间几乎都花在矩阵乘上
+- **差距在哪**（上面优化后的 profile）：矩阵乘占 45% 的时间、约 470 TFLOPS，已经接近功耗墙下的上限；
+  融合逐元素（RMSNorm、SwiGLU、残差）占 25%，几乎不计 FLOPs，卡在显存带宽上（`dmon` 的显存忙碌时间
+  64–69%）；注意力占 24%，head_dim 64 的 cuDNN kernel 只到 160–180 TFLOPS。每个 token 的逐元素开销随
+  dim 线性增长、矩阵乘随 dim² 增长，dim 768 的小模型前者占比就大；H800 PCIe 的算力 / 带宽比又高
+  （756 TFLOPS 对 2 TB/s），所以这个规模的 MFU 结构上就高不了多少。再往上要换 SXM 卡（700W、3.35 TB/s
+  的 HBM3），或者做上面「没做的」那几项、改模型结构（更宽的 dim、head_dim 128），这次都不做
 
 已做：`torch.compile`（前向和损失一起编译）、fused AdamW（CUDA 上自动）、实数 RoPE、原生 GQA、
 cuDNN 注意力。
@@ -631,7 +654,9 @@ done
 10-11 实际的经过：bench 之后用 profile 找瓶颈、逐个优化并逐个提交量增益（§3.3，约一小时）；试跑先在
 旧代码上做了 kill / 续训（第 100 步存档后杀掉，续训接上，第 200 步 val 5.832），再用新代码重跑一遍核对
 loss 没变；然后 `BATCH=32 ACCUM=8 COMPILE=True ATTENTION=cudnn bash scripts/autodl/start_pretrain.sh`，
-14:15 开跑。
+14:15 开跑。16:05 第 4,160 步（22%）检查：仍是第一次启动，没有 NaN；稳态 33.78 万 token/s，两小时没掉；
+验证 loss 每 500 步单调下降（5.465 → 4.009 → 3.492 → 3.254 → 3.110 → 3.021 → 2.958 → 2.909）；预热后
+grad norm 中位数 0.31、最大 0.57；含验证和存档平均每步 1.569 秒，预计 22:31 训完。
 
 **正式命令**（`scripts/autodl/pretrain.sh` 跑的就是这条；`batch_size × accumulation_steps × 2047`
 保持约 50 万 token，共 18,919 次更新）：
