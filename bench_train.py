@@ -21,8 +21,8 @@ import time
 import torch
 from transformers import AutoTokenizer
 
-from losses import masked_cross_entropy
 from model import Whetstone
+from trainer import lm_loss_fn
 from train_utils import (
     accelerator_type,
     add_model_args,
@@ -102,7 +102,7 @@ def bench(config, args, batch_size: int, compiled: bool) -> dict:
     model = Whetstone(config).to(args.device)
     optimizer = build_optimizer(model, args)
     ctx, scaler = build_autocast_scaler(args.device, args.dtype)
-    forward = torch.compile(model) if compiled else model
+    loss_fn = lm_loss_fn(model, compiled)
     model.train()
 
     # pretrain feeds max_seq_len - 1 positions: X and Y are one window shifted by one token
@@ -115,7 +115,7 @@ def bench(config, args, batch_size: int, compiled: bool) -> dict:
     def update():
         for _ in range(args.accumulation_steps):
             with ctx:
-                loss = masked_cross_entropy(forward(x).logits, y, mask) / args.accumulation_steps
+                loss = loss_fn(x, y, mask) / args.accumulation_steps
             (scaler.scale(loss) if scaler is not None else loss).backward()
         optimizer_step(model, optimizer, scaler, args.grad_clip)
 
@@ -147,7 +147,7 @@ def bench(config, args, batch_size: int, compiled: bool) -> dict:
         if args.peak_tflops:
             row["mfu"] = row["tflops"] / args.peak_tflops
     finally:
-        del model, optimizer, forward
+        del model, optimizer, loss_fn
         gc.collect()
         if compiled:
             torch._dynamo.reset()
