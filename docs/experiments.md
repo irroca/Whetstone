@@ -141,10 +141,17 @@ SFT / DPO / GRPO numbers comparable.
 ## Setup
 
 ```bash
-python3 -m envs.generate_data --split sft        --n 4000 --out datasets/arith_sft.jsonl
-python3 -m envs.generate_data --split preference --n 2000 --out datasets/arith_pref.jsonl
-python3 -m envs.generate_data --split eval       --n 200  --out datasets/arith_eval.jsonl --seed 777
+bash scripts/arith_data.sh datasets/arith_v1
 ```
+
+It writes, from fixed seeds: `test.jsonl` (500 distinct problems, reported once at the end),
+`dev.jsonl` (500 more, watched during training and used for any selection), and `sft.jsonl` (4000),
+`preference.jsonl` (2000) and `grpo_prompts.jsonl` (20000) with every test and dev question
+excluded. 1–2 digit addition and subtraction has only ~15k distinct problems, so sets drawn
+independently overlap heavily: a 4000-row SFT set contained 55% of a 500-row eval set's questions.
+
+`scripts/autodl/posttrain.sh` runs the grid below on one GPU: SFT once, then every GRPO variant
+from that SFT checkpoint, each scored with `eval_env.py` on dev and test.
 
 **Cold start is mandatory.** A policy that never emits `<think>/<answer>` scores 0 on every rollout,
 so every group has zero reward variance and the gradient is exactly 0. Run SFT on the gold CoT data
@@ -186,6 +193,37 @@ Questions worth answering with this grid, in rough order of how interesting the 
 3. Does the std divisor in the advantage matter at this scale (GRPO vs Dr. GRPO)?
 4. Without a KL anchor, does entropy collapse before accuracy improves?
 5. Does `--strict_answer False` reveal correct answers hidden behind format failures?
+
+## Mac smoke on the 100M model (dev set only)
+
+The pretrained 100M base (`results/pretrain_v2/pretrain_final.pth`), on an M5 Pro (MPS, bf16), with
+the data from `scripts/arith_data.sh`. The test set was not touched; these are dev numbers from one
+run each, a check that the GPU grid is worth running, not its result.
+
+```bash
+python3 sft.py --pretrained_path results/pretrain_v2/pretrain_final.pth --tokenizer_path tokenizer/v1_32k \
+  --data_path datasets/arith_v1/sft.jsonl --max_seq_len 128 --epochs 1 --batch_size 32 \
+  --learning_rate 1e-4 --dtype bfloat16 --save_dir <sft>
+python3 grpo.py --policy_path <sft>/sft_final.pth --tokenizer_path tokenizer/v1_32k \
+  --data_path datasets/arith_v1/grpo_prompts.jsonl --eval_path datasets/arith_v1/dev.jsonl \
+  --eval_size 500 --eval_every 25 --rl_steps 100 --batch_size 32 --group_size 8 \
+  --micro_batch_size 32 --max_new_tokens 64 --max_seq_len 192 --learning_rate 1e-5 \
+  --dtype bfloat16 --save_step 0 --save_dir <grpo>
+```
+
+| Greedy dev accuracy | all 500 | 1d + | 2d + | 1d − | 2d − |
+|---------------------|--------:|-----:|-----:|-----:|-----:|
+| items | 500 | 30 | 240 | 9 | 221 |
+| SFT, 1 epoch (65 s) | 0.618 | 0.700 | 0.758 | 0.222 | 0.471 |
+| + GRPO, 100 steps (15 min) | **0.778** | 0.800 | 0.912 | 0.333 | 0.647 |
+
+(1d / 2d is the larger operand's digit count.) Format stayed 1.000 and the mean completion stayed
+at 36 tokens, with nothing truncated: **the gain is accuracy, not format**, which the 29M runs
+below never got. Dev accuracy at steps 0 / 25 / 50 / 75 / 100 was 0.618 / 0.692 / 0.690 / 0.746 /
+0.778, still rising when the cosine schedule ended. 73% of the SFT policy's 8-sample groups were
+mixed, `silent_group_frac` stayed at 0.38–0.46 per 25-step window, and entropy fell from 0.027 to
+0.020. A second SFT run with the same seed and data scored 0.650: MPS training is not bitwise
+reproducible, so variants are compared from one SFT checkpoint and over several seeds.
 
 ## Recorded CPU runs (implementation validation, **not** a quality claim)
 
@@ -277,7 +315,7 @@ this model scale the only way out is for the accuracy component to start produci
 ### Follow-ups worth running on a GPU
 
 1. A cold start strong enough that accuracy has nonzero variance (bigger model or far more SFT data)
-   — without it, GRPO can only optimize format.
+   — without it, GRPO can only optimize format. Done with the 100M model: see the Mac smoke above.
 2. `--filter_zero_variance True` on run C: the U shape says roughly half the late-run compute is
    producing exactly zero gradient.
 3. An entropy floor or `--clip_eps_high` (DAPO clip-higher) as an alternative to the KL anchor, to

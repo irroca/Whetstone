@@ -1,10 +1,14 @@
+import random
+
 import pytest
 import torch
 from transformers import AutoTokenizer
 
 from config import LLMConfig
+from dataset import PreferenceDataset, SFTDataset
 from envs import ArithmeticEnv
 from envs.base import Reward, Task
+from envs.generate_data import build_rows, write_jsonl
 from losses import token_logprobs
 from model import Whetstone
 from rollout import (
@@ -205,6 +209,30 @@ def test_build_prompt_ids_ends_with_the_assistant_turn():
     assert text.rstrip().endswith("<s>assistant")  # generation prompt, nothing sampled yet
 
 
+def test_generated_training_rows_start_with_the_rollout_prompt(tmp_path):
+    """SFT and DPO rows built from an env must tokenize to exactly the prompt GRPO samples from,
+    then the trained response. Without the env's system prompt in the rows, the chat template
+    substitutes its default one and the cold start trains on a different prompt."""
+    tokenizer = _tokenizer()
+    sft_path, pref_path = tmp_path / "sft.jsonl", tmp_path / "pref.jsonl"
+    write_jsonl(str(sft_path), build_rows(ArithmeticEnv(seed=3), "sft", 3, random.Random(3)))
+    write_jsonl(str(pref_path), build_rows(ArithmeticEnv(seed=3), "preference", 3, random.Random(3)))
+    sft = SFTDataset(str(sft_path), tokenizer, max_length=256)
+    pref = PreferenceDataset(str(pref_path), tokenizer, max_length=256)
+
+    env = ArithmeticEnv(seed=3)  # same seed, so the same tasks the rows were built from
+    for i, task in enumerate(env.sample(3)):
+        prompt = build_prompt_ids(tokenizer, env, task).tolist()
+        X, _, mask = sft[i]
+        assert X[: len(prompt)].tolist() == prompt
+        assert mask[: len(prompt) - 1].sum() == 0 and mask[len(prompt) - 1] == 1
+        assert tokenizer.decode(X[len(prompt):].tolist()).startswith(env.gold_completion(task))
+
+        chosen, _, _, rejected, _, _ = pref[i]
+        assert chosen[: len(prompt)].tolist() == prompt
+        assert rejected[: len(prompt)].tolist() == prompt
+
+
 def test_run_rollouts_scores_decoded_text_with_the_env():
     """End-to-end reward path: sampled ids -> decoded text -> env reward."""
     tokenizer = _tokenizer()
@@ -234,6 +262,53 @@ def test_run_rollouts_scores_decoded_text_with_the_env():
     assert all(r.correct and r.format_ok for r in rollouts[0].rewards)
     assert rollouts[0].completion_mask[0].sum().item() == len(gold_ids) + 1  # through EOS
     assert not rollouts[0].truncated.any()
+
+
+def test_run_rollouts_generates_equal_length_prompts_together():
+    """Prompts of one token count share generate calls of at most max_rows rows, and every group
+    still gets the completions generated from its own prompt."""
+    tokenizer = _tokenizer()
+    env = ArithmeticEnv(seed=0)
+    tasks = env.sample(16)
+    prompts = [build_prompt_ids(tokenizer, env, task) for task in tasks]
+    task_of = {tuple(p.tolist()): task for p, task in zip(prompts, tasks)}
+    calls = []
+
+    class GoldPolicy:
+        """Answers each row with the gold completion of the task its prompt came from."""
+
+        training = False
+
+        def eval(self):
+            return self
+
+        def train(self):
+            return self
+
+        def generate(self, input_ids, **kwargs):
+            calls.append(input_ids.size(0))
+            rows = [
+                tokenizer(env.gold_completion(task_of[tuple(row)]), add_special_tokens=False).input_ids
+                + [EOS]
+                for row in input_ids.tolist()
+            ]
+            width = max(map(len, rows))
+            return torch.tensor([row + [PAD] * (width - len(row)) for row in rows])
+
+    rollouts = run_rollouts(
+        GoldPolicy(), tokenizer, env, tasks, group_size=3, max_new_tokens=64, max_rows=10
+    )
+
+    lengths = [p.size(0) for p in prompts]
+    per_length = [lengths.count(n) for n in set(lengths)]
+    assert len(per_length) > 1, "the sample should mix prompt lengths"
+    expected_rows = []  # max_rows=10 fits 3 groups of 3 per call
+    for n in per_length:
+        expected_rows += [9] * (n // 3) + ([3 * (n % 3)] if n % 3 else [])
+    assert sorted(calls) == sorted(expected_rows)
+    assert [r.task for r in rollouts] == tasks
+    assert all(torch.equal(r.prompt_ids, p) for r, p in zip(rollouts, prompts))
+    assert all(reward.correct for r in rollouts for reward in r.rewards)
 
 
 def test_rollout_stats_reports_hacking_and_silent_groups():

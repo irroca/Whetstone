@@ -217,15 +217,16 @@ class SFTDataset(Dataset):
         构建符合 ChatML 格式的对话提示
         
         参数:
-          conversations: 对话轮次列表，每个元素为包含 'content' 的字典
+          conversations: 对话轮次列表，每个元素为包含 'role'（可省略）和 'content' 的字典
         
         返回:
           prompt: 拼接后的对话文本
         """
         messages = []
         for i, turn in enumerate(conversations):
-            # 偶数轮为用户，奇数轮为助手
-            role = 'user' if i % 2 == 0 else 'assistant'
+            # 按 role 取角色：system 轮要原样进模板，否则模板会换成默认的 system 提示；
+            # 没有 role 的数据按偶数轮用户、奇数轮助手推断
+            role = turn.get('role') or ('user' if i % 2 == 0 else 'assistant')
             messages.append({"role": role, "content": turn['content']})
         # 使用分词器提供的模板方法构建对话提示
         # print(self.tokenizer.apply_chat_template(
@@ -265,7 +266,7 @@ class SFTDataset(Dataset):
         return X, Y, loss_mask
 
 class PreferenceDataset(Dataset):
-    """DPO preference pairs: prompt / chosen / rejected."""
+    """DPO preference pairs: prompt / chosen / rejected, plus an optional system prompt."""
 
     def __init__(self, jsonl_path, tokenizer, max_length=1024):
         super().__init__()
@@ -285,8 +286,9 @@ class PreferenceDataset(Dataset):
     def __len__(self):
         return len(self.samples)
 
-    def _encode_response(self, prompt: str, answer: str):
-        messages = [
+    def _encode_response(self, prompt: str, answer: str, system: str | None = None):
+        messages = [{"role": "system", "content": system}] if system else []
+        messages += [
             {"role": "user", "content": prompt},
             {"role": "assistant", "content": answer},
         ]
@@ -305,7 +307,8 @@ class PreferenceDataset(Dataset):
 
     def __getitem__(self, index):
         sample = self.samples[index]
-        cX, cY, cM = self._encode_response(sample["prompt"], sample["chosen"])
-        rX, rY, rM = self._encode_response(sample["prompt"], sample["rejected"])
+        system = sample.get("system")
+        cX, cY, cM = self._encode_response(sample["prompt"], sample["chosen"], system)
+        rX, rY, rM = self._encode_response(sample["prompt"], sample["rejected"], system)
         return cX, cY, cM, rX, rY, rM
 

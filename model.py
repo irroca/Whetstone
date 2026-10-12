@@ -346,19 +346,12 @@ class Whetstone(PreTrainedModel):
             logits = out.logits[:, -1, :]
             past_key_values = out.past_key_values
             
-            # 重复惩罚：对已经生成的token进行惩罚，防止重复生成
+            # 重复惩罚：序列里出现过的token，正logit除以系数、负logit乘以系数（与HF一致）；
+            # 负logit也做除法反而会把它抬高
             if repetition_penalty != 1.0:
-                for batch_idx in range(input_ids.shape[0]):
-                    # 对每个batch单独处理
-                    generated_tokens = input_ids[batch_idx].tolist()
-                    # 使用有序集合保持顺序
-                    unique_tokens = []
-                    seen = set()
-                    for token in generated_tokens:
-                        if token not in seen:
-                            unique_tokens.append(token)
-                            seen.add(token)
-                    logits[batch_idx, unique_tokens] /= repetition_penalty
+                seen = torch.gather(logits, 1, input_ids)
+                seen = torch.where(seen < 0, seen * repetition_penalty, seen / repetition_penalty)
+                logits = logits.scatter(1, input_ids, seen)
             
             # 温度缩放
             if temperature > 0:

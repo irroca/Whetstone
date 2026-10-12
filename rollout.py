@@ -5,8 +5,8 @@ policy assigned to them. Three things make this fiddly and they all live here:
 
 1. **No padded prompt batching.** The model applies RoPE from ``start_pos`` and
    has no left-padding offset, so prompts of different lengths cannot share a
-   generate call. A group is the same prompt repeated ``group_size`` times, so
-   every row is naturally the same length and no padding is needed.
+   generate call. Prompts of the same length can: ``run_rollouts`` buckets the
+   tasks by prompt length and generates every group in a bucket together.
 2. **Completion masks.** ``generate`` emits the real EOS token and then pads,
    per row. Training must credit tokens up to and including that EOS and
    nothing after it.
@@ -106,10 +106,14 @@ def generate_group(
     eos_token_id: int,
     pad_token_id: int,
 ) -> torch.Tensor:
-    """Sample ``group_size`` completions for one prompt. Returns (G, T) new tokens only."""
+    """Sample ``group_size`` completions for each prompt.
+
+    ``prompt_ids`` is one prompt (P,) or equal-length prompts (B, P). Returns (B*G, T) new
+    tokens only, prompt ``b`` owning rows ``[b*G, (b+1)*G)``.
+    """
     if max_new_tokens < 1:
         raise ValueError("max_new_tokens must be >= 1")
-    batched = prompt_ids.unsqueeze(0).expand(group_size, -1).contiguous()
+    batched = prompt_ids.reshape(-1, prompt_ids.size(-1)).repeat_interleave(group_size, dim=0)
     generated = model.generate(
         batched,
         eos_token_id=eos_token_id,
@@ -137,44 +141,62 @@ def run_rollouts(
     temperature: float = 1.0,
     top_p: float = 1.0,
     device: str = "cpu",
+    max_rows: int = 128,
 ) -> list[Rollout]:
-    """Sample a group of completions per task and score them with the env."""
+    """Sample a group of completions per task and score them with the env.
+
+    Tasks whose prompts have the same token count share a generate call of up to ``max_rows``
+    rows: decoding a 100M model is bound by per-step overhead (on MPS a step took 11 ms at 1 row,
+    18 ms at 32 and 47 ms at 128). ``max_rows`` bounds the prefill, which computes logits at every
+    prompt position: 128 rows of a 71-token prompt at vocab 32768 is 1.2GB in fp32.
+    """
     was_training = model.training
     model.eval()
     eos_id, pad_id = tokenizer.eos_token_id, tokenizer.pad_token_id
-    rollouts = []
+    prompts = [build_prompt_ids(tokenizer, env, task, device) for task in tasks]
+    by_length: dict[int, list[int]] = {}
+    for i, prompt in enumerate(prompts):
+        by_length.setdefault(prompt.size(0), []).append(i)
+    per_call = max(1, max_rows // group_size)
+    groups: list[Optional[torch.Tensor]] = [None] * len(tasks)
     try:
-        for task in tasks:
-            prompt_ids = build_prompt_ids(tokenizer, env, task, device)
-            completions = generate_group(
-                model,
-                prompt_ids,
-                group_size,
-                max_new_tokens=max_new_tokens,
-                temperature=temperature,
-                top_p=top_p,
-                eos_token_id=eos_id,
-                pad_token_id=pad_id,
-            )
-            mask, truncated = completion_masks(completions, eos_id)
-            texts = [
-                tokenizer.decode(row[m.bool()].tolist(), skip_special_tokens=True)
-                for row, m in zip(completions, mask)
-            ]
-            rollouts.append(
-                Rollout(
-                    task=task,
-                    prompt_ids=prompt_ids,
-                    completions=completions,
-                    completion_mask=mask,
-                    texts=texts,
-                    rewards=[env.score(text, task) for text in texts],
-                    truncated=truncated,
+        for indices in by_length.values():
+            for start in range(0, len(indices), per_call):
+                chunk = indices[start : start + per_call]
+                generated = generate_group(
+                    model,
+                    torch.stack([prompts[i] for i in chunk]),
+                    group_size,
+                    max_new_tokens=max_new_tokens,
+                    temperature=temperature,
+                    top_p=top_p,
+                    eos_token_id=eos_id,
+                    pad_token_id=pad_id,
                 )
-            )
+                for j, i in enumerate(chunk):
+                    groups[i] = generated[j * group_size : (j + 1) * group_size]
     finally:
         if was_training:
             model.train()
+
+    rollouts = []
+    for task, prompt_ids, completions in zip(tasks, prompts, groups):
+        mask, truncated = completion_masks(completions, eos_id)
+        texts = [
+            tokenizer.decode(row[m.bool()].tolist(), skip_special_tokens=True)
+            for row, m in zip(completions, mask)
+        ]
+        rollouts.append(
+            Rollout(
+                task=task,
+                prompt_ids=prompt_ids,
+                completions=completions,
+                completion_mask=mask,
+                texts=texts,
+                rewards=[env.score(text, task) for text in texts],
+                truncated=truncated,
+            )
+        )
     return rollouts
 
 

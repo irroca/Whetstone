@@ -1,6 +1,6 @@
 # 项目状态与路线（交接文档）
 
-**最后更新**：2026-10-11 夜，正式预训练完成、权重和记录存进私有仓库之后。
+**最后更新**：2026-10-12，后训练的本地准备（Mac 上冒烟、4090 启动脚本）完成之后。
 本文档是新 session 的入口——先读这里，再读 `AGENTS.md`。
 
 ---
@@ -22,7 +22,14 @@
 一次启动跑完、没有续训。开跑前先花一小时把训练步从 27.1 万提到 34.2 万 token/s（+26%，MFU 25% → 32%，
 前后 loss 一致，过程记在 §3.3）。结果在 `docs/experiments.md`，训练记录进了 git（`records/`）；
 权重、语料和原始记录存在魔搭和 GitHub 两个私有仓库里，换电脑用 `scripts/fetch_artifacts.sh` 取回
-（每个文件是什么见 `docs/artifacts.md`）。**下一步是 §4 步骤 7（后训练）**。
+（每个文件是什么见 `docs/artifacts.md`）。
+
+**后训练的本地准备已完成**（10-12，§4 步骤 7）：修了 repetition penalty；SFT / DPO 样本带上环境的 system
+prompt；dev / test 两个评测集不进任何训练数据；rollout 把等长 prompt 合并生成；`eval_env.py` 给任意
+checkpoint 在 test 上打分。Mac 上冒烟：SFT 冷启动后 dev 贪心准确率 0.618，GRPO 100 步（约 15 分钟）把它
+推到 **0.778**，格式和长度都没变。这是 accuracy 本身第一次被 RL 推上去（两位数加法 0.76 → 0.91、两位数
+减法 0.47 → 0.65），上一轮 29M 模型只学会了格式。
+**下一步是在 AutoDL 的 RTX 4090 上跑 `scripts/autodl/start_posttrain.sh`**（步骤 7 的「租卡跑」）。
 
 基座模型的起点：4-shot 一位数加法 22%、两位数 2%，离目标能力（两位数算术 + 简单 Python）还很远，
 这正是 SFT 和 GRPO 要补的。除了正式预训练的结果，仓库里其余数字都是 29M 玩具规模的**实现验证**，
@@ -118,7 +125,7 @@
 
 ```bash
 git clone https://github.com/irroca/Whetstone.git && cd Whetstone
-HF_HUB_OFFLINE=1 python3 -m pytest tests/ -q      # Mac 上 512 passed、1 skipped（只在 CUDA 上跑的）；CI 上另有一个只在 MPS 上跑的也 skip
+HF_HUB_OFFLINE=1 python3 -m pytest tests/ -q      # Mac 上 522 passed、1 skipped（只在 CUDA 上跑的）；CI 上另有一个只在 MPS 上跑的也 skip
 ```
 
 下面这段记录下来，是因为它是一个很容易再犯一次的坑：
@@ -148,7 +155,8 @@ HF_HUB_OFFLINE=1 python3 -m pytest tests/ -q      # Mac 上 512 passed、1 skipp
 | [#17](https://github.com/irroca/Whetstone/pull/17) | H800 上的吞吐优化（损失一起编译、实数 RoPE、原生 GQA、cuDNN 注意力），正式预训练开跑 | 已合并（squash）|
 | [#18](https://github.com/irroca/Whetstone/pull/18) | nvidia-smi 的 100% 和 45GB 说明了什么、没说明什么；正式预训练中途检查 | 已合并（squash）|
 | [#19](https://github.com/irroca/Whetstone/pull/19) | 预训练收尾：`records/`、私有仓库里的权重和语料（`docs/artifacts.md`）、`fetch_artifacts.sh` | 已合并（squash）|
-| [#20](https://github.com/irroca/Whetstone/pull/20) | 交接文档：GitHub 上的产物也齐了 | 待合并 |
+| [#20](https://github.com/irroca/Whetstone/pull/20) | 交接文档：GitHub 上的产物也齐了 | 已合并（squash）|
+| [#21](https://github.com/irroca/Whetstone/pull/21) | 后训练的本地准备：repetition penalty、system prompt、评测集隔离、rollout 分桶、`eval_env.py`、4090 启动脚本 | 待合并 |
 
 **教训**：stacked PR 要么严格按自下而上的顺序合，要么在合之前把上层 PR 的 base 直接改成 `main`。
 `squash` 合并会切断祖先关系，所以一旦顺序错了，后续那个 PR 的内容不会自动跟过来，
@@ -764,19 +772,72 @@ python3 pretrain.py --dim 768 --n_layers 12 --n_heads 12 --n_kv_heads 3 \
 - 大文件上传也会断：10-12 凌晨往 GitHub 传文件反复报 408（上传无活动超时）、连接被重置，200MB 的也不例外；
   往魔搭传 1GB 以上的文件常写超时。两边都是失败一次整个文件重来，以后的产物切成几百 MB 一段再传
 
-### 步骤 7：重建后训练四阶段
+### 步骤 7：重建后训练四阶段（本地准备完成，下一步租 4090）
 SFT / KD / DPO 的数据要基于新语料和可验证任务重做（`envs.generate_data` 负责算术那部分；
 代码任务的环境还没写，见 §5）。然后 GRPO——这次 accuracy 应该终于有方差了，这是整个项目
 最关键的验证点。
 
 - **起点**：`results/pretrain_v2/pretrain_final.pth`，4-shot 一位数加法 22%、两位数 2%（§1）。在新机器上先
-  `scripts/fetch_artifacts.sh pretrain-v2 mixture-v2-eval` 取回基座模型、验证集、留出集和评测集。GRPO 之前
-  的 SFT 冷启动要先让模型稳定输出环境要求的格式，否则全组零奖励、梯度恒为 0（§1 的结论）
-- **算力**：100M 模型在 Apple 芯片的 MPS + bf16 上训练约 9k token/s（§3.3），1000 万 token 的 SFT 约
-  20 分钟；GRPO 的 rollout 更费时间，计划租一张便宜的卡做，不再用 H800
-- **动手前先修**：`model.generate` 的 repetition penalty 不分 logit 正负一律除以系数，负 logit 的 token
-  反而被抬高（HF 的做法是正值除、负值乘）。`chat.py` 默认 1.2，probes 不开 repetition penalty、
-  不受影响。实际影响不大，但评测 SFT 之前应该修掉并补一条单测
+  `scripts/fetch_artifacts.sh pretrain-v2` 取回基座模型（评测 bits per byte 才需要再加 `mixture-v2-eval`）。
+  GRPO 之前的 SFT 冷启动要先让模型稳定输出环境要求的格式，否则全组零奖励、梯度恒为 0（§1 的结论）
+- **算力**：SFT 在 Mac 上就够（4000 条一个 epoch 65 秒）。GRPO 的时间主要花在逐 token 解码上，100M 模型的
+  解码受调度开销限制，用不上 H800 的算力，所以租 AutoDL 的 RTX 4090 24GB
+- **repetition penalty 已修**：以前不分 logit 正负一律除以系数，负 logit 的 token 反而被抬高；现在和 HF 一样
+  正值除、负值乘，单测覆盖两种符号（旧代码在负值那一例上失败）。`chat.py` 默认 1.2，probes 不开
+
+**本机准备（10-12）**，都在 [PR #21](https://github.com/irroca/Whetstone/pull/21)：
+
+1. **SFT / DPO 样本带上环境的 system prompt**。`generate_data` 以前只写 user / assistant 两轮，chat template
+   于是补上默认的「你是 Whetstone…」；GRPO rollout 用的却是环境自己的「你是一个只会做算术的助手…」，冷启动
+   训的 prompt 和 RL 看到的不是同一个。现在两者编码后逐 token 相同，有单测断言。`SFTDataset` 也改为按每轮的
+   `role` 编码（以前只按奇偶，system 轮会被当成 user）
+2. **评测题不进训练数据**。一两位数加减法约 1.5 万道题，一半的题至少有一个一位数：各自独立抽样时，4000 条
+   SFT 集含 500 条评测集 55% 的题（两个一位数的题全中），评测集自身也只有 432 道不同的题。`generate_data`
+   加了 `--exclude` 和 `--distinct`；`scripts/arith_data.sh` 用固定种子造 test（只在最后报一次）、dev（训练中
+   看、用来选模型）和不含这两者的 SFT 4000 条 / DPO 2000 对 / GRPO 题库 2 万道。换台机器重造，文件逐字节
+   相同（sha256 前 16 位：test `174cc7c11019914c`、dev `e855599f44e9d965`、sft `daebf99e1448c8e3`、
+   preference `234dedcdc995007a`、grpo_prompts `59134139878d71a2`）
+3. **rollout 把等长 prompt 合并生成**（`run_rollouts(..., max_rows=128)`）。100M 模型逐 token 解码受调度开销
+   限制，MPS 上一步 1 行 11 ms、32 行 18 ms、128 行 47 ms；算术 prompt 只有 69 / 70 / 71 三种长度。500 题的
+   贪心评测快了约 20 倍（结果不变），GRPO 每步 8 题 × 8 条从 5.5 秒降到约 3.2 秒
+4. **`eval_env.py`**：任意 checkpoint 在题集上的贪心准确率，和 GRPO 的 `eval_accuracy` 同一口径，按运算符和
+   位数拆开。SFT-only / DPO-only 基线和最后的 test 数字都用它
+5. **`scripts/autodl/posttrain.sh` / `start_posttrain.sh`**：造数据 → SFT → 每个变体 × 种子跑一次 GRPO（都从
+   同一个 SFT checkpoint 出发）→ 每个策略在 dev 和 test 上打分 → 汇总表，跑完关机。重跑时跳过已完成的阶段；
+   `grpo.py` 不能续训，没跑完的那次挪到一边从头跑。在 Mac 上用极小的设置完整跑通过一遍
+
+**Mac 上的冒烟**（MPS + bf16，从正式预训练的权重开始）：
+
+- **SFT**（4000 条、1 epoch、batch 32、lr 1e-4、`--max_seq_len 128`，65 秒）：dev 贪心准确率 0.618，格式
+  1.000。按题型：两位数加法 0.758、两位数减法 0.471、一位数加法 0.700（30 道）、一位数减法 0.222（9 道）。
+  每题采 8 条时 73% 的组有对有错，GRPO 有方差可用。同配置同种子再训一次是 0.650：MPS 上训练不逐位可复现，
+  差的 3 个点约 1.5 个标准误
+- **GRPO 探测**（lr 1e-5、每步 32 题 × 8 条、`--micro_batch_size 32`、100 步、不加 KL，约 15 分钟）：dev
+  0.618 → 0.692（第 25 步）→ 0.690（第 50 步）→ 0.746（第 75 步）→ **0.778**（第 100 步）。两位数加法
+  0.758 → 0.912，两位数减法 0.471 → 0.647；格式一直是 1.000，平均长度一直是 36 个 token，没有截断。**这是
+  accuracy 本身在涨，不是格式**：上一轮 29M 模型做不到的事（§1）。学习率按余弦退到底时 accuracy 还在涨；
+  每 25 步的窗口里，组内零方差的比例在 0.38–0.46 之间，熵从 0.027 降到 0.020。`eval_env.py` 在最终权重上
+  算出的也是 0.778，两边口径一致。这只是 dev 上的冒烟，test 留给 4090 上的正式跑
+- **内存**：同样的 batch 不分块（`--micro_batch_size 0`）把 48GB 的 Mac 换页换满，15 分钟一步都没跑完
+
+**租卡跑**（AutoDL RTX 4090 24GB）：
+
+1. 开卡，镜像和 H800 那次一样（PyTorch 2.8 + CUDA 12.8 + Python 3.12）。代码：`source /etc/network_turbo`
+   后 `git clone`，不行就在本机 `git bundle create` 传上去；`pip install -r requirements.txt modelscope`
+2. 用户自己 `modelscope login`，然后 `bash scripts/fetch_artifacts.sh pretrain-v2`（只取基座模型，398MB）
+3. `source scripts/autodl/env.sh && python -m pytest tests/ -q`
+4. 试跑约 5 分钟：`OUT=/root/autodl-tmp/results/posttrain_trial STEPS=20 VARIANTS=grpo bash
+   scripts/autodl/posttrain.sh`。看 SFT 的 dev 准确率是不是 0.6 上下、每步几秒、`nvidia-smi` 的显存，然后删掉
+   试跑目录
+5. `bash scripts/autodl/start_posttrain.sh`：默认四个变体（GRPO、+KL 0.02、Dr. GRPO、DAPO-lite）× 种子 1，
+   每个 500 步、lr 1e-5、每步 32 题 × 8 条、micro-batch 64、每 25 步在 dev 的 500 题上评测一次。日志在
+   `/root/autodl-tmp/results/posttrain_v1/run.log`，跑完关机。每步多久以试跑为准；粗估 4090 上 2 秒左右，
+   一个变体 15–20 分钟，四个共 1–1.5 小时
+6. 结果：`dev.json` / `test.json` / `grpo_metrics.jsonl` / `runs/` 都很小，拷回本机进 `records/posttrain_v1/`；
+   五份权重（各 398MB）作为新的一组 `posttrain-v1` 存进两个私有仓库（带 `README.md` 和 `SHA256SUMS`）
+
+第一轮结果出来之后再定：沿用哪个变体、要不要 `SEEDS="1 2 3"` 补种子、学习率要不要扫，以及 DPO-only 基线
+（`dpo.py` 吃 `preference.jsonl`）和 KD。
 
 ---
 
@@ -784,7 +845,8 @@ SFT / KD / DPO 的数据要基于新语料和可验证任务重做（`envs.gener
 
 ### 阶段 A：把可验证任务做实（当前重心）
 - 100M 双语模型，预训练 + 后训练全链路跑通
-- 算术任务上 GRPO 让 **accuracy 真正上升**（不只是 format rate）——这是上一轮没做到的
+- 算术任务上 GRPO 让 **accuracy 真正上升**（不只是 format rate）——这是上一轮没做到的。Mac 冒烟里已经
+  看到（dev 0.618 → 0.778，§4 步骤 7），还要在 4090 上用 test 集和多个种子坐实
 - 填满 `docs/experiments.md` 的消融表
 
 ### 阶段 B：第二个环境——代码任务
@@ -824,7 +886,7 @@ PPO critic、PRM（过程奖励模型）、MoE、多卡并行、推理服务化�
 ```bash
 uv venv --python 3.12 && source .venv/bin/activate
 uv pip install -r requirements.txt
-HF_HUB_OFFLINE=1 python -m pytest tests/ -q     # 502 passed，其中端到端消融测试约 30 秒
+HF_HUB_OFFLINE=1 python -m pytest tests/ -q     # 522 passed、1 skipped，其中端到端消融测试约 30 秒
 ```
 
 要注意的几点：
@@ -859,7 +921,8 @@ HF_HUB_OFFLINE=1 python -m pytest tests/ -q     # 502 passed，其中端到端�
 2. **eval 曲线完全不动 ≠ 优化器坏了**。先查权重 delta 和 `grad_norm` 再怀疑算法
 3. **GRPO 需要冷启动，但不能过**。策略不会输出环境格式 → 全 0 奖励 → 无梯度；
    SFT 训到完全饱和（熵极低）→ 采不出奖励方差 → 同样无梯度
-4. **一次 `generate` 只能处理一个 prompt 的 group**。模型没有 left-padding 的 RoPE 偏移
+4. **只有等长的 prompt 能同批 `generate`**。模型没有 left-padding 的 RoPE 偏移，`run_rollouts` 按
+   prompt 长度分桶；别为了凑批去 pad prompt，那会挪动每个位置
 5. **`generate` 产出的 token id 必须 `clone()`** 才能参与需要 backward 的前向
    （inference_mode 张量 + embedding 反向会保存索引）
 6. **微批必须共用整批的分母**（`grpo_policy_loss(..., normalizer=...)`），有单测断言
@@ -877,6 +940,12 @@ HF_HUB_OFFLINE=1 python -m pytest tests/ -q     # 502 passed，其中端到端�
 12. **`prepare` 的日志刷 `Retrying` / `Got disconnected from remote data host` 不等于任务挂了**。
    HF 客户端会自己重试（实测扛过 13 分钟断网）。在它重试时再起一份，正是第一次正式构建丢掉
    3.6 小时的原因；现在第二份会被锁拒掉，而 `prepare` 真退出了就重跑同一条命令，已完成的源会复用
+13. **GRPO 的大 batch 一定要配 `--micro_batch_size`**。rollout 分桶生成，但训练侧的前向默认一次吃下
+   整批：32 道题 × 8 条在 48GB 的 Mac 上把内存换页换满，15 分钟一步都没跑完
+14. **评测题要显式排除**。一两位数加减法只有约 1.5 万道题，独立抽样的 SFT 集含评测集 55% 的题。
+   用 `scripts/arith_data.sh` 造数据，别直接调 `generate_data` 各抽各的
+15. **MPS 上训练不逐位可复现**。同配置、同种子、同数据的两次 SFT，dev 准确率是 0.618 和 0.650。
+   比较 GRPO 变体要从同一个 SFT checkpoint 出发、跑多个种子
 
 ---
 

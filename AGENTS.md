@@ -24,7 +24,8 @@ workflow is a set of CLI scripts:
  special-token-weighted version. `dpo.py` runs standard Bradley-Terry DPO with a frozen reference
  model (`losses.dpo_loss` + `sequence_logprobs`). `grpo.py` runs on-policy GRPO against a
  rule-based environment in `envs/` (no reward model, no TRL dependency).
-- `eval_ppl.py` — perplexity evaluation. `chat.py` — interactive inference REPL.
+- `eval_ppl.py` — perplexity evaluation. `eval_env.py` — greedy accuracy of any checkpoint on an
+ RLVR env's task file. `chat.py` — interactive inference REPL.
 
 **README.md is the source of truth** for CLI commands/flags for every stage (including the CPU
 smoke-test walkthrough using `tests/fixtures/`) — consult it and each script's `argparse` block
@@ -336,6 +337,11 @@ rather than duplicating commands here.
   a `prepare` holdout.
 - **`scripts/autodl/` launches the formal run on an AutoDL instance**: upload from a Mac, verify,
   CPU preflight, then bench, trial and the formal run (order in `docs/status.md` §4 step 6).
+  `posttrain.sh` (started by `start_posttrain.sh`) runs post-training: data, SFT from
+  `results/pretrain_v2/pretrain_final.pth`, then one GRPO run per `VARIANTS` × `SEEDS` from that
+  SFT policy, each scored by `eval_env.py` on dev and test. Finished stages are skipped on a
+  rerun; an unfinished GRPO run is moved aside (`*.unfinished.<time>`), since `grpo.py` cannot
+  resume and its metrics file appends.
   - The instance-side scripts source `env.sh`, which sets `OMP_NUM_THREADS` from
     `/sys/fs/cgroup/cpu.max`. The instance reports the host's 176 cores, and at the no-GPU 0.5
     CPU torch's 91 threads made one update of a 2M model take 188 s instead of 1.4 s. It also
@@ -347,9 +353,16 @@ rather than duplicating commands here.
   `dataset.PretrainDataset`) before tokenizing, so PPL is computed on the same input distribution
   the model was trained on — don't strip that wrapping when touching `calculate_ppl`.
 - **GRPO/RLVR specifics (`envs/`, `rollout.py`, `grpo.py`)**:
-  - A rollout group is *one prompt repeated `--group_size` times*, never a batch of different
-    prompts. The model applies RoPE from `start_pos` and has no left-padding offset, so mixed-length
-    prompts cannot share a `generate` call. Multiple prompts per step are generated sequentially.
+  - A rollout group is *one prompt repeated `--group_size` times*. The model applies RoPE from
+    `start_pos` and has no left-padding offset, so mixed-length prompts cannot share a `generate`
+    call; `run_rollouts` buckets prompts **by length** and generates up to `max_rows` (128) rows of
+    equal-length prompts per call. Decoding a 100M model is overhead-bound (MPS: 11 ms a step at 1
+    row, 47 ms at 128), and 1–2 digit arithmetic prompts come in three lengths, so this made the
+    500-item greedy eval ~20x faster. `max_rows` bounds the prefill logits (128 × 71 × 32768 fp32
+    ≈ 1.2GB). Don't pad prompts to batch them: padding would shift every position.
+  - **Large rollout batches need `--micro_batch_size`.** The training-side forwards take the
+    whole batch at once otherwise: 32 prompts × 8 swapped a 48GB Mac solid without finishing a step
+    in 15 minutes, while `--micro_batch_size 32` ran at ~9 s a step.
   - Token ids returned by `generate` are produced under `inference_mode` and **must be cloned**
     before they feed a training forward pass, or embedding backward raises on the saved index
     tensor. `rollout.generate_group` already does this.
@@ -364,8 +377,28 @@ rather than duplicating commands here.
   - GRPO needs a policy that already emits the env's output format, otherwise every rollout scores
     0, every group has zero reward variance, and `grad_norm` is exactly 0. Cold start with SFT on
     `envs.generate_data --split sft` output first.
+  - **SFT and DPO rows carry the env's system prompt** (a leading `system` turn; a `system` field
+    for preference pairs), so they tokenize to exactly `rollout.build_prompt_ids`. Without it the
+    chat template inserts its default system prompt, and the cold start trains on a prompt GRPO
+    never shows. `SFTDataset` honours each turn's `role` (parity only when it is missing);
+    `tests/test_rollout.py` asserts the prefix equality for both datasets.
+  - **Held-out sets must be excluded explicitly.** 1–2 digit +/− has ~15k distinct problems and
+    draws a one-digit operand half the time: drawn independently, a 4000-row SFT set holds 55% of
+    a 500-row eval set's questions. `generate_data --exclude <task files>` drops them and
+    `--distinct` dedups an eval set; `scripts/arith_data.sh` builds test (reported once), dev
+    (watched, used for selection) and SFT / DPO / GRPO-prompt files without either, from fixed
+    seeds, so every machine regenerates identical files.
+  - **`eval_env.py` scores any checkpoint on a task file** the way GRPO's `eval_accuracy` does
+    (greedy, same parsing), broken down by `--group_by` metadata (default `op,n_digits`). Use it
+    for SFT-only / DPO-only baselines and the final test numbers.
+  - **Training is not bitwise reproducible on MPS**: two identical SFT runs (same seed and data)
+    scored 0.618 and 0.650 on the 500-item dev set. Compare GRPO variants from one SFT checkpoint
+    and over several seeds; `scripts/autodl/posttrain.sh` does both.
 - **`model.generate`/`_stream_generate` supports batch>1 with per-row EOS**: each row tracks its
   own `finished` flag; once a row hits `eos_token_id` it emits that real EOS token on the hit step
   and `pad_token_id` on every step after, while other rows keep generating until they finish or
   `max_new_tokens` is reached. Callers must truncate at each row's own EOS position themselves —
   the returned tensor is not automatically trimmed per row.
+- **`repetition_penalty` follows HF**: a seen token's positive logit is divided by the penalty and
+  a negative one multiplied. Dividing both, as the code once did, raised every seen token whose
+  logit was negative; `tests/test_generate.py` covers both signs.
