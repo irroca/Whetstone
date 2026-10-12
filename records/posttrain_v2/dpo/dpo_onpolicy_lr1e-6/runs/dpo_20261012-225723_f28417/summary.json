@@ -1,0 +1,20 @@
+{
+  "run_id": "dpo_20261012-225723_f28417",
+  "stage": "dpo",
+  "status": "completed",
+  "finished_at": "2026-10-12T22:58:49",
+  "duration_s": 85.83,
+  "logged_points": 7,
+  "tokens": 156124,
+  "tokens_per_s": 1819.0,
+  "last": {
+    "epoch": 1,
+    "dpo_loss": 0.6790409088134766,
+    "lr": 1e-07,
+    "grad_norm": 5.236201763153076
+  },
+  "best": {
+    "dpo_loss": 0.6652347564697265
+  },
+  "steps": 127
+}

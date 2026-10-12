@@ -1,0 +1,65 @@
+{
+  "checkpoint": "results/posttrain_v2/dpo/dpo_final.pth",
+  "eval_path": "datasets/arith_v1/test.jsonl",
+  "env": "arithmetic",
+  "max_new_tokens": 96,
+  "items": 500,
+  "reward_mean": 0.0028,
+  "reward_std": 0.0,
+  "accuracy": 0.002,
+  "format_rate": 0.004,
+  "hack_rate": 0.002,
+  "completion_len": 90.22799682617188,
+  "truncated_frac": 0.8519999980926514,
+  "by_group": {
+    "op=+ n_digits=1": {
+      "items": 51,
+      "accuracy": 0.0
+    },
+    "op=+ n_digits=2": {
+      "items": 211,
+      "accuracy": 0.004739336492890996
+    },
+    "op=- n_digits=1": {
+      "items": 44,
+      "accuracy": 0.0
+    },
+    "op=- n_digits=2": {
+      "items": 194,
+      "accuracy": 0.0
+    }
+  },
+  "examples": [
+    {
+      "question": "67 + 83",
+      "answer": "150",
+      "completion": "<think>把 83 拆成 80 和 3：67 + 80 = 147；147 + 3 = 150.3 = 150.MD = 3.73。</think><answer150.3 = 151.3 = 151.MD = 3.73。</answer151 = 3.7",
+      "correct": false
+    },
+    {
+      "question": "78 - 7",
+      "answer": "71",
+      "completion": "<think>78 - 7 = 65。65 - 7 = 59。</think><answer1 + 7 = 71。</answer1 + 7 = 78。</answer1 + 7 = 85。</answer1 + 7 = 92。</answer1 + 7 = 99。</answer1 + 7 = 105。</answer1 +",
+      "correct": false
+    },
+    {
+      "question": "25 - 1",
+      "answer": "24",
+      "completion": "<think>25 - 1 = 24 - 1 = 23 - 1 = 22 - 1 = 21。</think><answer1>21</answer1>",
+      "correct": false
+    },
+    {
+      "question": "46 - 0",
+      "answer": "46",
+      "completion": "<think>46 - 0 = 46 - 0 = 46。</think><answer1 + 0 = 1.</answer1 + 0 = 1.</answer1 + 0 = 1.</answer1 + 0 = 1.</answer1 + 0 = 1.</answer1 + 0 = 1.</answer1 + 0 = 1.</answer1 +",
+      "correct": false
+    },
+    {
+      "question": "74 - 3",
+      "answer": "71",
+      "completion": "<think>74 - 3 = 72。</think><answer1 + 3 = 75。</answer1 + 3 = 77。</answer1 + 3 = 79。</answer1 + 3 = 82。</answer1 + 3 = 85。</answer1 + 3 = 88。</answer1 + 3 = 91。</answer1 +",
+      "correct": false
+    }
+  ],
+  "seconds": 19.6
+}

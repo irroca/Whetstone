@@ -32,7 +32,9 @@
 之间分不出高低，原因也查清了：每批只更新一次时截断从不触发，回答长度几乎不变，剩下的差别只是梯度的
 尺度，被 AdamW 吸收了。唯一实在的差别是 DAPO-lite 跳过零方差组，省了 17% 的时间。权重存成私有仓库的
 `posttrain-v1` 组，记录在 `records/posttrain_v1/`，分析在 `docs/experiments.md`。
-**下一步**（步骤 7 末尾）：DPO-only 基线；换更难的题，让九成题组零方差的局面变成有用的信号；代码环境（§5 阶段 B）。
+DPO-only 基线也做了：手工损坏的偏好对对 SFT 策略太容易（它已经把 100% 的对排对），DPO 学不到东西；用策略自己采样的错误答案做
+on-policy 对，排序准确率从 82% 升到 85%，贪心准确率不动（test 0.576，SFT 是 0.628）。
+**下一步**（步骤 7 末尾）：换更难的题，让九成题组零方差的局面变成有用的信号；代码环境（§5 阶段 B）。
 
 基座模型的起点：4-shot 一位数加法 22%、两位数 2%。目标能力是两位数算术 + 简单 Python，算术这一半
 这一轮已经做到。除了正式预训练和这一轮后训练的结果，仓库里其余数字都是 29M 玩具规模的**实现验证**，
@@ -889,11 +891,10 @@ python3 pretrain.py --dim 768 --n_layers 12 --n_heads 12 --n_kv_heads 3 \
 
 **下一步**（按顺序；换电脑后先按 §6 的「换到新电脑」装好环境、取回权重）：
 
-1. **DPO-only 基线**，实验表里还空着的一行，Mac 上就能跑（2000 对）：
-   `python3 dpo.py --policy_path results/posttrain_v1/sft/sft_final.pth --tokenizer_path tokenizer/v1_32k
-   --data_path datasets/arith_v1/preference.jsonl --max_seq_len 128 --batch_size 16 --dtype bfloat16
-   --save_dir results/posttrain_v2/dpo`，再用 `eval_env.py` 在 dev / test 上打分。DPO 看偏好对的排序准确率，
-   别看 loss
+1. ~~**DPO-only 基线**~~ ✅ 已做（10-12，Mac 上，`records/posttrain_v2/`）。手工损坏的 2000 对：lr 1e-5 跑满一个 epoch 把格式打坏
+   （dev 0.000），lr 1e-6 与 SFT 无差别（test 0.626）；原因是 SFT 策略已经把留出的 500 对全部排对（对数概率差 51 nats），
+   DPO 只是拉大一个已经够大的差。换成 `mine_pairs.py` 从 SFT 策略自己的采样里挖的 2022 对（对的作 chosen、错的作 rejected），
+   lr 1e-6 的 dev 0.648、test 0.576：排序准确率 0.821 → 0.849，生成准确率没有跟着动。分析在 `docs/experiments.md`
 2. **换更难的题**：后期九成题组零方差，信号所剩无几。`generate_data --max_digits 3` 环境已支持；也可以按策略
    自己的解题率选题；乘法要在 `envs/arithmetic.py` 里加运算符。造新数据时给每种题型的 held-out 份额设上限
    （这一轮 dev / test 拿走了 155 道一位数题里的 134 道），或者把一位数单独报成泛化指标
@@ -910,10 +911,10 @@ python3 pretrain.py --dim 768 --n_layers 12 --n_heads 12 --n_kv_heads 3 \
 ## 5. 长期计划
 
 ### 阶段 A：把可验证任务做实 ✅ 第一轮完成
-- ~~100M 双语模型，预训练 + 后训练全链路跑通~~ 预训练、SFT、GRPO 已跑通；DPO 和 KD 还没在 100M 上跑
+- ~~100M 双语模型，预训练 + 后训练全链路跑通~~ 预训练、SFT、GRPO、DPO 已跑通；KD 还没在 100M 上跑
 - ~~算术任务上 GRPO 让 **accuracy 真正上升**（不只是 format rate）~~ 已坐实：test 0.628 → 0.948，12 个跑次、
   三个种子（§4 步骤 7）
-- 填满 `docs/experiments.md` 的消融表：还差 DPO-only、只给格式奖励、宽松解析三行（下一步见 §4 步骤 7 末尾）
+- 填满 `docs/experiments.md` 的消融表：DPO-only 已填；还差只给格式奖励、宽松解析两行（下一步见 §4 步骤 7 末尾）
 
 ### 阶段 B：第二个环境——代码任务
 `envs/base.py` 的 `TaskEnv` 接口已经留好（`sample_task` / `render` / `score`），加环境不用动

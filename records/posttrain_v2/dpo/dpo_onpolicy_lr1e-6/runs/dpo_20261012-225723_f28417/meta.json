@@ -1,0 +1,84 @@
+{
+  "run_id": "dpo_20261012-225723_f28417",
+  "stage": "dpo",
+  "started_at": "2026-10-12T22:57:23",
+  "command": "dpo.py --policy_path results/posttrain_v1/sft/sft_final.pth --tokenizer_path tokenizer/v1_32k --data_path datasets/arith_v1/onpolicy_pairs.jsonl --max_seq_len 128 --batch_size 16 --learning_rate 1e-6 --dtype bfloat16 --epochs 1 --seed 1 --save_dir results/posttrain_v2/dpo_onpolicy_lr1e-6 --save_step 0 --log_step 25",
+  "args": {
+    "save_dir": "results/posttrain_v2/dpo_onpolicy_lr1e-6",
+    "epochs": 1,
+    "batch_size": 16,
+    "learning_rate": 1e-06,
+    "weight_decay": 0.1,
+    "adam_beta1": 0.9,
+    "adam_beta2": 0.95,
+    "max_steps": 0,
+    "device": "mps",
+    "use_wandb": false,
+    "wandb_project": "Whetstone-DPO",
+    "dtype": "bfloat16",
+    "num_workers": 0,
+    "accumulation_steps": 1,
+    "grad_clip": 1.0,
+    "log_step": 25,
+    "save_step": 0,
+    "max_seq_len": 128,
+    "data_path": "datasets/arith_v1/onpolicy_pairs.jsonl",
+    "val_data_path": "",
+    "val_every": 200,
+    "val_batches": 20,
+    "resume_from": null,
+    "seed": 1,
+    "tokenizer_path": "tokenizer/v1_32k",
+    "dim": null,
+    "n_layers": null,
+    "n_heads": null,
+    "n_kv_heads": null,
+    "hidden_dim": null,
+    "multiple_of": null,
+    "norm_eps": null,
+    "rope_theta": null,
+    "dropout": null,
+    "policy_path": "results/posttrain_v1/sft/sft_final.pth",
+    "ref_path": "results/posttrain_v1/sft/sft_final.pth",
+    "beta": 0.1,
+    "total_steps": 127
+  },
+  "env": {
+    "python": "3.12.13",
+    "torch": "2.14.0",
+    "platform": "macOS-26.5.2-arm64-arm-64bit",
+    "machine": "arm64",
+    "hostname": "redacted",
+    "device": "mps",
+    "accelerator": "arm"
+  },
+  "git": {
+    "commit": "2465868bbc56c3465e8b5387b2b166215be5cba4",
+    "branch": "posttrain-dpo",
+    "dirty": true
+  },
+  "data": [
+    {
+      "path": "datasets/arith_v1/onpolicy_pairs.jsonl",
+      "bytes": 812108,
+      "modified": "2026-10-12T22:56:26",
+      "head_sha": "26a85e9deff2f7a76a62b2ba9ec67425"
+    }
+  ],
+  "extra": {
+    "beta": 0.1,
+    "ref_path": "results/posttrain_v1/sft/sft_final.pth"
+  },
+  "model": {
+    "dim": 768,
+    "n_layers": 12,
+    "n_heads": 12,
+    "n_kv_heads": 3,
+    "hidden_dim": 2048,
+    "vocab_size": 32768,
+    "max_seq_len": 128,
+    "dropout": 0.0,
+    "rope_theta": 1000000.0,
+    "params": 99502848
+  }
+}
