@@ -147,7 +147,8 @@ HF_HUB_OFFLINE=1 python3 -m pytest tests/ -q      # Mac 上 512 passed、1 skipp
 | [#16](https://github.com/irroca/Whetstone/pull/16) | `scripts/autodl/`：续传上传、实例上校验、CPU 预检、开卡后的 bench / 试跑 / 正式启动 | 已合并（squash）|
 | [#17](https://github.com/irroca/Whetstone/pull/17) | H800 上的吞吐优化（损失一起编译、实数 RoPE、原生 GQA、cuDNN 注意力），正式预训练开跑 | 已合并（squash）|
 | [#18](https://github.com/irroca/Whetstone/pull/18) | nvidia-smi 的 100% 和 45GB 说明了什么、没说明什么；正式预训练中途检查 | 已合并（squash）|
-| [#19](https://github.com/irroca/Whetstone/pull/19) | 预训练收尾：`records/`、私有仓库里的权重和语料（`docs/artifacts.md`）、`fetch_artifacts.sh` | 待合并 |
+| [#19](https://github.com/irroca/Whetstone/pull/19) | 预训练收尾：`records/`、私有仓库里的权重和语料（`docs/artifacts.md`）、`fetch_artifacts.sh` | 已合并（squash）|
+| [#20](https://github.com/irroca/Whetstone/pull/20) | 交接文档：GitHub 上的产物也齐了 | 待合并 |
 
 **教训**：stacked PR 要么严格按自下而上的顺序合，要么在合之前把上层 PR 的 base 直接改成 `main`。
 `squash` 合并会切断祖先关系，所以一旦顺序错了，后续那个 PR 的内容不会自动跟过来，
@@ -692,11 +693,10 @@ grad norm 中位数 0.31、最大 0.57；含验证和存档平均每步 1.569 �
 仓库（`docs/artifacts.md`）。断点里的模型权重和最终权重逐个张量相同。没留的只有第 18,500 次更新的中间断点
 `latest_checkpoint.pth`。
 
-**GitHub 还缺一段**（10-12 11:10）：魔搭上每个文件都齐了，默认就从魔搭拉。GitHub 上缺训练集 6 段压缩包里的
-`part-ae`，往 GitHub 传大文件经常 408（上传无活动超时），试了 12 次都没成，后台每 30 分钟再试一次；其余文件都和
-`SHA256SUMS` 对得上。所以只有“接着预训练、又只能用 GitHub”时才受影响。完整副本还在本机 `results/artifacts/`，
-GitHub 补齐之前别删；AutoDL 实例上已经没有别处没有的东西了。缺文件时 `fetch_artifacts.sh` 会列出来并退出，
-不会只放一部分。
+**两个仓库都齐了**（10-12 11:13）：三组产物在魔搭和 GitHub 上都和各自的 `SHA256SUMS` 对得上（GitHub 那边按
+它给每个文件算的 SHA-256 核对），默认从魔搭拉。往 GitHub 传大文件经常 408（上传无活动超时），训练集的
+`part-ae` 到这时才传上去。本机 `results/artifacts/` 里的副本和 AutoDL 实例上都没有别处没有的东西了。
+缺文件时 `fetch_artifacts.sh` 会列出来并退出，不会只放一部分。
 
 **正式命令**（`scripts/autodl/pretrain.sh` 跑的就是这条；`batch_size × accumulation_steps × 2047`
 保持约 50 万 token，共 18,919 次更新）：
