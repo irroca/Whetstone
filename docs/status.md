@@ -692,11 +692,11 @@ grad norm 中位数 0.31、最大 0.57；含验证和存档平均每步 1.569 �
 仓库（`docs/artifacts.md`）。断点里的模型权重和最终权重逐个张量相同。没留的只有第 18,500 次更新的中间断点
 `latest_checkpoint.pth`。
 
-**还没传完**（10-12 08:00）：这台电脑换了网络之后，往两个仓库传大文件都经常中途超时，失败一次整个文件重来，
-2GB 的分段要试好几次才成一次。带优化器状态的断点两边都还没有；训练集的 6 段压缩包，魔搭缺 `part-ab`、`part-ac`，GitHub 缺
-`part-ac`、`part-ae`、`part-af`。这些只在接着预训练时用到，后训练需要的（基座模型、验证集、留出集、评测集、
-消融模型）两边都齐了。完整副本还在本机 `results/artifacts/` 和 AutoDL 实例的数据盘上，补齐之前两处都别删，
-实例也别释放。缺文件时 `fetch_artifacts.sh` 会列出来并退出，不会只放一部分。
+**GitHub 还缺两段**（10-12 10:45）：魔搭上每个文件都齐了，默认就从魔搭拉。GitHub 上缺训练集 6 段压缩包里的
+`part-ae`、`part-af`，往 GitHub 传大文件经常 408（上传无活动超时），各试了 12 次都没成；其余文件都和
+`SHA256SUMS` 对得上。所以只有“接着预训练、又只能用 GitHub”时才受影响。完整副本还在本机 `results/artifacts/`，
+GitHub 补齐之前别删；AutoDL 实例上已经没有别处没有的东西了。缺文件时 `fetch_artifacts.sh` 会列出来并退出，
+不会只放一部分。
 
 **正式命令**（`scripts/autodl/pretrain.sh` 跑的就是这条；`batch_size × accumulation_steps × 2047`
 保持约 50 万 token，共 18,919 次更新）：
