@@ -156,6 +156,26 @@ def test_build_rows_emits_expected_schemas():
     assert all({"question", "answer"} <= set(r) for r in evals)
 
 
+def test_build_rows_can_exclude_questions_and_repeat_none():
+    held_out = {r["question"] for r in build_rows(ArithmeticEnv(seed=7), "eval", 300, random.Random(7))}
+    rows = build_rows(ArithmeticEnv(seed=0), "eval", 2000, random.Random(0), exclude=held_out, distinct=True)
+
+    questions = [r["question"] for r in rows]
+    assert len(questions) == 2000 == len(set(questions))
+    assert not held_out & set(questions)
+
+
+def test_build_rows_defaults_to_the_plain_env_draws():
+    rows = build_rows(ArithmeticEnv(seed=5), "eval", 50, random.Random(5))
+    assert [r["question"] for r in rows] == [t.question for t in ArithmeticEnv(seed=5).sample(50)]
+
+
+def test_build_rows_raises_when_the_env_runs_out_of_distinct_tasks():
+    # one-digit operands give 100 sums and 55 non-negative differences
+    with pytest.raises(ValueError, match="only 155 of 200"):
+        build_rows(ArithmeticEnv(seed=0, max_digits=1), "eval", 200, random.Random(0), distinct=True)
+
+
 def test_build_rows_rejects_unknown_split():
     with pytest.raises(ValueError):
         build_rows(ArithmeticEnv(seed=0), "rlhf", 1, random.Random(0))
