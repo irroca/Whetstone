@@ -1,0 +1,79 @@
+{
+  "run_id": "sft_20261012-113939_e44004",
+  "stage": "sft",
+  "started_at": "2026-10-12T11:39:39",
+  "command": "sft.py --pretrained_path results/pretrain_v2/pretrain_final.pth --tokenizer_path tokenizer/v1_32k --data_path datasets/arith_v1/sft.jsonl --max_seq_len 128 --batch_size 32 --epochs 1 --learning_rate 1e-4 --dtype bfloat16 --log_step 10 --save_step 100000 --save_dir results_smoke/posttrain/sft_e1",
+  "args": {
+    "save_dir": "results_smoke/posttrain/sft_e1",
+    "epochs": 1,
+    "batch_size": 32,
+    "learning_rate": 0.0001,
+    "weight_decay": 0.1,
+    "adam_beta1": 0.9,
+    "adam_beta2": 0.95,
+    "max_steps": 0,
+    "device": "mps",
+    "use_wandb": false,
+    "wandb_project": "Whetstone-SFT",
+    "dtype": "bfloat16",
+    "num_workers": 0,
+    "accumulation_steps": 1,
+    "grad_clip": 1.0,
+    "log_step": 10,
+    "save_step": 100000,
+    "max_seq_len": 128,
+    "data_path": "datasets/arith_v1/sft.jsonl",
+    "val_data_path": "",
+    "val_every": 200,
+    "val_batches": 20,
+    "resume_from": null,
+    "seed": 1337,
+    "tokenizer_path": "tokenizer/v1_32k",
+    "dim": null,
+    "n_layers": null,
+    "n_heads": null,
+    "n_kv_heads": null,
+    "hidden_dim": null,
+    "multiple_of": null,
+    "norm_eps": null,
+    "rope_theta": null,
+    "dropout": null,
+    "pretrained_path": "results/pretrain_v2/pretrain_final.pth",
+    "total_steps": 125
+  },
+  "env": {
+    "python": "3.12.13",
+    "torch": "2.14.0",
+    "platform": "macOS-26.5.2-arm64-arm-64bit",
+    "machine": "arm64",
+    "hostname": "redacted",
+    "device": "mps",
+    "accelerator": "arm"
+  },
+  "git": {
+    "commit": "50081c8815dbb1fb94a72f8e47ab2e5ae645616e",
+    "branch": "posttrain-prep",
+    "dirty": true
+  },
+  "data": [
+    {
+      "path": "datasets/arith_v1/sft.jsonl",
+      "bytes": 1585493,
+      "modified": "2026-10-12T11:39:00",
+      "head_sha": "e5615b77d1876297d0a0b9cc5470c71c"
+    }
+  ],
+  "extra": {},
+  "model": {
+    "dim": 768,
+    "n_layers": 12,
+    "n_heads": 12,
+    "n_kv_heads": 3,
+    "hidden_dim": 2048,
+    "vocab_size": 32768,
+    "max_seq_len": 128,
+    "dropout": 0.0,
+    "rope_theta": 1000000.0,
+    "params": 99502848
+  }
+}

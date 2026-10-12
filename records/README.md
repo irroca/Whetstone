@@ -1,6 +1,6 @@
 # records：重要运行的原始记录
 
-每次重要运行留下的文本记录都在这里，共 1.6 MB，`git clone` 就有，复盘不需要下载任何大文件。
+每次重要运行留下的文本记录都在这里，共 9.2 MB，`git clone` 就有，复盘不需要下载任何大文件。
 权重和语料在私有仓库里，每个文件的说明和取回方法见 [`docs/artifacts.md`](../docs/artifacts.md)。
 
 目录结构和 `results/` 一致，每个运行都有 `runs/<运行 ID>/{meta.json, metrics.jsonl, summary.json}`，可以直接用 `analyze_runs.py` 读：
@@ -10,10 +10,13 @@ python analyze_runs.py list records/pretrain_v2 records/ablation_v1/*
 python analyze_runs.py show records/pretrain_v2
 python analyze_runs.py compare records/ablation_v1/* --metric loss --split val
 python analyze_runs.py plot records/pretrain_v2 --out pretrain_v2.html
+python analyze_runs.py compare records/posttrain_v1/*_s1 --metric accuracy --split val      # 四种 GRPO 变体在 dev 上的曲线
+python analyze_grpo.py records/posttrain_v1/grpo_s1/grpo_metrics.jsonl records/posttrain_v1/dapo_lite_s1/grpo_metrics.jsonl --window 50
 ```
 
-**脱敏**：消融（`ablation_v1/`）跑在一台不便公开的电脑上，记录里的绝对路径改成了相对仓库根目录的路径，主机名换成了 `redacted`，
-其余内容原样保留；未改动的原件在私有仓库的 `ablation_v1-records.tar.gz` 里。其他目录的记录是在 AutoDL 实例上写的，没有改动。
+**脱敏**：消融（`ablation_v1/`）和 Mac 上的后训练冒烟（`posttrain_mac_smoke/`）跑在一台不便公开的电脑上，记录里的绝对路径改成了相对仓库根目录的路径，
+主机名换成了 `redacted`，其余内容原样保留；未改动的原件在私有仓库的 `ablation_v1-records.tar.gz` 和 `posttrain_v1-records.tar.gz` 里。
+其他目录的记录是在 AutoDL 实例上写的，没有改动。
 
 ## pretrain_v2/：正式预训练（2026-10-11，H800 PCIe）
 
@@ -74,3 +77,46 @@ python analyze_runs.py plot records/pretrain_v2 --out pretrain_v2.html
 | `sources/*.jsonl.done.json` | 每个来源的拉取报告：参数、预算、实际拉到的量、分词器指纹 |
 | `train.meta.json`、`val.meta.json`、`holdout.meta.json` | 三个划分分词后的 token 数、文档数和各来源的量 |
 | `SHA256SUMS` | 分词后文件（`train.bin`、`val.bin`、`holdout.jsonl` 等）的 SHA-256，取回语料后用来核对 |
+
+## posttrain_v1/：第一轮后训练（2026-10-12，RTX 4090）
+
+SFT 一次，再从同一个 SFT 权重跑 4 种 GRPO 变体 × 3 个种子，结果和分析在 `docs/experiments.md` 的 Ablation grid 一节，
+权重在私有仓库的 `posttrain-v1` 组。
+
+| 文件 | 是什么 |
+|---|---|
+| `run.log` | `scripts/autodl/posttrain.sh` 的完整日志：造数据（含 5 个题目文件的 sha256）、SFT、12 个 GRPO 跑次的训练日志和每次评测，最后是汇总表 |
+| `gpu.csv` | 每 10 秒一次 `nvidia-smi`：GPU 利用率、显存、功耗，覆盖整个运行 |
+| `SHA256SUMS` | 在服务器上算的 13 份权重的 SHA-256，用来核对取回的权重 |
+| `sft/` | SFT 的 `runs/<运行 ID>/`（命令、参数、git commit、逐步 loss）、`dev.json` / `test.json`（`eval_env.py` 的打分）、`sft_final.config.json` |
+| `<变体>_s<种子>/grpo_metrics.jsonl` | 每步一行训练指标（奖励、准确率、零方差组比例、熵、KL、grad norm、每步秒数），每 25 步一行 dev 评测；`analyze_grpo.py` 读它 |
+| `<变体>_s<种子>/runs/<运行 ID>/` | 同一份指标的 `analyze_runs.py` 格式，加上 meta 和 summary |
+| `<变体>_s<种子>/dev.json`、`test.json` | 最终策略在 dev 和 test 上的贪心准确率、按题型拆开的准确率、前 5 个样例 |
+| `<变体>_s<种子>/grpo_final.config.json` | 模型结构，与私有仓库里权重旁边的那份相同 |
+| `summarize.py` | 由上面这些文件重算 `docs/experiments.md` 里后训练的每个数字：每个跑次和每种变体的准确率（按题型拆开）、变体之间的 Welch t、训练动态的分段均值、dev 曲线、每次跑的耗时和显存。只用标准库：`python3 records/posttrain_v1/summarize.py` |
+
+## posttrain_trial/：正式后训练之前的试跑（同一台 4090）
+
+| 文件 | 是什么 |
+|---|---|
+| `run.log`、`gpu.csv` | `OUT=… STEPS=20 VARIANTS=grpo bash scripts/autodl/posttrain.sh` 的日志和 GPU 监控 |
+| `sft/` | 试跑的 SFT，dev / test 和正式跑逐位相同（CUDA 上 SFT 可复现） |
+| `grpo_s1/` | 20 步的 GRPO：dev 从 0.636 掉到 0.588（20 步的余弦调度第 2 步就到满学习率） |
+| `probe_mac_config/`、`probe_mac_config.log` | 照 Mac 冒烟的设置跑的 100 步诊断，dev 升到 0.764，确认 CUDA 上没有问题 |
+
+## autodl_4090/：4090 实例的环境
+
+`environment/` 下：`tests.log`（实例上的全量单测，522 passed、1 skipped）、`pip_freeze.txt`、`versions.txt`（Python 3.12.3、torch 2.8.0+cu128、
+transformers 5.19.0、Ubuntu 22.04、RTX 4090 24GB）。AutoDL 面板的监控数据库只在私有仓库的 `posttrain_v1-records.tar.gz` 里。
+
+## posttrain_mac_smoke/：Mac 上的后训练冒烟（2026-10-12，Apple M5 Pro，已脱敏）
+
+`docs/experiments.md` 的 Mac smoke 一节由这些记录得出。
+
+| 目录 | 是什么 |
+|---|---|
+| `sft_e1/` | SFT 1 个 epoch（65 秒），dev 0.618 |
+| `grpo_probe_lr1e5/` | 100 步 GRPO 探测（lr 1e-5），dev 0.618 → 0.778；`train.log` 是完整日志 |
+| `grpo_smoke/` | 流程冒烟：30 步、每步 8 题 × 8 条，rollout 分桶之前，每步平均 5.6 秒 |
+| `grpo_timing_b8/` | 同样 8 × 8，分桶之后：8 步，每步平均 3.2 秒 |
+| `grpo_timing_b32/` | 每步 32 × 8 的两次：训练侧不分块的那次（`runs/*_0dd6ae`）把内存换页换满，7 步里每步 22–153 秒，中途停掉，所以没有 `summary.json`；`--micro_batch_size 32` 的那次（`runs/*_26bf7a`）4 步，每步 8.5–9.2 秒 |

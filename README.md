@@ -819,7 +819,7 @@ LLMConfig(dim=512, n_layers=8, n_heads=8, n_kv_heads=8, vocab_size=6400, max_seq
 - **只有等长的 prompt 能同批生成**：模型没有 left-padding 的 RoPE 偏移。`run_rollouts` 按 prompt 长度
   分桶，长度各不相同的 prompt 仍然逐个生成。
 - **GRPO 的大 batch 要配 `--micro_batch_size`**：rollout 是分桶生成的，但训练前向默认一次吃下整批。
-  32 道题 × 8 条在 Mac（48GB）上不分块会把内存换页换满，15 分钟一步都没跑完；`--micro_batch_size 32`
+  32 道题 × 8 条在 Mac（48GB）上不分块会把内存换页换满，每步 22–153 秒；`--micro_batch_size 32`
   时每步约 9 秒，内存只多占约 16GB。分块和整批的 loss 相同（有单测）。
 - **`--top_p < 1` 时训练数据严格来说是 off-policy 的**：采样分布被截断过，而重要性比用的是
   策略自身分布。默认 `--top_p 1.0` 就是为了避免这个偏差。

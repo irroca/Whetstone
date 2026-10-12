@@ -172,27 +172,121 @@ Every step appends one JSON line to `{save_dir}/grpo_metrics.jsonl`. Plot at min
 | `entropy` | Collapse detector; watch it against `kl` when `--kl_coeff 0` |
 | `completion_len` | Length drift / reward-shaping side effects |
 
-## Ablation grid (fill in from your runs)
+## Ablation grid: 4 variants × 3 seeds on the 100M model (RTX 4090, 2026-10-12)
 
-| Run | Change | eval acc | format | hack | silent | entropy @ end |
-|-----|--------|----------|--------|------|--------|---------------|
-| SFT only | baseline, no RL | | | | — | |
-| DPO only | offline pairs from the same env | | | | — | |
-| GRPO | default (`seq_mean`, std-norm, no KL) | | | | | |
-| GRPO + KL | `--kl_coeff 0.02` | | | | | |
-| Dr. GRPO | `--normalize_advantage_std False --aggregation dr_grpo` | | | | | |
-| DAPO-lite | `--filter_zero_variance True --clip_eps_high 0.28 --aggregation token_mean` | | | | | |
-| Format-only reward | `--format_weight 0.2 --accuracy off` (edit env weights) | | | | | |
-| Lenient parse | `--strict_answer False` | | | | | |
+`SEEDS="1 2 3" bash scripts/autodl/start_posttrain.sh` at commit `58c7bb0`, 15:55–19:39 (3.7 h) on one
+RTX 4090 24GB. One SFT run (4000 rows, 1 epoch = 125 steps, batch 32, lr 1e-4, 13 s of training) from
+the pretrained base; then 12 GRPO runs from that same SFT checkpoint, 500 steps each: 32 prompts × 8
+samples per step at temperature 1.0, lr 1e-5 with 10% warmup and cosine to 1e-6, `--micro_batch_size
+64`, `--max_new_tokens 96`, a 500-item dev evaluation every 25 steps. Every final policy was then
+scored once with `eval_env.py` (greedy) on dev and on test. Records are in `records/posttrain_v1/`,
+the 13 checkpoints in the `posttrain-v1` artifact group (`docs/artifacts.md`).
 
-Questions worth answering with this grid, in rough order of how interesting the answer is:
+| Run | Change | test acc, seeds 1 / 2 / 3 | test mean | dev mean | format | hack (test) | silent, steps 301–500 | entropy, steps 301–500 | minutes / run |
+|-----|--------|------|------|------|------|------|------|------|------|
+| SFT only | baseline, no RL | 0.628 | — | 0.636 | 1.000 | 0.372 | — | — | 13 s |
+| DPO only | offline pairs from the same env | not run yet | | | | | — | | |
+| GRPO | default (`seq_mean`, std-norm, no KL) | 0.954 / 0.944 / 0.944 | 0.947 | 0.973 | 1.000 | 0.053 | 0.90 | 0.0040 | 19.6 |
+| GRPO + KL | `--kl_coeff 0.02` | 0.946 / 0.938 / 0.942 | 0.942 | 0.972 | 1.000 | 0.058 | 0.89 | 0.0033 | 19.8 |
+| Dr. GRPO | `--normalize_advantage_std False --aggregation dr_grpo` | 0.948 / 0.954 / 0.962 | **0.955** | 0.969 | 1.000 | 0.045 | 0.91 | 0.0031 | 18.8 |
+| DAPO-lite | `--filter_zero_variance True --clip_eps_high 0.28 --aggregation token_mean` | 0.950 / 0.954 / 0.944 | 0.949 | **0.977** | 1.000 | 0.051 | 0.92 | (0.0111, see below) | **16.3** |
+| Format-only reward | `--format_weight 0.2 --accuracy off` (edit env weights) | not run | | | | | | | |
+| Lenient parse | `--strict_answer False` | not run | | | | | | | |
 
-1. Does accuracy move at all, or does the policy only climb the format reward?
-2. How large is `silent_group_frac`, and does dropping those groups (`--filter_zero_variance`)
-   buy real throughput at the same step count?
-3. Does the std divisor in the advantage matter at this scale (GRPO vs Dr. GRPO)?
-4. Without a KL anchor, does entropy collapse before accuracy improves?
-5. Does `--strict_answer False` reveal correct answers hidden behind format failures?
+(Format is 1.000 everywhere, so hack = 1 − accuracy. Minutes per run include start-up and the final
+dev and test scoring.) Test accuracy by problem type, averaged over the three seeds:
+
+| Greedy test accuracy | all 500 | 1d + | 2d + | 1d − | 2d − |
+|---------------------|--------:|-----:|-----:|-----:|-----:|
+| items | 500 | 51 | 211 | 44 | 194 |
+| SFT | 0.628 | 0.608 | 0.763 | 0.455 | 0.526 |
+| GRPO | 0.947 | 0.895 | 0.987 | 0.697 | 0.974 |
+| GRPO + KL | 0.942 | 0.850 | 0.983 | 0.705 | 0.976 |
+| Dr. GRPO | 0.955 | 0.869 | 0.991 | 0.780 | 0.978 |
+| DAPO-lite | 0.949 | 0.902 | 0.984 | 0.712 | 0.978 |
+| all 12 runs | 0.948 | 0.879 | 0.986 | 0.723 | 0.976 |
+
+Dev accuracy during training, averaged over the three seeds:
+
+| step | 0 | 50 | 100 | 150 | 200 | 300 | 400 | 500 |
+|------|---|----|-----|-----|-----|-----|-----|-----|
+| GRPO | 0.636 | 0.686 | 0.790 | 0.855 | 0.908 | 0.940 | 0.961 | 0.973 |
+| GRPO + KL | 0.636 | 0.679 | 0.795 | 0.864 | 0.909 | 0.944 | 0.957 | 0.972 |
+| Dr. GRPO | 0.636 | 0.699 | 0.780 | 0.863 | 0.905 | 0.945 | 0.957 | 0.969 |
+| DAPO-lite | 0.636 | 0.683 | 0.787 | 0.865 | 0.910 | 0.951 | 0.967 | 0.977 |
+
+The questions this grid was meant to answer, in rough order of how interesting the answer is:
+
+1. **Does accuracy move at all, or does the policy only climb the format reward?** It moves: test
+   accuracy goes from 0.628 to 0.938–0.962 in all 12 runs, while format was already 1.000 after SFT
+   and stays there, and the mean completion stays at 36 tokens on dev (32 on test, which holds more
+   one-digit problems with shorter answers), as after SFT. Two-digit problems are nearly solved
+   (2d + 0.986, 2d − 0.976 over all runs). This is what the 29M runs below never managed.
+2. **How large is `silent_group_frac`, and does dropping those groups buy throughput?** It rises
+   from 0.37 in the first 50 steps to 0.90–0.92 over the last 200 in every variant: by then nine
+   groups in ten are all correct and carry no gradient. DAPO-lite skips them in the training forward
+   and backward, so its steps get cheaper as training goes on (1.92 → 1.71 s, against 2.05–2.26 s for
+   the others): 16.3 minutes a run instead of 18.8–19.8, at no cost in accuracy. Over the last 200
+   steps it trained on 2.4–2.7 of the 32 groups a step, and in 11–16 steps of each run, all after
+   step 240, no group was left and no update was made. A harder prompt mix
+   (three digits, or prompts chosen by the policy's own solve rate) would turn that idle 90% into signal.
+3. **Does the std divisor matter (GRPO vs Dr. GRPO)?** Not measurably, and neither does any other
+   difference between the four variants. Their test means span 0.942–0.955, the seed standard
+   deviation within a variant is 0.4–0.7 points, and one 500-item score near 0.95 has a binomial
+   standard error of about 1 point. Dev and test rank the variants differently (dev: DAPO-lite >
+   GRPO > GRPO + KL > Dr. GRPO; test: Dr. GRPO > DAPO-lite > GRPO > GRPO + KL), and the widest pair
+   on test (Dr. GRPO against GRPO + KL) gives Welch's t ≈ 2.7 on about 3 degrees of freedom, p ≈ 0.07
+   before correcting for six comparisons. Selecting on dev, as the protocol says, picks `dapo_lite_s1`
+   (dev 0.982), which scores 0.950 on test. Three properties of this setup explain why nothing separates:
+   - **Clipping never fires.** `--ppo_epochs 1` makes each rollout batch one update, and the old
+     log-probs are recomputed from the same weights just before it, so the importance ratio is
+     exactly 1 and `clip_frac` was 0.000 at every step of every run. DAPO's clip-higher
+     (`--clip_eps_high 0.28`) is a no-op here; it only matters with `--ppo_epochs > 1` or stale rollouts.
+   - **Completion length barely varies** (the SFT template fixes it near 36 tokens), so the
+     per-sequence length normalization that Dr. GRPO removes and DAPO's token-level average weight
+     the sequences almost identically. Their motivation, length bias, has nothing to act on.
+   - **What remains is gradient scale, which AdamW absorbs.** Pre-clip gradient norms over steps
+     301–500: GRPO 0.35; Dr. GRPO 0.05, about 7× smaller (no std divisor, and a constant 96-token
+     denominator instead of the ~36-token sequence length); DAPO-lite 4.3, about 12× larger (silent
+     groups leave its denominator, and 1 / (1 − 0.92) ≈ 12), so `--grad_clip 1.0` clips every late
+     step. Adam divides by the running RMS of the gradient, so a constant rescaling leaves the update
+     nearly unchanged, and the four dev curves above coincide.
+4. **Without a KL anchor, does entropy collapse before accuracy improves?** No. Per-token entropy of
+   the sampled completions falls from 0.028 to 0.003–0.004 with or without KL, while accuracy climbs
+   the whole way and nothing degenerates. The 0.02 KL term holds the policy at KL ≈ 0.019 from the
+   SFT model and costs half a point of test accuracy, which is within noise. Unlike the 29M runs
+   below, where zero reward was an absorbing state, this SFT policy starts at 63% accuracy with
+   mixed groups, so there is no collapse for the anchor to prevent.
+   **DAPO-lite's entropy is not comparable**: its filter runs before the training forward, so its
+   entropy is averaged over the non-silent groups only, the prompts the policy is still unsure
+   about (a step with no group left logs 0). It is higher from the first 50 steps (0.034 against
+   0.028), when only 37% of groups are filtered. Comparing entropy across variants needs it logged
+   over the whole batch, before filtering.
+5. **Does `--strict_answer False` reveal correct answers hidden behind format failures?** Not run:
+   with format at 1.000 from the SFT start, there are no format failures to look behind.
+
+**One-digit problems test generalization, not the easy cases.** There are only 100 one-digit sums
+and 55 one-digit differences with a non-negative result, and dev and test, drawn from the env's
+distribution, take most of them: test holds 51 + 44 and dev 30 + 9. What is left for training is 19
+distinct one-digit sums and **2** one-digit differences in the GRPO prompt pool, and 21 one-digit
+questions in the SFT set. Accordingly they are the weakest groups after RL (1d + 0.879, 1d − 0.723
+over all 12 runs, against at least 0.976 for two digits) and the most seed-dependent (1d − ranges
+0.636–0.864 over its 44 items): the policies learned two-digit arithmetic and carry it over to one
+digit imperfectly. A next data build should cap the held-out share of each stratum, or report the
+one-digit groups as a separate generalization number.
+
+**Reproducibility and the trial.** On CUDA the SFT run is deterministic: the trial and the formal run
+(same command and seed) ended at the same loss (0.0237) with the same dev / test scores (0.636 /
+0.628), unlike MPS. In the trial, 20 GRPO steps took dev from 0.636 to 0.588; that run's cosine
+schedule was computed over 20 steps, so it reached the full learning rate at step 2. A diagnostic
+with the Mac smoke's settings (100 steps, `--max_new_tokens 64`, micro-batch 32) rose to 0.764, and
+every formal run, warmed up over 50 steps, was already above the SFT score at its first evaluation
+(0.658–0.682 at step 25). On the 4090 a GRPO step took 2.1–2.3 s (DAPO-lite 1.7–1.9) and the
+median GPU utilization was 52%: decoding a 100M model is bound by kernel-launch overhead, not by
+the GPU. The memory PyTorch's caching allocator reserved levelled off within each run's first three
+minutes, at 15.2–22.9 GiB of the 24 GiB depending on the run, and no run ran out.
+`records/posttrain_v1/summarize.py` recomputes these and every other number in this section from
+the committed records.
 
 ## Mac smoke on the 100M model (dev set only)
 
@@ -223,7 +317,8 @@ below never got. Dev accuracy at steps 0 / 25 / 50 / 75 / 100 was 0.618 / 0.692 
 0.778, still rising when the cosine schedule ended. 73% of the SFT policy's 8-sample groups were
 mixed, `silent_group_frac` stayed at 0.38–0.46 per 25-step window, and entropy fell from 0.027 to
 0.020. A second SFT run with the same seed and data scored 0.650: MPS training is not bitwise
-reproducible, so variants are compared from one SFT checkpoint and over several seeds.
+reproducible, so variants are compared from one SFT checkpoint and over several seeds. The run
+records are in `records/posttrain_mac_smoke/` (`sft_e1`, `grpo_probe_lr1e5`, plus the short timing runs).
 
 ## Recorded CPU runs (implementation validation, **not** a quality claim)
 
@@ -317,6 +412,9 @@ this model scale the only way out is for the accuracy component to start produci
 1. A cold start strong enough that accuracy has nonzero variance (bigger model or far more SFT data)
    — without it, GRPO can only optimize format. Done with the 100M model: see the Mac smoke above.
 2. `--filter_zero_variance True` on run C: the U shape says roughly half the late-run compute is
-   producing exactly zero gradient.
+   producing exactly zero gradient. Done on the 100M model as part of DAPO-lite: late in training 90%
+   of groups are silent, and skipping them cut a run's wall clock by 17% at the same accuracy (grid above).
 3. An entropy floor or `--clip_eps_high` (DAPO clip-higher) as an alternative to the KL anchor, to
    test whether the collapse in run B is specifically a KL problem or a general exploration problem.
+   Clip-higher needs `--ppo_epochs > 1` to do anything: with one update per rollout batch the ratio is
+   exactly 1 and nothing is ever clipped (`clip_frac` was 0 in all 12 runs of the grid).

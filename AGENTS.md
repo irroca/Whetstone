@@ -104,8 +104,9 @@ rather than duplicating commands here.
   `datatools.prepare`, or generate synthetic task data with `envs.generate_data`; the committed
   `tests/fixtures/*.jsonl` are enough for a CPU smoke of every stage.
   - **Small run records are committed under `records/`** (the formal pretrain, the H800 benchmarks,
-    the ablation, the corpus build reports), laid out like `results/` so `analyze_runs.py` reads
-    them; `records/README.md` says what each file is. Records written on a machine that must not be
+    the ablation, the corpus build reports, the first post-training round on a 4090), laid out like
+    `results/` so `analyze_runs.py` reads them; `records/README.md` says what each file is, and
+    `records/posttrain_v1/summarize.py` recomputes every post-training number in `docs/experiments.md`. Records written on a machine that must not be
     named publicly are redacted (absolute paths made relative, hostname `redacted`).
   - **Weights, tokenized corpora and raw records live in two private artifact repos** with the same
     content: ModelScope `irroca/whetstone-artifacts` (folders) and GitHub `irroca/whetstone-artifacts`
@@ -361,8 +362,8 @@ rather than duplicating commands here.
     500-item greedy eval ~20x faster. `max_rows` bounds the prefill logits (128 × 71 × 32768 fp32
     ≈ 1.2GB). Don't pad prompts to batch them: padding would shift every position.
   - **Large rollout batches need `--micro_batch_size`.** The training-side forwards take the
-    whole batch at once otherwise: 32 prompts × 8 swapped a 48GB Mac solid without finishing a step
-    in 15 minutes, while `--micro_batch_size 32` ran at ~9 s a step.
+    whole batch at once otherwise: 32 prompts × 8 pushed a 48GB Mac into swap at 22–153 s a step,
+    while `--micro_batch_size 32` ran at ~9 s a step (`records/posttrain_mac_smoke/grpo_timing_b32/`).
   - Token ids returned by `generate` are produced under `inference_mode` and **must be cloned**
     before they feed a training forward pass, or embedding backward raises on the saved index
     tensor. `rollout.generate_group` already does this.
@@ -374,6 +375,14 @@ rather than duplicating commands here.
     asserting chunked loss == full-batch loss for all three aggregations; don't "simplify" it away.
   - **The on-policy `seq_mean` loss value is ≈0 by construction** (ratio ≡ 1 and group advantages
     sum to zero). This is not a bug and not a sign the run is dead — look at `grad_norm`.
+  - **At `--ppo_epochs 1` (the default) clipping never fires.** The old log-probs are recomputed
+    from the same weights just before the batch's only update, so the ratio is exactly 1 and
+    `clip_frac` is 0; `--clip_eps` / `--clip_eps_high` (DAPO's clip-higher) act only with
+    `--ppo_epochs > 1`. All 12 runs of the first post-training round logged `clip_frac` 0 throughout.
+  - **With `--filter_zero_variance True` the training-side metrics cover only the kept groups.**
+    `rollout_stats` (reward, accuracy, `silent_group_frac`) sees the whole batch, but `entropy`,
+    `kl`, `grad_norm` and `clip_frac` are computed after the filter, and a step with no group left
+    logs them as 0 and makes no update. Its entropy is not comparable with an unfiltered run's.
   - GRPO needs a policy that already emits the env's output format, otherwise every rollout scores
     0, every group has zero reward variance, and `grad_norm` is exactly 0. Cold start with SFT on
     `envs.generate_data --split sft` output first.

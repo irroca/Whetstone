@@ -1,0 +1,80 @@
+=== start 10-12 15:46:46 at 58c7bb0: variants 'grpo', seeds '1'
+NVIDIA GeForce RTX 4090, 24564 MiB
+wrote 500 eval rows -> /root/autodl-tmp/arith_v1/test.jsonl
+wrote 500 eval rows -> /root/autodl-tmp/arith_v1/dev.jsonl
+wrote 4000 sft rows -> /root/autodl-tmp/arith_v1/sft.jsonl
+wrote 2000 preference rows -> /root/autodl-tmp/arith_v1/preference.jsonl
+wrote 20000 eval rows -> /root/autodl-tmp/arith_v1/grpo_prompts.jsonl
+e855599f44e9d96553ba09a86bf180960eb121bc06121aaaa3ccbb066daa8675  /root/autodl-tmp/arith_v1/dev.jsonl
+59134139878d71a2e6ec4a159a34cea9a319d72043f271fd7d716525e40a5024  /root/autodl-tmp/arith_v1/grpo_prompts.jsonl
+234dedcdc995007a3463c6bca47383a77c8cb7bcc79b4e54ecb38cfa9321b298  /root/autodl-tmp/arith_v1/preference.jsonl
+daebf99e1448c8e3817613d60ffb5e1f4bf2e2236daa0e333f6296d7d01644f0  /root/autodl-tmp/arith_v1/sft.jsonl
+174cc7c11019914cfae2f1e3c7c896a9871c744060921c92ab67e757b67a6257  /root/autodl-tmp/arith_v1/test.jsonl
+Loading pretrained weights from results/pretrain_v2/pretrain_final.pth
+sft: dim=768 layers=12 heads=12 kv_heads=3 hidden=2048 vocab=32768 seq=128 -> 99.503M params
+run: /root/autodl-tmp/results/posttrain_trial/sft/runs/sft_20261012-154652_9fbe88
+Epoch[1/1] (1/125) loss=2.9979 lr=0.0000083 global_step=1
+Epoch[1/1] (10/125) loss=0.8567 lr=0.0000833 global_step=10
+Epoch[1/1] (20/125) loss=0.1946 lr=0.0000989 global_step=20
+Epoch[1/1] (30/125) loss=0.1282 lr=0.0000945 global_step=30
+Epoch[1/1] (40/125) loss=0.1021 lr=0.0000870 global_step=40
+Epoch[1/1] (50/125) loss=0.0757 lr=0.0000771 global_step=50
+Epoch[1/1] (60/125) loss=0.0651 lr=0.0000655 global_step=60
+Epoch[1/1] (70/125) loss=0.0603 lr=0.0000531 global_step=70
+Epoch[1/1] (80/125) loss=0.0513 lr=0.0000409 global_step=80
+Epoch[1/1] (90/125) loss=0.0380 lr=0.0000297 global_step=90
+Epoch[1/1] (100/125) loss=0.0349 lr=0.0000204 global_step=100
+Epoch[1/1] (110/125) loss=0.0292 lr=0.0000139 global_step=110
+Epoch[1/1] (120/125) loss=0.0246 lr=0.0000104 global_step=120
+Epoch[1/1] (125/125) loss=0.0237 lr=0.0000100 global_step=125
+SFT Training completed!
+500 tasks: accuracy 0.636, format 1.000, hack 0.364, length 36.0 (5.1s)
+   op=+ n_digits=1: 0.600 of 30
+   op=+ n_digits=2: 0.742 of 240
+   op=- n_digits=1: 0.333 of 9
+   op=- n_digits=2: 0.538 of 221
+wrote /root/autodl-tmp/results/posttrain_trial/sft/dev.json
+500 tasks: accuracy 0.628, format 1.000, hack 0.372, length 32.3 (5.0s)
+   op=+ n_digits=1: 0.608 of 51
+   op=+ n_digits=2: 0.763 of 211
+   op=- n_digits=1: 0.455 of 44
+   op=- n_digits=2: 0.526 of 194
+wrote /root/autodl-tmp/results/posttrain_trial/sft/test.json
+=== grpo seed 1 10-12 15:47:26 
+policy: dim=768 layers=12 heads=12 kv_heads=3 hidden=2048 vocab=32768 seq=192 -> 99.503M params
+GRPO: env=arithmetic G=8 prompts/step=32 steps=20 agg=seq_mean kl=0.0 std_norm=True filter_zero_var=False
+run: /root/autodl-tmp/results/posttrain_trial/grpo_s1/runs/grpo_20261012-154732_93e995
+step 0 (init) eval: acc=0.636 fmt=1.000
+step 10/20 reward=0.673 acc=0.47 fmt=1.00 hack=0.53 silent=0.31 len=39.4 kl=0.0000 ent=0.030 |adv|=0.569 gnorm=0.5435 lr=6.28e-06 (1.88s)
+  sample[60 - 56=4]: '<think>把 56 拆成 50 和 6：60 - 50 = 10；10 - 6 = 2。</think><answer>2</answer>'
+step 20/20 reward=0.715 acc=0.52 fmt=1.00 hack=0.48 silent=0.44 len=36.5 kl=0.0000 ent=0.033 |adv|=0.502 gnorm=0.4518 lr=1.00e-06 (2.3s)
+  eval: acc=0.588 fmt=1.000
+  sample[8 + 18=26]: '<think>把 18 拆成 10 和 8：8 + 10 = 18；18 + 8 = 27。</think><answer>27</answer>'
+Saved /root/autodl-tmp/results/posttrain_trial/grpo_s1/grpo_final.pth; metrics -> /root/autodl-tmp/results/posttrain_trial/grpo_s1/grpo_metrics.jsonl; run -> /root/autodl-tmp/results/posttrain_trial/grpo_s1/runs/grpo_20261012-154732_93e995
+500 tasks: accuracy 0.588, format 1.000, hack 0.412, length 36.0 (4.9s)
+   op=+ n_digits=1: 0.467 of 30
+   op=+ n_digits=2: 0.704 of 240
+   op=- n_digits=1: 0.333 of 9
+   op=- n_digits=2: 0.489 of 221
+wrote /root/autodl-tmp/results/posttrain_trial/grpo_s1/dev.json
+500 tasks: accuracy 0.590, format 1.000, hack 0.410, length 32.2 (4.6s)
+   op=+ n_digits=1: 0.529 of 51
+   op=+ n_digits=2: 0.744 of 211
+   op=- n_digits=1: 0.341 of 44
+   op=- n_digits=2: 0.495 of 194
+wrote /root/autodl-tmp/results/posttrain_trial/grpo_s1/test.json
+=== done 10-12 15:48:41
+
+=== /root/autodl-tmp/results/posttrain_trial/grpo_s1/grpo_metrics.jsonl  (21 records)
+        steps    n reward_me  accuracy format_ra hack_rate silent_gr   entropy        kl grad_norm completio
+------------------------------------------------------------------------------------------------------------
+    0-49        21     0.769     0.569     0.999     0.431     0.361     0.030     0.000     0.491    36.397
+
+eval checkpoints:
+        steps    n eval_accu eval_form eval_hack
+------------------------------------------------
+    0-0          1     0.636     1.000     0.364
+   20-20         1     0.588     1.000     0.412
+         grpo_s1: dev 0.588  test 0.590  format 1.000  length 32.2
+             sft: dev 0.636  test 0.628  format 1.000  length 32.3
+TRIAL_EXIT=0
