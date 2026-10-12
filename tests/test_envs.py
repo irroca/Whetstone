@@ -150,9 +150,9 @@ def test_build_rows_emits_expected_schemas():
     pref = build_rows(env, "preference", 3, rng)
     evals = build_rows(env, "eval", 3, rng)
 
-    assert all(r["conversations"][0]["role"] == "user" for r in sft)
-    assert all(r["conversations"][1]["role"] == "assistant" for r in sft)
-    assert all({"prompt", "chosen", "rejected"} <= set(r) for r in pref)
+    assert all([t["role"] for t in r["conversations"]] == ["system", "user", "assistant"] for r in sft)
+    assert all(r["conversations"][0]["content"] == env.system_prompt for r in sft)
+    assert all({"system", "prompt", "chosen", "rejected"} <= set(r) for r in pref)
     assert all({"question", "answer"} <= set(r) for r in evals)
 
 

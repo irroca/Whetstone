@@ -10,6 +10,10 @@ comparable on the same problems::
 * ``sft``        — gold chain-of-thought, the cold start GRPO needs to get any reward at all
 * ``preference`` — gold vs. a deliberately corrupted answer, for the offline DPO baseline
 * ``eval``       — questions plus ground truth, a fixed held-out set for accuracy curves
+
+SFT and preference rows carry the env's system prompt, so they tokenize to exactly the
+prompt GRPO samples from (``rollout.build_prompt_ids``). Without it the chat template
+substitutes its default system prompt and the cold start trains on a different prompt.
 """
 
 from __future__ import annotations
@@ -32,25 +36,27 @@ def build_rows(env: TaskEnv, split: str, n: int, rng: random.Random) -> list[dic
         if split != "eval" and not hasattr(env, attr):
             raise TypeError(f"env {env.name!r} cannot generate {split} data: missing {attr}()")
 
+    system = [{"role": "system", "content": env.system_prompt}] if env.system_prompt else []
     rows = []
     for task in env.sample(n):
         if split == "sft":
             rows.append(
                 {
-                    "conversations": [
+                    "conversations": system + [
                         {"role": "user", "content": env.render(task)},
                         {"role": "assistant", "content": env.gold_completion(task)},
                     ]
                 }
             )
         elif split == "preference":
-            rows.append(
-                {
-                    "prompt": env.render(task),
-                    "chosen": env.gold_completion(task),
-                    "rejected": env.corrupt_completion(task, rng),
-                }
-            )
+            row = {
+                "prompt": env.render(task),
+                "chosen": env.gold_completion(task),
+                "rejected": env.corrupt_completion(task, rng),
+            }
+            if env.system_prompt:
+                row["system"] = env.system_prompt
+            rows.append(row)
         else:
             rows.append({"question": task.question, "answer": task.answer, **task.meta})
     return rows

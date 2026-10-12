@@ -55,6 +55,21 @@ def test_sft_loss_mask_includes_first_assistant_token():
     assert full_mask[start] == 1, "first assistant content token must be in the loss"
 
 
+def test_sft_prompt_keeps_a_system_turn_and_infers_missing_roles():
+    tokenizer = AutoTokenizer.from_pretrained("./tokenizer/zh_6400")
+    ds = SFTDataset("tests/fixtures/sft_tiny.jsonl", tokenizer, max_length=256)
+
+    with_system = ds._create_chat_prompt([
+        {"role": "system", "content": "只做算术。"},
+        {"role": "user", "content": "1 + 1"},
+        {"role": "assistant", "content": "2"},
+    ])
+    assert with_system == "<s>system\n只做算术。</s>\n<s>user\n1 + 1</s>\n<s>assistant\n2</s>\n"
+
+    without_roles = ds._create_chat_prompt([{"content": "1 + 1"}, {"content": "2"}])
+    assert without_roles.endswith("<s>user\n1 + 1</s>\n<s>assistant\n2</s>\n")
+
+
 def _assert_prompt_masked_and_response_starts(ds, prompt, answer, mask):
     """Shared assertion for PreferenceDataset: prompt tokens must be 0 and the
     first assistant content token must be 1, mirroring the SFT mask test."""

@@ -1,10 +1,14 @@
+import random
+
 import pytest
 import torch
 from transformers import AutoTokenizer
 
 from config import LLMConfig
+from dataset import PreferenceDataset, SFTDataset
 from envs import ArithmeticEnv
 from envs.base import Reward, Task
+from envs.generate_data import build_rows, write_jsonl
 from losses import token_logprobs
 from model import Whetstone
 from rollout import (
@@ -203,6 +207,30 @@ def test_build_prompt_ids_ends_with_the_assistant_turn():
     assert task.question in text
     assert env.system_prompt in text
     assert text.rstrip().endswith("<s>assistant")  # generation prompt, nothing sampled yet
+
+
+def test_generated_training_rows_start_with_the_rollout_prompt(tmp_path):
+    """SFT and DPO rows built from an env must tokenize to exactly the prompt GRPO samples from,
+    then the trained response. Without the env's system prompt in the rows, the chat template
+    substitutes its default one and the cold start trains on a different prompt."""
+    tokenizer = _tokenizer()
+    sft_path, pref_path = tmp_path / "sft.jsonl", tmp_path / "pref.jsonl"
+    write_jsonl(str(sft_path), build_rows(ArithmeticEnv(seed=3), "sft", 3, random.Random(3)))
+    write_jsonl(str(pref_path), build_rows(ArithmeticEnv(seed=3), "preference", 3, random.Random(3)))
+    sft = SFTDataset(str(sft_path), tokenizer, max_length=256)
+    pref = PreferenceDataset(str(pref_path), tokenizer, max_length=256)
+
+    env = ArithmeticEnv(seed=3)  # same seed, so the same tasks the rows were built from
+    for i, task in enumerate(env.sample(3)):
+        prompt = build_prompt_ids(tokenizer, env, task).tolist()
+        X, _, mask = sft[i]
+        assert X[: len(prompt)].tolist() == prompt
+        assert mask[: len(prompt) - 1].sum() == 0 and mask[len(prompt) - 1] == 1
+        assert tokenizer.decode(X[len(prompt):].tolist()).startswith(env.gold_completion(task))
+
+        chosen, _, _, rejected, _, _ = pref[i]
+        assert chosen[: len(prompt)].tolist() == prompt
+        assert rejected[: len(prompt)].tolist() == prompt
 
 
 def test_run_rollouts_scores_decoded_text_with_the_env():
