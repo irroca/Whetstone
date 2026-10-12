@@ -108,3 +108,28 @@ def test_generate_stops_early_when_all_finished():
 
     assert generated.shape[1] == 1  # stopped after the first step since finished.all() was True
     assert torch.all(generated == eos_token_id)
+
+
+@pytest.mark.parametrize("seen_logit, unseen_logit", [(2.0, 1.5), (-1.0, -1.5)])
+@torch.no_grad()
+def test_repetition_penalty_lowers_seen_tokens_of_either_sign(seen_logit, unseen_logit):
+    """At penalty 2 a token already in the row must lose to a slightly lower unseen one, whether its
+    logit is positive or negative: dividing a negative logit raises it. Row 1 never saw the token,
+    so it keeps it."""
+    n_layers = 2
+    model = _tiny_model(n_layers=n_layers)
+    model.eval()
+    seen, unseen = 3, 4
+
+    def fake_forward(input_ids, past_key_values=None, use_cache=False, **kwargs):
+        logits = torch.full((input_ids.shape[0], input_ids.shape[1], 10), -10.0)
+        logits[..., seen] = seen_logit
+        logits[..., unseen] = unseen_logit
+        return CausalLMOutputWithPast(logits=logits, past_key_values=[None] * n_layers)
+
+    model.forward = fake_forward
+    prompt = torch.tensor([[1, seen], [1, 5]])
+    kwargs = dict(eos_token_id=-1, max_new_tokens=1, temperature=0)
+
+    assert model.generate(prompt, repetition_penalty=1.0, **kwargs)[:, 0].tolist() == [seen, seen]
+    assert model.generate(prompt, repetition_penalty=2.0, **kwargs)[:, 0].tolist() == [unseen, seen]
