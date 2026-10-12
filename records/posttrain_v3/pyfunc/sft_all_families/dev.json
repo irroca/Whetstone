@@ -1,0 +1,1939 @@
+{
+  "checkpoint": "results/pyfunc_v1/sft/sft_final.pth",
+  "eval_path": "datasets/pyfunc_v1/dev.jsonl",
+  "env": "pyfunc",
+  "max_new_tokens": 96,
+  "items": 300,
+  "reward_mean": 1.2,
+  "reward_std": 0.0,
+  "accuracy": 1.0,
+  "format_rate": 1.0,
+  "hack_rate": 0.0,
+  "completion_len": 28.956666946411133,
+  "truncated_frac": 0.0,
+  "by_group": {
+    "family=adjacent_diff_sum": {
+      "items": 20,
+      "accuracy": 1.0
+    },
+    "family=clamp": {
+      "items": 19,
+      "accuracy": 1.0
+    },
+    "family=count_char": {
+      "items": 7,
+      "accuracy": 1.0
+    },
+    "family=count_greater": {
+      "items": 19,
+      "accuracy": 1.0
+    },
+    "family=count_vowels": {
+      "items": 11,
+      "accuracy": 1.0
+    },
+    "family=dedupe": {
+      "items": 14,
+      "accuracy": 1.0
+    },
+    "family=digit_sum": {
+      "items": 17,
+      "accuracy": 1.0
+    },
+    "family=even_squares": {
+      "items": 13,
+      "accuracy": 1.0
+    },
+    "family=every_kth": {
+      "items": 15,
+      "accuracy": 1.0
+    },
+    "family=first_min_index": {
+      "items": 6,
+      "accuracy": 1.0
+    },
+    "family=has_duplicate": {
+      "items": 9,
+      "accuracy": 1.0
+    },
+    "family=is_palindrome": {
+      "items": 13,
+      "accuracy": 1.0
+    },
+    "family=join_numbers": {
+      "items": 15,
+      "accuracy": 1.0
+    },
+    "family=long_words": {
+      "items": 9,
+      "accuracy": 1.0
+    },
+    "family=prefix_sums": {
+      "items": 11,
+      "accuracy": 1.0
+    },
+    "family=range_of_list": {
+      "items": 20,
+      "accuracy": 1.0
+    },
+    "family=repeat_join": {
+      "items": 14,
+      "accuracy": 1.0
+    },
+    "family=reverse_words": {
+      "items": 9,
+      "accuracy": 1.0
+    },
+    "family=rotate_left": {
+      "items": 16,
+      "accuracy": 1.0
+    },
+    "family=sum_multiples": {
+      "items": 15,
+      "accuracy": 1.0
+    },
+    "family=sum_multiples_upto": {
+      "items": 14,
+      "accuracy": 1.0
+    },
+    "family=title_case": {
+      "items": 14,
+      "accuracy": 1.0
+    }
+  },
+  "per_item": [
+    {
+      "question": "返回整数列表 xs 中大于 8 的数的个数。\n例如：solve([12, 1]) 返回 1。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    return sum(1 for x in xs if x > 8)\n```"
+    },
+    {
+      "question": "返回非空整数列表 xs 的最大值减最小值。\n例如：solve([3]) 返回 0。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    return max(xs) - min(xs)\n```"
+    },
+    {
+      "question": "返回整数列表 xs 中所有能被 6 整除的数之和（没有就返回 0）。\n例如：solve([3, 30, 24, 22, 2, -1]) 返回 54。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    return sum(x for x in xs if x % 6 == 0)\n```"
+    },
+    {
+      "question": "把字符串 s 中每个单词（以空格分隔）的首字母大写、其余字母小写，用一个空格连接后返回。\n例如：solve('SE') 返回 'Se'。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(s):\n    return ' '.join(w.capitalize() for w in s.split())\n```"
+    },
+    {
+      "question": "判断字符串 s 是不是回文（正着读和倒着读一样），返回 True 或 False。\n例如：solve('lbl') 返回 True。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(s):\n    return s == s[::-1]\n```"
+    },
+    {
+      "question": "返回非空整数列表 xs 的最大值减最小值。\n例如：solve([8, -8, -6, -5, -3]) 返回 16。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    return max(xs) - min(xs)\n```"
+    },
+    {
+      "question": "把字符串 s 中每个单词（以空格分隔）的首字母大写、其余字母小写，用一个空格连接后返回。\n例如：solve('BR') 返回 'Br'。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(s):\n    return ' '.join(w.capitalize() for w in s.split())\n```"
+    },
+    {
+      "question": "返回整数列表 xs 中所有相邻两个数之差的绝对值之和（少于两个元素时返回 0）。\n例如：solve([-5, 28]) 返回 33。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    return sum(abs(a - b) for a, b in zip(xs, xs[1:]))\n```"
+    },
+    {
+      "question": "把整数列表 xs 里的数依次转成字符串，用 '|' 连接后返回（空列表返回空字符串）。\n例如：solve([4, 27, -3, 6, 26, 30]) 返回 '4|27|-3|6|26|30'。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    return '|'.join(str(x) for x in xs)\n```"
+    },
+    {
+      "question": "返回字符串 s 中元音字母（a、e、i、o、u，不分大小写）的个数。\n例如：solve('lploaab') 返回 3。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(s):\n    return sum(1 for c in s.lower() if c in 'aeiou')\n```"
+    },
+    {
+      "question": "返回列表 xs 中从第 0 个开始、每隔 4 个取一个元素组成的新列表。\n例如：solve([17, 7, 11]) 返回 [17]。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    return xs[::4]\n```"
+    },
+    {
+      "question": "返回整数列表 xs 的前缀和列表：第 i 个元素是 xs[0] 到 xs[i] 之和。\n例如：solve([-2, 23, -6, 27, 29, 5, 0, 6]) 返回 [-2, 21, 15, 42, 71, 76, 76, 82]。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    out = []\n    total = 0\n    for x in xs:\n        total += x\n        out.append(total)\n    return out\n```"
+    },
+    {
+      "question": "把字符串 s 中的单词（以空格分隔）顺序倒过来，用一个空格连接后返回。\n例如：solve('ca lc') 返回 'lc ca'。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(s):\n    return ' '.join(reversed(s.split()))\n```"
+    },
+    {
+      "question": "返回字符串 s 中元音字母（a、e、i、o、u，不分大小写）的个数。\n例如：solve('lb') 返回 0。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(s):\n    return sum(1 for c in s.lower() if c in 'aeiou')\n```"
+    },
+    {
+      "question": "返回字符串 s 中长度大于 4 的单词个数（单词以空格分隔）。\n例如：solve('clcc eie ttpe orrtl lrdtu') 返回 2。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(s):\n    return sum(1 for w in s.split() if len(w) > 4)\n```"
+    },
+    {
+      "question": "返回非空整数列表 xs 的最大值减最小值。\n例如：solve([14, -3, -9, 2]) 返回 23。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    return max(xs) - min(xs)\n```"
+    },
+    {
+      "question": "返回整数列表 xs 中所有能被 6 整除的数之和（没有就返回 0）。\n例如：solve([-1, 19, 17, 21, 23, 8, 3]) 返回 0。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    return sum(x for x in xs if x % 6 == 0)\n```"
+    },
+    {
+      "question": "返回非空整数列表 xs 的最大值减最小值。\n例如：solve([8, 18, 19]) 返回 11。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    return max(xs) - min(xs)\n```"
+    },
+    {
+      "question": "返回整数列表 xs 中大于 15 的数的个数。\n例如：solve([21, 24, 22, 30, 24, 17, -5]) 返回 6。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    return sum(1 for x in xs if x > 15)\n```"
+    },
+    {
+      "question": "把整数 x 限制在 [-7, 4] 范围内：小于 -7 返回 -7，大于 4 返回 4，否则返回 x。\n例如：solve(-11) 返回 -7。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(x):\n    return max(-7, min(4, x))\n```"
+    },
+    {
+      "question": "返回整数列表 xs 中所有相邻两个数之差的绝对值之和（少于两个元素时返回 0）。\n例如：solve([0, -3, -1, -6, 27]) 返回 43。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    return sum(abs(a - b) for a, b in zip(xs, xs[1:]))\n```"
+    },
+    {
+      "question": "把非空列表 xs 循环左移 4 位（移出左边的元素接到右边），返回新列表。\n例如：solve([10, 9, 1]) 返回 [9, 1, 10]。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    k = 4 % len(xs)\n    return xs[k:] + xs[:k]\n```"
+    },
+    {
+      "question": "去掉整数列表 xs 中的重复元素，保留每个数第一次出现的顺序，返回新列表。\n例如：solve([0, 6, 5, 0, 2]) 返回 [0, 6, 5, 2]。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    seen = set()\n    out = []\n    for x in xs:\n        if x not in seen:\n            seen.add(x)\n            out.append(x)\n    return out\n```"
+    },
+    {
+      "question": "返回整数列表 xs 中大于 7 的数的个数。\n例如：solve([27, 15, -3]) 返回 2。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    return sum(1 for x in xs if x > 7)\n```"
+    },
+    {
+      "question": "去掉整数列表 xs 中的重复元素，保留每个数第一次出现的顺序，返回新列表。\n例如：solve([2, 1, 5, 1, 6, 3]) 返回 [2, 1, 5, 6, 3]。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    seen = set()\n    out = []\n    for x in xs:\n        if x not in seen:\n            seen.add(x)\n            out.append(x)\n    return out\n```"
+    },
+    {
+      "question": "返回整数列表 xs 中所有偶数的平方组成的列表，保持原来的顺序。\n例如：solve([]) 返回 []。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    return [x * x for x in xs if x % 2 == 0]\n```"
+    },
+    {
+      "question": "返回 1 到 n（含）之间所有 5 的倍数之和。\n例如：solve(18) 返回 30。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(n):\n    return sum(i for i in range(1, n + 1) if i % 5 == 0)\n```"
+    },
+    {
+      "question": "返回整数列表 xs 中所有偶数的平方组成的列表，保持原来的顺序。\n例如：solve([13, -9, -8, 7]) 返回 [64]。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    return [x * x for x in xs if x % 2 == 0]\n```"
+    },
+    {
+      "question": "返回非负整数 n 的各位数字之和。\n例如：solve(42067) 返回 19。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(n):\n    return sum(int(c) for c in str(n))\n```"
+    },
+    {
+      "question": "返回整数列表 xs 中大于 13 的数的个数。\n例如：solve([24, 22, 29, 5]) 返回 3。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    return sum(1 for x in xs if x > 13)\n```"
+    },
+    {
+      "question": "把字符串 s 中每个单词（以空格分隔）的首字母大写、其余字母小写，用一个空格连接后返回。\n例如：solve('BPD DT') 返回 'Bpd Dt'。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(s):\n    return ' '.join(w.capitalize() for w in s.split())\n```"
+    },
+    {
+      "question": "去掉整数列表 xs 中的重复元素，保留每个数第一次出现的顺序，返回新列表。\n例如：solve([3]) 返回 [3]。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    seen = set()\n    out = []\n    for x in xs:\n        if x not in seen:\n            seen.add(x)\n            out.append(x)\n    return out\n```"
+    },
+    {
+      "question": "判断字符串 s 是不是回文（正着读和倒着读一样），返回 True 或 False。\n例如：solve('pa') 返回 False。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(s):\n    return s == s[::-1]\n```"
+    },
+    {
+      "question": "返回非负整数 n 的各位数字之和。\n例如：solve(65653) 返回 25。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(n):\n    return sum(int(c) for c in str(n))\n```"
+    },
+    {
+      "question": "返回字符串 s 中长度大于 3 的单词个数（单词以空格分隔）。\n例如：solve('') 返回 0。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(s):\n    return sum(1 for w in s.split() if len(w) > 3)\n```"
+    },
+    {
+      "question": "把整数 x 限制在 [6, 15] 范围内：小于 6 返回 6，大于 15 返回 15，否则返回 x。\n例如：solve(-2) 返回 6。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(x):\n    return max(6, min(15, x))\n```"
+    },
+    {
+      "question": "把字符串 s 中的单词（以空格分隔）顺序倒过来，用一个空格连接后返回。\n例如：solve('locs oassb trs') 返回 'trs oassb locs'。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(s):\n    return ' '.join(reversed(s.split()))\n```"
+    },
+    {
+      "question": "返回 1 到 n（含）之间所有 5 的倍数之和。\n例如：solve(40) 返回 180。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(n):\n    return sum(i for i in range(1, n + 1) if i % 5 == 0)\n```"
+    },
+    {
+      "question": "返回非负整数 n 的各位数字之和。\n例如：solve(44) 返回 8。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(n):\n    return sum(int(c) for c in str(n))\n```"
+    },
+    {
+      "question": "返回整数列表 xs 中大于 1 的数的个数。\n例如：solve([30, 0, 21, 8, -6]) 返回 3。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    return sum(1 for x in xs if x > 1)\n```"
+    },
+    {
+      "question": "返回整数列表 xs 中所有相邻两个数之差的绝对值之和（少于两个元素时返回 0）。\n例如：solve([21, 10, 24, 26, -8, 1, 11]) 返回 80。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    return sum(abs(a - b) for a, b in zip(xs, xs[1:]))\n```"
+    },
+    {
+      "question": "返回非空整数列表 xs 的最大值减最小值。\n例如：solve([-5, 11, 11, 4, 4, -2]) 返回 16。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    return max(xs) - min(xs)\n```"
+    },
+    {
+      "question": "把整数列表 xs 里的数依次转成字符串，用 ';' 连接后返回（空列表返回空字符串）。\n例如：solve([19]) 返回 '19'。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    return ';'.join(str(x) for x in xs)\n```"
+    },
+    {
+      "question": "返回整数列表 xs 中所有相邻两个数之差的绝对值之和（少于两个元素时返回 0）。\n例如：solve([-7, -8, 8, -1, 17]) 返回 44。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    return sum(abs(a - b) for a, b in zip(xs, xs[1:]))\n```"
+    },
+    {
+      "question": "返回整数列表 xs 中大于 1 的数的个数。\n例如：solve([15, 2, 0, 25]) 返回 3。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    return sum(1 for x in xs if x > 1)\n```"
+    },
+    {
+      "question": "把整数 x 限制在 [-3, 10] 范围内：小于 -3 返回 -3，大于 10 返回 10，否则返回 x。\n例如：solve(9) 返回 9。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(x):\n    return max(-3, min(10, x))\n```"
+    },
+    {
+      "question": "返回整数列表 xs 的前缀和列表：第 i 个元素是 xs[0] 到 xs[i] 之和。\n例如：solve([-8, -2, 16, 23, 21, 12, 25]) 返回 [-8, -10, 6, 29, 50, 62, 87]。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    out = []\n    total = 0\n    for x in xs:\n        total += x\n        out.append(total)\n    return out\n```"
+    },
+    {
+      "question": "返回非负整数 n 的各位数字之和。\n例如：solve(14507) 返回 17。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(n):\n    return sum(int(c) for c in str(n))\n```"
+    },
+    {
+      "question": "返回整数列表 xs 中所有能被 9 整除的数之和（没有就返回 0）。\n例如：solve([4, 28, 13, 18]) 返回 18。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    return sum(x for x in xs if x % 9 == 0)\n```"
+    },
+    {
+      "question": "返回列表 xs 中从第 0 个开始、每隔 2 个取一个元素组成的新列表。\n例如：solve([15]) 返回 [15]。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    return xs[::2]\n```"
+    },
+    {
+      "question": "把字符串 s 中每个单词（以空格分隔）的首字母大写、其余字母小写，用一个空格连接后返回。\n例如：solve('E IE') 返回 'E Ie'。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(s):\n    return ' '.join(w.capitalize() for w in s.split())\n```"
+    },
+    {
+      "question": "返回整数列表 xs 中所有能被 8 整除的数之和（没有就返回 0）。\n例如：solve([15]) 返回 0。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    return sum(x for x in xs if x % 8 == 0)\n```"
+    },
+    {
+      "question": "把字符串 s 中每个单词（以空格分隔）的首字母大写、其余字母小写，用一个空格连接后返回。\n例如：solve('S') 返回 'S'。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(s):\n    return ' '.join(w.capitalize() for w in s.split())\n```"
+    },
+    {
+      "question": "返回整数列表 xs 中所有偶数的平方组成的列表，保持原来的顺序。\n例如：solve([17, 11, -4, 8, 17, 26, -8]) 返回 [16, 64, 676, 64]。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    return [x * x for x in xs if x % 2 == 0]\n```"
+    },
+    {
+      "question": "判断整数列表 xs 里有没有重复的数，有返回 True，没有返回 False。\n例如：solve([4, 9, 8, 1, 0]) 返回 False。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    return len(set(xs)) != len(xs)\n```"
+    },
+    {
+      "question": "返回 1 到 n（含）之间所有 8 的倍数之和。\n例如：solve(24) 返回 48。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(n):\n    return sum(i for i in range(1, n + 1) if i % 8 == 0)\n```"
+    },
+    {
+      "question": "返回整数列表 xs 中所有相邻两个数之差的绝对值之和（少于两个元素时返回 0）。\n例如：solve([10, -3, 29, 18]) 返回 56。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    return sum(abs(a - b) for a, b in zip(xs, xs[1:]))\n```"
+    },
+    {
+      "question": "把字符串 s 中每个单词（以空格分隔）的首字母大写、其余字母小写，用一个空格连接后返回。\n例如：solve('PIEU RPLS') 返回 'Pieu Rpls'。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(s):\n    return ' '.join(w.capitalize() for w in s.split())\n```"
+    },
+    {
+      "question": "返回字符串 s 中元音字母（a、e、i、o、u，不分大小写）的个数。\n例如：solve('dp') 返回 0。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(s):\n    return sum(1 for c in s.lower() if c in 'aeiou')\n```"
+    },
+    {
+      "question": "返回非负整数 n 的各位数字之和。\n例如：solve(73) 返回 10。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(n):\n    return sum(int(c) for c in str(n))\n```"
+    },
+    {
+      "question": "返回非空整数列表 xs 的最大值减最小值。\n例如：solve([5, -6, 21, -2]) 返回 27。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    return max(xs) - min(xs)\n```"
+    },
+    {
+      "question": "返回整数列表 xs 中所有相邻两个数之差的绝对值之和（少于两个元素时返回 0）。\n例如：solve([-8, 5]) 返回 13。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    return sum(abs(a - b) for a, b in zip(xs, xs[1:]))\n```"
+    },
+    {
+      "question": "判断整数列表 xs 里有没有重复的数，有返回 True，没有返回 False。\n例如：solve([9, 9, 4]) 返回 True。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    return len(set(xs)) != len(xs)\n```"
+    },
+    {
+      "question": "把非空列表 xs 循环左移 2 位（移出左边的元素接到右边），返回新列表。\n例如：solve([16, 0, 7, 4, 18, 1, 16]) 返回 [7, 4, 18, 1, 16, 16, 0]。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    k = 2 % len(xs)\n    return xs[k:] + xs[:k]\n```"
+    },
+    {
+      "question": "把整数列表 xs 里的数依次转成字符串，用 ';' 连接后返回（空列表返回空字符串）。\n例如：solve([-9, 18, 16, 29]) 返回 '-9;18;16;29'。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    return ';'.join(str(x) for x in xs)\n```"
+    },
+    {
+      "question": "判断整数列表 xs 里有没有重复的数，有返回 True，没有返回 False。\n例如：solve([9, 5, 1, 0, 2, 7, 6]) 返回 False。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    return len(set(xs)) != len(xs)\n```"
+    },
+    {
+      "question": "返回字符 'o' 在字符串 s 中出现的次数。\n例如：solve('cdplrpeb') 返回 0。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(s):\n    return s.count('o')\n```"
+    },
+    {
+      "question": "把整数 x 限制在 [2, 12] 范围内：小于 2 返回 2，大于 12 返回 12，否则返回 x。\n例如：solve(0) 返回 2。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(x):\n    return max(2, min(12, x))\n```"
+    },
+    {
+      "question": "返回整数列表 xs 中所有能被 9 整除的数之和（没有就返回 0）。\n例如：solve([-1, -2, 7, 0, -2, 25]) 返回 0。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    return sum(x for x in xs if x % 9 == 0)\n```"
+    },
+    {
+      "question": "把字符串 s 中每个单词（以空格分隔）的首字母大写、其余字母小写，用一个空格连接后返回。\n例如：solve('LB CORT') 返回 'Lb Cort'。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(s):\n    return ' '.join(w.capitalize() for w in s.split())\n```"
+    },
+    {
+      "question": "返回整数列表 xs 中所有相邻两个数之差的绝对值之和（少于两个元素时返回 0）。\n例如：solve([18]) 返回 0。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    return sum(abs(a - b) for a, b in zip(xs, xs[1:]))\n```"
+    },
+    {
+      "question": "返回字符串 s 中长度大于 5 的单词个数（单词以空格分隔）。\n例如：solve('lbdua ep roup lri') 返回 0。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(s):\n    return sum(1 for w in s.split() if len(w) > 5)\n```"
+    },
+    {
+      "question": "返回字符串 s 中元音字母（a、e、i、o、u，不分大小写）的个数。\n例如：solve('SU') 返回 1。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(s):\n    return sum(1 for c in s.lower() if c in 'aeiou')\n```"
+    },
+    {
+      "question": "返回列表 xs 中从第 0 个开始、每隔 4 个取一个元素组成的新列表。\n例如：solve([19, 20, 8, 17, 2, 17, 20]) 返回 [19, 2]。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    return xs[::4]\n```"
+    },
+    {
+      "question": "返回字符 'i' 在字符串 s 中出现的次数。\n例如：solve('acbtir') 返回 1。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(s):\n    return s.count('i')\n```"
+    },
+    {
+      "question": "返回整数列表 xs 中所有相邻两个数之差的绝对值之和（少于两个元素时返回 0）。\n例如：solve([27, 17, 14, 24, -6]) 返回 53。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    return sum(abs(a - b) for a, b in zip(xs, xs[1:]))\n```"
+    },
+    {
+      "question": "把整数列表 xs 里的数依次转成字符串，用 ',' 连接后返回（空列表返回空字符串）。\n例如：solve([16, 2, 8]) 返回 '16,2,8'。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    return ','.join(str(x) for x in xs)\n```"
+    },
+    {
+      "question": "返回非空整数列表 xs 的最大值减最小值。\n例如：solve([17]) 返回 0。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    return max(xs) - min(xs)\n```"
+    },
+    {
+      "question": "把字符串 s 重复 4 次，中间用 '/' 连接，返回结果。\n例如：solve('pi') 返回 'pi/pi/pi/pi'。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(s):\n    return '/'.join([s] * 4)\n```"
+    },
+    {
+      "question": "返回列表 xs 中从第 0 个开始、每隔 3 个取一个元素组成的新列表。\n例如：solve([6, 20, 16, 10, 19, 6, 8, 11, 13]) 返回 [6, 10, 8]。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    return xs[::3]\n```"
+    },
+    {
+      "question": "把整数 x 限制在 [9, 18] 范围内：小于 9 返回 9，大于 18 返回 18，否则返回 x。\n例如：solve(20) 返回 18。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(x):\n    return max(9, min(18, x))\n```"
+    },
+    {
+      "question": "把整数列表 xs 里的数依次转成字符串，用 '+' 连接后返回（空列表返回空字符串）。\n例如：solve([3, -2, 28, 26, 26, 15]) 返回 '3+-2+28+26+26+15'。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    return '+'.join(str(x) for x in xs)\n```"
+    },
+    {
+      "question": "把非空列表 xs 循环左移 2 位（移出左边的元素接到右边），返回新列表。\n例如：solve([16, 0, 3, 19, 20, 3, 16]) 返回 [3, 19, 20, 3, 16, 16, 0]。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    k = 2 % len(xs)\n    return xs[k:] + xs[:k]\n```"
+    },
+    {
+      "question": "返回字符串 s 中元音字母（a、e、i、o、u，不分大小写）的个数。\n例如：solve('iae') 返回 3。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(s):\n    return sum(1 for c in s.lower() if c in 'aeiou')\n```"
+    },
+    {
+      "question": "返回 1 到 n（含）之间所有 9 的倍数之和。\n例如：solve(30) 返回 54。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(n):\n    return sum(i for i in range(1, n + 1) if i % 9 == 0)\n```"
+    },
+    {
+      "question": "返回非负整数 n 的各位数字之和。\n例如：solve(13) 返回 4。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(n):\n    return sum(int(c) for c in str(n))\n```"
+    },
+    {
+      "question": "判断字符串 s 是不是回文（正着读和倒着读一样），返回 True 或 False。\n例如：solve('sso') 返回 False。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(s):\n    return s == s[::-1]\n```"
+    },
+    {
+      "question": "返回整数列表 xs 中大于 1 的数的个数。\n例如：solve([-9, 6, -1, 14, -8, 24]) 返回 3。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    return sum(1 for x in xs if x > 1)\n```"
+    },
+    {
+      "question": "把整数列表 xs 里的数依次转成字符串，用 '|' 连接后返回（空列表返回空字符串）。\n例如：solve([-1, 28]) 返回 '-1|28'。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    return '|'.join(str(x) for x in xs)\n```"
+    },
+    {
+      "question": "把字符串 s 重复 5 次，中间用 '-' 连接，返回结果。\n例如：solve('blt') 返回 'blt-blt-blt-blt-blt'。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(s):\n    return '-'.join([s] * 5)\n```"
+    },
+    {
+      "question": "把非空列表 xs 循环左移 1 位（移出左边的元素接到右边），返回新列表。\n例如：solve([19, 7, 2, 6, 13, 8, 4, 15]) 返回 [7, 2, 6, 13, 8, 4, 15, 19]。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    k = 1 % len(xs)\n    return xs[k:] + xs[:k]\n```"
+    },
+    {
+      "question": "判断整数列表 xs 里有没有重复的数，有返回 True，没有返回 False。\n例如：solve([8, 5, 7, 4, 3]) 返回 False。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    return len(set(xs)) != len(xs)\n```"
+    },
+    {
+      "question": "返回整数列表 xs 的前缀和列表：第 i 个元素是 xs[0] 到 xs[i] 之和。\n例如：solve([16, 25, 25, 1, 8, 3, 28, 18]) 返回 [16, 41, 66, 67, 75, 78, 106, 124]。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    out = []\n    total = 0\n    for x in xs:\n        total += x\n        out.append(total)\n    return out\n```"
+    },
+    {
+      "question": "把字符串 s 中的单词（以空格分隔）顺序倒过来，用一个空格连接后返回。\n例如：solve('pe sptlto sred adb') 返回 'adb sred sptlto pe'。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(s):\n    return ' '.join(reversed(s.split()))\n```"
+    },
+    {
+      "question": "返回 1 到 n（含）之间所有 2 的倍数之和。\n例如：solve(57) 返回 812。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(n):\n    return sum(i for i in range(1, n + 1) if i % 2 == 0)\n```"
+    },
+    {
+      "question": "返回字符 'i' 在字符串 s 中出现的次数。\n例如：solve('or') 返回 0。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(s):\n    return s.count('i')\n```"
+    },
+    {
+      "question": "把整数 x 限制在 [5, 17] 范围内：小于 5 返回 5，大于 17 返回 17，否则返回 x。\n例如：solve(7) 返回 7。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(x):\n    return max(5, min(17, x))\n```"
+    },
+    {
+      "question": "把字符串 s 中每个单词（以空格分隔）的首字母大写、其余字母小写，用一个空格连接后返回。\n例如：solve('DOOEU UOD') 返回 'Dooeu Uod'。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(s):\n    return ' '.join(w.capitalize() for w in s.split())\n```"
+    },
+    {
+      "question": "返回 1 到 n（含）之间所有 2 的倍数之和。\n例如：solve(8) 返回 20。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(n):\n    return sum(i for i in range(1, n + 1) if i % 2 == 0)\n```"
+    },
+    {
+      "question": "返回整数列表 xs 中所有偶数的平方组成的列表，保持原来的顺序。\n例如：solve([9, 26]) 返回 [676]。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    return [x * x for x in xs if x % 2 == 0]\n```"
+    },
+    {
+      "question": "把整数 x 限制在 [3, 5] 范围内：小于 3 返回 3，大于 5 返回 5，否则返回 x。\n例如：solve(-4) 返回 3。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(x):\n    return max(3, min(5, x))\n```"
+    },
+    {
+      "question": "返回整数列表 xs 中所有能被 6 整除的数之和（没有就返回 0）。\n例如：solve([4, 1, 24, 24, 3, 29, 16, 5]) 返回 48。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    return sum(x for x in xs if x % 6 == 0)\n```"
+    },
+    {
+      "question": "返回整数列表 xs 的前缀和列表：第 i 个元素是 xs[0] 到 xs[i] 之和。\n例如：solve([-4, -1, -5, 11]) 返回 [-4, -5, -10, 1]。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    out = []\n    total = 0\n    for x in xs:\n        total += x\n        out.append(total)\n    return out\n```"
+    },
+    {
+      "question": "把整数 x 限制在 [-7, -6] 范围内：小于 -7 返回 -7，大于 -6 返回 -6，否则返回 x。\n例如：solve(-3) 返回 -6。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(x):\n    return max(-7, min(-6, x))\n```"
+    },
+    {
+      "question": "返回整数列表 xs 中所有相邻两个数之差的绝对值之和（少于两个元素时返回 0）。\n例如：solve([17, 4, -4, 0]) 返回 25。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    return sum(abs(a - b) for a, b in zip(xs, xs[1:]))\n```"
+    },
+    {
+      "question": "把整数列表 xs 里的数依次转成字符串，用 ',' 连接后返回（空列表返回空字符串）。\n例如：solve([7, 4, 14, 7]) 返回 '7,4,14,7'。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    return ','.join(str(x) for x in xs)\n```"
+    },
+    {
+      "question": "把字符串 s 中的单词（以空格分隔）顺序倒过来，用一个空格连接后返回。\n例如：solve('tsu sda iup') 返回 'iup sda tsu'。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(s):\n    return ' '.join(reversed(s.split()))\n```"
+    },
+    {
+      "question": "返回列表 xs 中从第 0 个开始、每隔 2 个取一个元素组成的新列表。\n例如：solve([12, 12, 15, 17, 3, 1, 12]) 返回 [12, 15, 3, 12]。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    return xs[::2]\n```"
+    },
+    {
+      "question": "把整数列表 xs 里的数依次转成字符串，用 ';' 连接后返回（空列表返回空字符串）。\n例如：solve([28, 2, -3, 17, 7]) 返回 '28;2;-3;17;7'。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    return ';'.join(str(x) for x in xs)\n```"
+    },
+    {
+      "question": "返回列表 xs 中从第 0 个开始、每隔 2 个取一个元素组成的新列表。\n例如：solve([0, 1]) 返回 [0]。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    return xs[::2]\n```"
+    },
+    {
+      "question": "返回整数列表 xs 中大于 4 的数的个数。\n例如：solve([5, 10, 25, 6, 27]) 返回 5。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    return sum(1 for x in xs if x > 4)\n```"
+    },
+    {
+      "question": "返回非空整数列表 xs 的最大值减最小值。\n例如：solve([14, 2, 10, 13, 20, 13, 0]) 返回 20。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    return max(xs) - min(xs)\n```"
+    },
+    {
+      "question": "把字符串 s 中的单词（以空格分隔）顺序倒过来，用一个空格连接后返回。\n例如：solve('todpc uc') 返回 'uc todpc'。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(s):\n    return ' '.join(reversed(s.split()))\n```"
+    },
+    {
+      "question": "返回 1 到 n（含）之间所有 3 的倍数之和。\n例如：solve(15) 返回 45。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(n):\n    return sum(i for i in range(1, n + 1) if i % 3 == 0)\n```"
+    },
+    {
+      "question": "返回字符串 s 中长度大于 3 的单词个数（单词以空格分隔）。\n例如：solve('absrt ao') 返回 1。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(s):\n    return sum(1 for w in s.split() if len(w) > 3)\n```"
+    },
+    {
+      "question": "返回整数列表 xs 中所有相邻两个数之差的绝对值之和（少于两个元素时返回 0）。\n例如：solve([-2, 17, 17, 17, -2, 25, 13, 7]) 返回 83。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    return sum(abs(a - b) for a, b in zip(xs, xs[1:]))\n```"
+    },
+    {
+      "question": "把整数列表 xs 里的数依次转成字符串，用 '|' 连接后返回（空列表返回空字符串）。\n例如：solve([-9, -9, 13, 23]) 返回 '-9|-9|13|23'。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    return '|'.join(str(x) for x in xs)\n```"
+    },
+    {
+      "question": "返回非空整数列表 xs 中最小值第一次出现的下标。\n例如：solve([2, 8]) 返回 0。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    return xs.index(min(xs))\n```"
+    },
+    {
+      "question": "把字符串 s 中的单词（以空格分隔）顺序倒过来，用一个空格连接后返回。\n例如：solve('ccedtd srbuu ruoril a pi') 返回 'pi a ruoril srbuu ccedtd'。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(s):\n    return ' '.join(reversed(s.split()))\n```"
+    },
+    {
+      "question": "判断字符串 s 是不是回文（正着读和倒着读一样），返回 True 或 False。\n例如：solve('ll') 返回 True。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(s):\n    return s == s[::-1]\n```"
+    },
+    {
+      "question": "去掉整数列表 xs 中的重复元素，保留每个数第一次出现的顺序，返回新列表。\n例如：solve([1, 4, 5]) 返回 [1, 4, 5]。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    seen = set()\n    out = []\n    for x in xs:\n        if x not in seen:\n            seen.add(x)\n            out.append(x)\n    return out\n```"
+    },
+    {
+      "question": "判断字符串 s 是不是回文（正着读和倒着读一样），返回 True 或 False。\n例如：solve('o') 返回 True。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(s):\n    return s == s[::-1]\n```"
+    },
+    {
+      "question": "返回非空整数列表 xs 的最大值减最小值。\n例如：solve([15, 22]) 返回 7。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    return max(xs) - min(xs)\n```"
+    },
+    {
+      "question": "返回整数列表 xs 中大于 -3 的数的个数。\n例如：solve([-7, -2, -8, -2, -5, 23]) 返回 3。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    return sum(1 for x in xs if x > -3)\n```"
+    },
+    {
+      "question": "返回字符串 s 中长度大于 4 的单词个数（单词以空格分隔）。\n例如：solve('cb iu paoa u') 返回 0。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(s):\n    return sum(1 for w in s.split() if len(w) > 4)\n```"
+    },
+    {
+      "question": "返回列表 xs 中从第 0 个开始、每隔 3 个取一个元素组成的新列表。\n例如：solve([17, 3, 0, 16, 5, 6, 9, 20, 10]) 返回 [17, 16, 9]。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    return xs[::3]\n```"
+    },
+    {
+      "question": "返回非负整数 n 的各位数字之和。\n例如：solve(74) 返回 11。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(n):\n    return sum(int(c) for c in str(n))\n```"
+    },
+    {
+      "question": "返回字符串 s 中长度大于 3 的单词个数（单词以空格分隔）。\n例如：solve('s') 返回 0。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(s):\n    return sum(1 for w in s.split() if len(w) > 3)\n```"
+    },
+    {
+      "question": "返回非负整数 n 的各位数字之和。\n例如：solve(41247) 返回 18。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(n):\n    return sum(int(c) for c in str(n))\n```"
+    },
+    {
+      "question": "返回 1 到 n（含）之间所有 6 的倍数之和。\n例如：solve(13) 返回 18。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(n):\n    return sum(i for i in range(1, n + 1) if i % 6 == 0)\n```"
+    },
+    {
+      "question": "把整数列表 xs 里的数依次转成字符串，用 ';' 连接后返回（空列表返回空字符串）。\n例如：solve([5, 13, 30, 4, 3, -6, 9, 7]) 返回 '5;13;30;4;3;-6;9;7'。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    return ';'.join(str(x) for x in xs)\n```"
+    },
+    {
+      "question": "返回整数列表 xs 中大于 10 的数的个数。\n例如：solve([-6]) 返回 0。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    return sum(1 for x in xs if x > 10)\n```"
+    },
+    {
+      "question": "判断整数列表 xs 里有没有重复的数，有返回 True，没有返回 False。\n例如：solve([3, 6, 7, 9, 6, 8, 6]) 返回 True。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    return len(set(xs)) != len(xs)\n```"
+    },
+    {
+      "question": "返回字符 's' 在字符串 s 中出现的次数。\n例如：solve('acbcdditc') 返回 0。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(s):\n    return s.count('s')\n```"
+    },
+    {
+      "question": "返回整数列表 xs 中所有偶数的平方组成的列表，保持原来的顺序。\n例如：solve([25, 19, 17, 6, -6, 13, -3]) 返回 [36, 36]。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    return [x * x for x in xs if x % 2 == 0]\n```"
+    },
+    {
+      "question": "把整数列表 xs 里的数依次转成字符串，用 '-' 连接后返回（空列表返回空字符串）。\n例如：solve([8, -8, 26]) 返回 '8--8-26'。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    return '-'.join(str(x) for x in xs)\n```"
+    },
+    {
+      "question": "返回字符 'e' 在字符串 s 中出现的次数。\n例如：solve('ub') 返回 0。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(s):\n    return s.count('e')\n```"
+    },
+    {
+      "question": "把字符串 s 重复 2 次，中间用 '|' 连接，返回结果。\n例如：solve('c') 返回 'c|c'。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(s):\n    return '|'.join([s] * 2)\n```"
+    },
+    {
+      "question": "把字符串 s 重复 2 次，中间用 '/' 连接，返回结果。\n例如：solve('tt') 返回 'tt/tt'。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(s):\n    return '/'.join([s] * 2)\n```"
+    },
+    {
+      "question": "把整数列表 xs 里的数依次转成字符串，用 '|' 连接后返回（空列表返回空字符串）。\n例如：solve([18, 27, 18, -2, 3, 28, 18]) 返回 '18|27|18|-2|3|28|18'。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    return '|'.join(str(x) for x in xs)\n```"
+    },
+    {
+      "question": "返回整数列表 xs 中所有能被 2 整除的数之和（没有就返回 0）。\n例如：solve([20, 17, 15, 15]) 返回 20。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    return sum(x for x in xs if x % 2 == 0)\n```"
+    },
+    {
+      "question": "去掉整数列表 xs 中的重复元素，保留每个数第一次出现的顺序，返回新列表。\n例如：solve([4, 0, 4, 2, 4, 5]) 返回 [4, 0, 2, 5]。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    seen = set()\n    out = []\n    for x in xs:\n        if x not in seen:\n            seen.add(x)\n            out.append(x)\n    return out\n```"
+    },
+    {
+      "question": "判断整数列表 xs 里有没有重复的数，有返回 True，没有返回 False。\n例如：solve([2, 7, 3, 5, 9]) 返回 False。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    return len(set(xs)) != len(xs)\n```"
+    },
+    {
+      "question": "返回整数列表 xs 中所有偶数的平方组成的列表，保持原来的顺序。\n例如：solve([8, 2, 14, -2, 7, -5, 28]) 返回 [64, 4, 196, 4, 784]。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    return [x * x for x in xs if x % 2 == 0]\n```"
+    },
+    {
+      "question": "判断字符串 s 是不是回文（正着读和倒着读一样），返回 True 或 False。\n例如：solve('ldcbo') 返回 False。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(s):\n    return s == s[::-1]\n```"
+    },
+    {
+      "question": "返回整数列表 xs 中所有偶数的平方组成的列表，保持原来的顺序。\n例如：solve([15, -1, -6, 2, 13, 30, -6, 1]) 返回 [36, 4, 900, 36]。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    return [x * x for x in xs if x % 2 == 0]\n```"
+    },
+    {
+      "question": "判断字符串 s 是不是回文（正着读和倒着读一样），返回 True 或 False。\n例如：solve('clc') 返回 True。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(s):\n    return s == s[::-1]\n```"
+    },
+    {
+      "question": "返回整数列表 xs 中所有能被 6 整除的数之和（没有就返回 0）。\n例如：solve([18, 28]) 返回 18。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    return sum(x for x in xs if x % 6 == 0)\n```"
+    },
+    {
+      "question": "返回整数列表 xs 的前缀和列表：第 i 个元素是 xs[0] 到 xs[i] 之和。\n例如：solve([12, -4, 16, 28, 0, 20, 11]) 返回 [12, 8, 24, 52, 52, 72, 83]。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    out = []\n    total = 0\n    for x in xs:\n        total += x\n        out.append(total)\n    return out\n```"
+    },
+    {
+      "question": "返回整数列表 xs 中大于 1 的数的个数。\n例如：solve([18, 9, 13, -5, 11, 28, 24, 28]) 返回 7。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    return sum(1 for x in xs if x > 1)\n```"
+    },
+    {
+      "question": "把非空列表 xs 循环左移 2 位（移出左边的元素接到右边），返回新列表。\n例如：solve([11, 5, 15, 13, 7, 6, 20, 18]) 返回 [15, 13, 7, 6, 20, 18, 11, 5]。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    k = 2 % len(xs)\n    return xs[k:] + xs[:k]\n```"
+    },
+    {
+      "question": "把字符串 s 中的单词（以空格分隔）顺序倒过来，用一个空格连接后返回。\n例如：solve('raua') 返回 'raua'。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(s):\n    return ' '.join(reversed(s.split()))\n```"
+    },
+    {
+      "question": "返回整数列表 xs 的前缀和列表：第 i 个元素是 xs[0] 到 xs[i] 之和。\n例如：solve([18, 9, 3, 4, 18, -8]) 返回 [18, 27, 30, 34, 52, 44]。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    out = []\n    total = 0\n    for x in xs:\n        total += x\n        out.append(total)\n    return out\n```"
+    },
+    {
+      "question": "把整数列表 xs 里的数依次转成字符串，用 '-' 连接后返回（空列表返回空字符串）。\n例如：solve([-7, -2, 0, -4, 20, 3]) 返回 '-7--2-0--4-20-3'。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    return '-'.join(str(x) for x in xs)\n```"
+    },
+    {
+      "question": "返回字符串 s 中长度大于 3 的单词个数（单词以空格分隔）。\n例如：solve('ter uttt') 返回 1。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(s):\n    return sum(1 for w in s.split() if len(w) > 3)\n```"
+    },
+    {
+      "question": "把整数 x 限制在 [-1, 1] 范围内：小于 -1 返回 -1，大于 1 返回 1，否则返回 x。\n例如：solve(6) 返回 1。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(x):\n    return max(-1, min(1, x))\n```"
+    },
+    {
+      "question": "把整数 x 限制在 [-7, 5] 范围内：小于 -7 返回 -7，大于 5 返回 5，否则返回 x。\n例如：solve(-15) 返回 -7。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(x):\n    return max(-7, min(5, x))\n```"
+    },
+    {
+      "question": "把字符串 s 重复 3 次，中间用 '-' 连接，返回结果。\n例如：solve('') 返回 '--'。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(s):\n    return '-'.join([s] * 3)\n```"
+    },
+    {
+      "question": "返回字符串 s 中元音字母（a、e、i、o、u，不分大小写）的个数。\n例如：solve('ptcd') 返回 0。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(s):\n    return sum(1 for c in s.lower() if c in 'aeiou')\n```"
+    },
+    {
+      "question": "把整数 x 限制在 [3, 14] 范围内：小于 3 返回 3，大于 14 返回 14，否则返回 x。\n例如：solve(5) 返回 5。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(x):\n    return max(3, min(14, x))\n```"
+    },
+    {
+      "question": "判断字符串 s 是不是回文（正着读和倒着读一样），返回 True 或 False。\n例如：solve('crue') 返回 False。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(s):\n    return s == s[::-1]\n```"
+    },
+    {
+      "question": "把字符串 s 中每个单词（以空格分隔）的首字母大写、其余字母小写，用一个空格连接后返回。\n例如：solve('CSTRD ILLE LCC') 返回 'Cstrd Ille Lcc'。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(s):\n    return ' '.join(w.capitalize() for w in s.split())\n```"
+    },
+    {
+      "question": "返回非空整数列表 xs 的最大值减最小值。\n例如：solve([3, 21, 6, -9, 5, 1, 3]) 返回 30。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    return max(xs) - min(xs)\n```"
+    },
+    {
+      "question": "把字符串 s 重复 4 次，中间用 '/' 连接，返回结果。\n例如：solve('cto') 返回 'cto/cto/cto/cto'。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(s):\n    return '/'.join([s] * 4)\n```"
+    },
+    {
+      "question": "返回非空整数列表 xs 中最小值第一次出现的下标。\n例如：solve([4]) 返回 0。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    return xs.index(min(xs))\n```"
+    },
+    {
+      "question": "返回整数列表 xs 中所有相邻两个数之差的绝对值之和（少于两个元素时返回 0）。\n例如：solve([15, 23, 21]) 返回 10。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    return sum(abs(a - b) for a, b in zip(xs, xs[1:]))\n```"
+    },
+    {
+      "question": "返回 1 到 n（含）之间所有 7 的倍数之和。\n例如：solve(55) 返回 196。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(n):\n    return sum(i for i in range(1, n + 1) if i % 7 == 0)\n```"
+    },
+    {
+      "question": "返回非空整数列表 xs 的最大值减最小值。\n例如：solve([11]) 返回 0。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    return max(xs) - min(xs)\n```"
+    },
+    {
+      "question": "判断整数列表 xs 里有没有重复的数，有返回 True，没有返回 False。\n例如：solve([8, 7, 2, 8, 8, 4, 7]) 返回 True。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    return len(set(xs)) != len(xs)\n```"
+    },
+    {
+      "question": "返回字符串 s 中元音字母（a、e、i、o、u，不分大小写）的个数。\n例如：solve('ccsired') 返回 2。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(s):\n    return sum(1 for c in s.lower() if c in 'aeiou')\n```"
+    },
+    {
+      "question": "把字符串 s 中每个单词（以空格分隔）的首字母大写、其余字母小写，用一个空格连接后返回。\n例如：solve('ACBC') 返回 'Acbc'。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(s):\n    return ' '.join(w.capitalize() for w in s.split())\n```"
+    },
+    {
+      "question": "返回非空整数列表 xs 的最大值减最小值。\n例如：solve([-7, 22, -5]) 返回 29。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    return max(xs) - min(xs)\n```"
+    },
+    {
+      "question": "把非空列表 xs 循环左移 2 位（移出左边的元素接到右边），返回新列表。\n例如：solve([19]) 返回 [19]。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    k = 2 % len(xs)\n    return xs[k:] + xs[:k]\n```"
+    },
+    {
+      "question": "把字符串 s 重复 2 次，中间用 '/' 连接，返回结果。\n例如：solve('si') 返回 'si/si'。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(s):\n    return '/'.join([s] * 2)\n```"
+    },
+    {
+      "question": "返回非空整数列表 xs 中最小值第一次出现的下标。\n例如：solve([5, 6, 7, 3, 7, 4]) 返回 3。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    return xs.index(min(xs))\n```"
+    },
+    {
+      "question": "返回整数列表 xs 中所有相邻两个数之差的绝对值之和（少于两个元素时返回 0）。\n例如：solve([22, -3]) 返回 25。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    return sum(abs(a - b) for a, b in zip(xs, xs[1:]))\n```"
+    },
+    {
+      "question": "去掉整数列表 xs 中的重复元素，保留每个数第一次出现的顺序，返回新列表。\n例如：solve([4, 3, 6, 3, 0]) 返回 [4, 3, 6, 0]。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    seen = set()\n    out = []\n    for x in xs:\n        if x not in seen:\n            seen.add(x)\n            out.append(x)\n    return out\n```"
+    },
+    {
+      "question": "把字符串 s 中每个单词（以空格分隔）的首字母大写、其余字母小写，用一个空格连接后返回。\n例如：solve('SRDSU SU DAP T') 返回 'Srdsu Su Dap T'。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(s):\n    return ' '.join(w.capitalize() for w in s.split())\n```"
+    },
+    {
+      "question": "返回整数列表 xs 中所有相邻两个数之差的绝对值之和（少于两个元素时返回 0）。\n例如：solve([29, -4, 18]) 返回 55。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    return sum(abs(a - b) for a, b in zip(xs, xs[1:]))\n```"
+    },
+    {
+      "question": "判断字符串 s 是不是回文（正着读和倒着读一样），返回 True 或 False。\n例如：solve('obllbo') 返回 True。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(s):\n    return s == s[::-1]\n```"
+    },
+    {
+      "question": "返回非负整数 n 的各位数字之和。\n例如：solve(44067) 返回 21。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(n):\n    return sum(int(c) for c in str(n))\n```"
+    },
+    {
+      "question": "返回整数列表 xs 中大于 12 的数的个数。\n例如：solve([11, 27]) 返回 1。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    return sum(1 for x in xs if x > 12)\n```"
+    },
+    {
+      "question": "返回整数列表 xs 中大于 2 的数的个数。\n例如：solve([-9, 4]) 返回 1。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    return sum(1 for x in xs if x > 2)\n```"
+    },
+    {
+      "question": "返回整数列表 xs 中所有能被 2 整除的数之和（没有就返回 0）。\n例如：solve([6, -5, 23, 22, 27]) 返回 28。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    return sum(x for x in xs if x % 2 == 0)\n```"
+    },
+    {
+      "question": "返回 1 到 n（含）之间所有 9 的倍数之和。\n例如：solve(46) 返回 135。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(n):\n    return sum(i for i in range(1, n + 1) if i % 9 == 0)\n```"
+    },
+    {
+      "question": "返回整数列表 xs 中大于 -3 的数的个数。\n例如：solve([-1, -5, 8]) 返回 2。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    return sum(1 for x in xs if x > -3)\n```"
+    },
+    {
+      "question": "把整数 x 限制在 [5, 17] 范围内：小于 5 返回 5，大于 17 返回 17，否则返回 x。\n例如：solve(12) 返回 12。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(x):\n    return max(5, min(17, x))\n```"
+    },
+    {
+      "question": "返回整数列表 xs 中所有偶数的平方组成的列表，保持原来的顺序。\n例如：solve([24, -2, 29, -1]) 返回 [576, 4]。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    return [x * x for x in xs if x % 2 == 0]\n```"
+    },
+    {
+      "question": "返回字符串 s 中元音字母（a、e、i、o、u，不分大小写）的个数。\n例如：solve('sepep') 返回 2。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(s):\n    return sum(1 for c in s.lower() if c in 'aeiou')\n```"
+    },
+    {
+      "question": "判断整数列表 xs 里有没有重复的数，有返回 True，没有返回 False。\n例如：solve([9, 0, 0, 0]) 返回 True。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    return len(set(xs)) != len(xs)\n```"
+    },
+    {
+      "question": "把字符串 s 重复 5 次，中间用 '/' 连接，返回结果。\n例如：solve('r') 返回 'r/r/r/r/r'。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(s):\n    return '/'.join([s] * 5)\n```"
+    },
+    {
+      "question": "返回字符串 s 中元音字母（a、e、i、o、u，不分大小写）的个数。\n例如：solve('brepbeb') 返回 2。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(s):\n    return sum(1 for c in s.lower() if c in 'aeiou')\n```"
+    },
+    {
+      "question": "判断字符串 s 是不是回文（正着读和倒着读一样），返回 True 或 False。\n例如：solve('olssslo') 返回 True。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(s):\n    return s == s[::-1]\n```"
+    },
+    {
+      "question": "返回非负整数 n 的各位数字之和。\n例如：solve(92141) 返回 17。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(n):\n    return sum(int(c) for c in str(n))\n```"
+    },
+    {
+      "question": "去掉整数列表 xs 中的重复元素，保留每个数第一次出现的顺序，返回新列表。\n例如：solve([4, 5, 2, 0, 4, 1, 6, 1, 2]) 返回 [4, 5, 2, 0, 1, 6]。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    seen = set()\n    out = []\n    for x in xs:\n        if x not in seen:\n            seen.add(x)\n            out.append(x)\n    return out\n```"
+    },
+    {
+      "question": "把整数 x 限制在 [9, 19] 范围内：小于 9 返回 9，大于 19 返回 19，否则返回 x。\n例如：solve(6) 返回 9。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(x):\n    return max(9, min(19, x))\n```"
+    },
+    {
+      "question": "返回整数列表 xs 中所有相邻两个数之差的绝对值之和（少于两个元素时返回 0）。\n例如：solve([-9, 11, 21, 24, 6]) 返回 51。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    return sum(abs(a - b) for a, b in zip(xs, xs[1:]))\n```"
+    },
+    {
+      "question": "判断字符串 s 是不是回文（正着读和倒着读一样），返回 True 或 False。\n例如：solve('a') 返回 True。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(s):\n    return s == s[::-1]\n```"
+    },
+    {
+      "question": "返回非空整数列表 xs 的最大值减最小值。\n例如：solve([19, 29, 7, 17, 20, 4, 6]) 返回 25。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    return max(xs) - min(xs)\n```"
+    },
+    {
+      "question": "把整数列表 xs 里的数依次转成字符串，用 ',' 连接后返回（空列表返回空字符串）。\n例如：solve([5, 29, 0, 13, 23, 3, 24, 21]) 返回 '5,29,0,13,23,3,24,21'。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    return ','.join(str(x) for x in xs)\n```"
+    },
+    {
+      "question": "把字符串 s 中每个单词（以空格分隔）的首字母大写、其余字母小写，用一个空格连接后返回。\n例如：solve('CCR DAS') 返回 'Ccr Das'。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(s):\n    return ' '.join(w.capitalize() for w in s.split())\n```"
+    },
+    {
+      "question": "返回整数列表 xs 中大于 13 的数的个数。\n例如：solve([5, 29, 28, 17, 30, -6, 28, 16]) 返回 6。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    return sum(1 for x in xs if x > 13)\n```"
+    },
+    {
+      "question": "返回非负整数 n 的各位数字之和。\n例如：solve(15) 返回 6。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(n):\n    return sum(int(c) for c in str(n))\n```"
+    },
+    {
+      "question": "返回整数列表 xs 中所有能被 7 整除的数之和（没有就返回 0）。\n例如：solve([20, 25, 11, -5]) 返回 0。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    return sum(x for x in xs if x % 7 == 0)\n```"
+    },
+    {
+      "question": "返回整数列表 xs 中所有偶数的平方组成的列表，保持原来的顺序。\n例如：solve([3, 8, -2]) 返回 [64, 4]。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    return [x * x for x in xs if x % 2 == 0]\n```"
+    },
+    {
+      "question": "去掉整数列表 xs 中的重复元素，保留每个数第一次出现的顺序，返回新列表。\n例如：solve([1, 0, 4, 6, 3, 3]) 返回 [1, 0, 4, 6, 3]。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    seen = set()\n    out = []\n    for x in xs:\n        if x not in seen:\n            seen.add(x)\n            out.append(x)\n    return out\n```"
+    },
+    {
+      "question": "返回列表 xs 中从第 0 个开始、每隔 4 个取一个元素组成的新列表。\n例如：solve([0, 19, 2, 9, 14, 5, 14]) 返回 [0, 14]。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    return xs[::4]\n```"
+    },
+    {
+      "question": "返回非空整数列表 xs 的最大值减最小值。\n例如：solve([5]) 返回 0。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    return max(xs) - min(xs)\n```"
+    },
+    {
+      "question": "返回整数列表 xs 中大于 -1 的数的个数。\n例如：solve([15, 28, 30, 16, -9, 18]) 返回 5。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    return sum(1 for x in xs if x > -1)\n```"
+    },
+    {
+      "question": "返回整数列表 xs 的前缀和列表：第 i 个元素是 xs[0] 到 xs[i] 之和。\n例如：solve([1, 1, 23, 18, 8, 23, 14]) 返回 [1, 2, 25, 43, 51, 74, 88]。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    out = []\n    total = 0\n    for x in xs:\n        total += x\n        out.append(total)\n    return out\n```"
+    },
+    {
+      "question": "把字符串 s 中的单词（以空格分隔）顺序倒过来，用一个空格连接后返回。\n例如：solve('ss pcsrd uball') 返回 'uball pcsrd ss'。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(s):\n    return ' '.join(reversed(s.split()))\n```"
+    },
+    {
+      "question": "去掉整数列表 xs 中的重复元素，保留每个数第一次出现的顺序，返回新列表。\n例如：solve([6, 5, 5, 3, 2, 6, 3, 6, 1]) 返回 [6, 5, 3, 2, 1]。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    seen = set()\n    out = []\n    for x in xs:\n        if x not in seen:\n            seen.add(x)\n            out.append(x)\n    return out\n```"
+    },
+    {
+      "question": "把字符串 s 重复 3 次，中间用 '-' 连接，返回结果。\n例如：solve('ouu') 返回 'ouu-ouu-ouu'。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(s):\n    return '-'.join([s] * 3)\n```"
+    },
+    {
+      "question": "返回非空整数列表 xs 中最小值第一次出现的下标。\n例如：solve([1, 7, 5, 8, 8, 4]) 返回 0。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    return xs.index(min(xs))\n```"
+    },
+    {
+      "question": "判断字符串 s 是不是回文（正着读和倒着读一样），返回 True 或 False。\n例如：solve('eee') 返回 True。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(s):\n    return s == s[::-1]\n```"
+    },
+    {
+      "question": "返回整数列表 xs 的前缀和列表：第 i 个元素是 xs[0] 到 xs[i] 之和。\n例如：solve([18, -5, -2]) 返回 [18, 13, 11]。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    out = []\n    total = 0\n    for x in xs:\n        total += x\n        out.append(total)\n    return out\n```"
+    },
+    {
+      "question": "返回整数列表 xs 中所有能被 5 整除的数之和（没有就返回 0）。\n例如：solve([5, -6, 13, 3, 14, 16, 7]) 返回 5。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    return sum(x for x in xs if x % 5 == 0)\n```"
+    },
+    {
+      "question": "返回整数列表 xs 的前缀和列表：第 i 个元素是 xs[0] 到 xs[i] 之和。\n例如：solve([5, 2, 22, 13, 19, 23]) 返回 [5, 7, 29, 42, 61, 84]。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    out = []\n    total = 0\n    for x in xs:\n        total += x\n        out.append(total)\n    return out\n```"
+    },
+    {
+      "question": "返回列表 xs 中从第 0 个开始、每隔 2 个取一个元素组成的新列表。\n例如：solve([17, 8, 4]) 返回 [17, 4]。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    return xs[::2]\n```"
+    },
+    {
+      "question": "返回列表 xs 中从第 0 个开始、每隔 3 个取一个元素组成的新列表。\n例如：solve([]) 返回 []。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    return xs[::3]\n```"
+    },
+    {
+      "question": "把整数 x 限制在 [5, 7] 范围内：小于 5 返回 5，大于 7 返回 7，否则返回 x。\n例如：solve(9) 返回 7。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(x):\n    return max(5, min(7, x))\n```"
+    },
+    {
+      "question": "把字符串 s 重复 5 次，中间用 ',' 连接，返回结果。\n例如：solve('') 返回 ',,,,'。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(s):\n    return ','.join([s] * 5)\n```"
+    },
+    {
+      "question": "把非空列表 xs 循环左移 3 位（移出左边的元素接到右边），返回新列表。\n例如：solve([0, 17, 4]) 返回 [0, 17, 4]。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    k = 3 % len(xs)\n    return xs[k:] + xs[:k]\n```"
+    },
+    {
+      "question": "返回非空整数列表 xs 的最大值减最小值。\n例如：solve([-4, 28, -6, 25, 29, -4, 6]) 返回 35。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    return max(xs) - min(xs)\n```"
+    },
+    {
+      "question": "把非空列表 xs 循环左移 1 位（移出左边的元素接到右边），返回新列表。\n例如：solve([13, 17, 7, 15, 9, 7]) 返回 [17, 7, 15, 9, 7, 13]。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    k = 1 % len(xs)\n    return xs[k:] + xs[:k]\n```"
+    },
+    {
+      "question": "返回整数列表 xs 中大于 14 的数的个数。\n例如：solve([29, 13, -4, 28, 18, 3, 18, -1]) 返回 4。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    return sum(1 for x in xs if x > 14)\n```"
+    },
+    {
+      "question": "把整数 x 限制在 [-6, 5] 范围内：小于 -6 返回 -6，大于 5 返回 5，否则返回 x。\n例如：solve(-1) 返回 -1。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(x):\n    return max(-6, min(5, x))\n```"
+    },
+    {
+      "question": "返回非负整数 n 的各位数字之和。\n例如：solve(86) 返回 14。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(n):\n    return sum(int(c) for c in str(n))\n```"
+    },
+    {
+      "question": "返回 1 到 n（含）之间所有 2 的倍数之和。\n例如：solve(0) 返回 0。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(n):\n    return sum(i for i in range(1, n + 1) if i % 2 == 0)\n```"
+    },
+    {
+      "question": "去掉整数列表 xs 中的重复元素，保留每个数第一次出现的顺序，返回新列表。\n例如：solve([6, 3, 4, 1, 1, 3, 2, 6]) 返回 [6, 3, 4, 1, 2]。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    seen = set()\n    out = []\n    for x in xs:\n        if x not in seen:\n            seen.add(x)\n            out.append(x)\n    return out\n```"
+    },
+    {
+      "question": "返回整数列表 xs 中大于 10 的数的个数。\n例如：solve([16, -7, 29]) 返回 2。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    return sum(1 for x in xs if x > 10)\n```"
+    },
+    {
+      "question": "返回非负整数 n 的各位数字之和。\n例如：solve(63914) 返回 23。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(n):\n    return sum(int(c) for c in str(n))\n```"
+    },
+    {
+      "question": "去掉整数列表 xs 中的重复元素，保留每个数第一次出现的顺序，返回新列表。\n例如：solve([2, 5, 2, 3, 5, 4, 3, 6]) 返回 [2, 5, 3, 4, 6]。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    seen = set()\n    out = []\n    for x in xs:\n        if x not in seen:\n            seen.add(x)\n            out.append(x)\n    return out\n```"
+    },
+    {
+      "question": "返回整数列表 xs 中所有相邻两个数之差的绝对值之和（少于两个元素时返回 0）。\n例如：solve([-1, -2]) 返回 1。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    return sum(abs(a - b) for a, b in zip(xs, xs[1:]))\n```"
+    },
+    {
+      "question": "返回整数列表 xs 中所有相邻两个数之差的绝对值之和（少于两个元素时返回 0）。\n例如：solve([29]) 返回 0。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    return sum(abs(a - b) for a, b in zip(xs, xs[1:]))\n```"
+    },
+    {
+      "question": "把非空列表 xs 循环左移 1 位（移出左边的元素接到右边），返回新列表。\n例如：solve([20, 18, 14, 12, 9, 3, 1]) 返回 [18, 14, 12, 9, 3, 1, 20]。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    k = 1 % len(xs)\n    return xs[k:] + xs[:k]\n```"
+    },
+    {
+      "question": "把字符串 s 重复 2 次，中间用 ',' 连接，返回结果。\n例如：solve('ad') 返回 'ad,ad'。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(s):\n    return ','.join([s] * 2)\n```"
+    },
+    {
+      "question": "返回字符串 s 中元音字母（a、e、i、o、u，不分大小写）的个数。\n例如：solve('uo') 返回 2。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(s):\n    return sum(1 for c in s.lower() if c in 'aeiou')\n```"
+    },
+    {
+      "question": "判断字符串 s 是不是回文（正着读和倒着读一样），返回 True 或 False。\n例如：solve('ei') 返回 False。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(s):\n    return s == s[::-1]\n```"
+    },
+    {
+      "question": "返回整数列表 xs 中所有偶数的平方组成的列表，保持原来的顺序。\n例如：solve([25, 12, 22, -3, -4, 18, 22, 2]) 返回 [144, 484, 16, 324, 484, 4]。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    return [x * x for x in xs if x % 2 == 0]\n```"
+    },
+    {
+      "question": "返回非负整数 n 的各位数字之和。\n例如：solve(39793) 返回 31。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(n):\n    return sum(int(c) for c in str(n))\n```"
+    },
+    {
+      "question": "把整数 x 限制在 [-1, 5] 范围内：小于 -1 返回 -1，大于 5 返回 5，否则返回 x。\n例如：solve(9) 返回 5。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(x):\n    return max(-1, min(5, x))\n```"
+    },
+    {
+      "question": "返回列表 xs 中从第 0 个开始、每隔 2 个取一个元素组成的新列表。\n例如：solve([]) 返回 []。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    return xs[::2]\n```"
+    },
+    {
+      "question": "返回整数列表 xs 中所有相邻两个数之差的绝对值之和（少于两个元素时返回 0）。\n例如：solve([25, 29, 3, 21, 24, -8, -7]) 返回 84。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    return sum(abs(a - b) for a, b in zip(xs, xs[1:]))\n```"
+    },
+    {
+      "question": "返回整数列表 xs 中所有能被 6 整除的数之和（没有就返回 0）。\n例如：solve([3, 15, 17, -1, 1]) 返回 0。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    return sum(x for x in xs if x % 6 == 0)\n```"
+    },
+    {
+      "question": "返回整数列表 xs 中所有相邻两个数之差的绝对值之和（少于两个元素时返回 0）。\n例如：solve([14, 7, -4, 27, 27, 0, -8]) 返回 84。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    return sum(abs(a - b) for a, b in zip(xs, xs[1:]))\n```"
+    },
+    {
+      "question": "返回列表 xs 中从第 0 个开始、每隔 4 个取一个元素组成的新列表。\n例如：solve([2]) 返回 [2]。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    return xs[::4]\n```"
+    },
+    {
+      "question": "返回整数列表 xs 中所有偶数的平方组成的列表，保持原来的顺序。\n例如：solve([-6, -3, 15, -8, 18, 27, 14]) 返回 [36, 64, 324, 196]。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    return [x * x for x in xs if x % 2 == 0]\n```"
+    },
+    {
+      "question": "返回整数列表 xs 中所有相邻两个数之差的绝对值之和（少于两个元素时返回 0）。\n例如：solve([23, -6, -7, 17]) 返回 54。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    return sum(abs(a - b) for a, b in zip(xs, xs[1:]))\n```"
+    },
+    {
+      "question": "返回整数列表 xs 中所有相邻两个数之差的绝对值之和（少于两个元素时返回 0）。\n例如：solve([1]) 返回 0。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    return sum(abs(a - b) for a, b in zip(xs, xs[1:]))\n```"
+    },
+    {
+      "question": "判断整数列表 xs 里有没有重复的数，有返回 True，没有返回 False。\n例如：solve([6, 9]) 返回 False。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    return len(set(xs)) != len(xs)\n```"
+    },
+    {
+      "question": "把字符串 s 中每个单词（以空格分隔）的首字母大写、其余字母小写，用一个空格连接后返回。\n例如：solve('PT TPDPA') 返回 'Pt Tpdpa'。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(s):\n    return ' '.join(w.capitalize() for w in s.split())\n```"
+    },
+    {
+      "question": "返回字符 'o' 在字符串 s 中出现的次数。\n例如：solve('p') 返回 0。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(s):\n    return s.count('o')\n```"
+    },
+    {
+      "question": "把非空列表 xs 循环左移 2 位（移出左边的元素接到右边），返回新列表。\n例如：solve([9, 8, 13, 12, 15, 1, 2, 7]) 返回 [13, 12, 15, 1, 2, 7, 9, 8]。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    k = 2 % len(xs)\n    return xs[k:] + xs[:k]\n```"
+    },
+    {
+      "question": "返回列表 xs 中从第 0 个开始、每隔 3 个取一个元素组成的新列表。\n例如：solve([12]) 返回 [12]。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    return xs[::3]\n```"
+    },
+    {
+      "question": "返回字符串 s 中长度大于 2 的单词个数（单词以空格分隔）。\n例如：solve('ct s pa ueeari ptoalb') 返回 2。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(s):\n    return sum(1 for w in s.split() if len(w) > 2)\n```"
+    },
+    {
+      "question": "把字符串 s 重复 5 次，中间用 '-' 连接，返回结果。\n例如：solve('') 返回 '----'。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(s):\n    return '-'.join([s] * 5)\n```"
+    },
+    {
+      "question": "返回整数列表 xs 中所有偶数的平方组成的列表，保持原来的顺序。\n例如：solve([-2]) 返回 [4]。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    return [x * x for x in xs if x % 2 == 0]\n```"
+    },
+    {
+      "question": "去掉整数列表 xs 中的重复元素，保留每个数第一次出现的顺序，返回新列表。\n例如：solve([0, 4, 5, 3, 5, 5]) 返回 [0, 4, 5, 3]。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    seen = set()\n    out = []\n    for x in xs:\n        if x not in seen:\n            seen.add(x)\n            out.append(x)\n    return out\n```"
+    },
+    {
+      "question": "返回非负整数 n 的各位数字之和。\n例如：solve(9481) 返回 22。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(n):\n    return sum(int(c) for c in str(n))\n```"
+    },
+    {
+      "question": "把整数列表 xs 里的数依次转成字符串，用 ';' 连接后返回（空列表返回空字符串）。\n例如：solve([-6, 2, -9, 22]) 返回 '-6;2;-9;22'。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    return ';'.join(str(x) for x in xs)\n```"
+    },
+    {
+      "question": "把字符串 s 中的单词（以空格分隔）顺序倒过来，用一个空格连接后返回。\n例如：solve('bsduo ip olcpr boibdo') 返回 'boibdo olcpr ip bsduo'。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(s):\n    return ' '.join(reversed(s.split()))\n```"
+    },
+    {
+      "question": "返回整数列表 xs 中所有偶数的平方组成的列表，保持原来的顺序。\n例如：solve([12, 19, 28, -4]) 返回 [144, 784, 16]。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    return [x * x for x in xs if x % 2 == 0]\n```"
+    },
+    {
+      "question": "返回非空整数列表 xs 的最大值减最小值。\n例如：solve([-6]) 返回 0。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    return max(xs) - min(xs)\n```"
+    },
+    {
+      "question": "把整数 x 限制在 [-4, -2] 范围内：小于 -4 返回 -4，大于 -2 返回 -2，否则返回 x。\n例如：solve(-1) 返回 -2。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(x):\n    return max(-4, min(-2, x))\n```"
+    },
+    {
+      "question": "返回整数列表 xs 的前缀和列表：第 i 个元素是 xs[0] 到 xs[i] 之和。\n例如：solve([27, 12, 27, 5]) 返回 [27, 39, 66, 71]。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    out = []\n    total = 0\n    for x in xs:\n        total += x\n        out.append(total)\n    return out\n```"
+    },
+    {
+      "question": "返回列表 xs 中从第 0 个开始、每隔 4 个取一个元素组成的新列表。\n例如：solve([]) 返回 []。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    return xs[::4]\n```"
+    },
+    {
+      "question": "把字符串 s 重复 5 次，中间用 '/' 连接，返回结果。\n例如：solve('') 返回 '////'。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(s):\n    return '/'.join([s] * 5)\n```"
+    },
+    {
+      "question": "返回列表 xs 中从第 0 个开始、每隔 3 个取一个元素组成的新列表。\n例如：solve([2, 0, 16, 14, 8, 8, 19, 14, 9, 12]) 返回 [2, 14, 19, 12]。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    return xs[::3]\n```"
+    },
+    {
+      "question": "返回非负整数 n 的各位数字之和。\n例如：solve(16) 返回 7。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(n):\n    return sum(int(c) for c in str(n))\n```"
+    },
+    {
+      "question": "返回 1 到 n（含）之间所有 4 的倍数之和。\n例如：solve(4) 返回 4。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(n):\n    return sum(i for i in range(1, n + 1) if i % 4 == 0)\n```"
+    },
+    {
+      "question": "返回非负整数 n 的各位数字之和。\n例如：solve(22) 返回 4。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(n):\n    return sum(int(c) for c in str(n))\n```"
+    },
+    {
+      "question": "返回整数列表 xs 的前缀和列表：第 i 个元素是 xs[0] 到 xs[i] 之和。\n例如：solve([10, -7, 13, 17, 24, 28]) 返回 [10, 3, 16, 33, 57, 85]。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    out = []\n    total = 0\n    for x in xs:\n        total += x\n        out.append(total)\n    return out\n```"
+    },
+    {
+      "question": "把字符串 s 中每个单词（以空格分隔）的首字母大写、其余字母小写，用一个空格连接后返回。\n例如：solve('BB DORI ECAUU TR') 返回 'Bb Dori Ecauu Tr'。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(s):\n    return ' '.join(w.capitalize() for w in s.split())\n```"
+    },
+    {
+      "question": "把非空列表 xs 循环左移 4 位（移出左边的元素接到右边），返回新列表。\n例如：solve([2, 15, 16, 19, 3, 16]) 返回 [3, 16, 2, 15, 16, 19]。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    k = 4 % len(xs)\n    return xs[k:] + xs[:k]\n```"
+    },
+    {
+      "question": "返回 1 到 n（含）之间所有 5 的倍数之和。\n例如：solve(52) 返回 275。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(n):\n    return sum(i for i in range(1, n + 1) if i % 5 == 0)\n```"
+    },
+    {
+      "question": "把非空列表 xs 循环左移 3 位（移出左边的元素接到右边），返回新列表。\n例如：solve([20, 14, 0, 0, 9]) 返回 [0, 9, 20, 14, 0]。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    k = 3 % len(xs)\n    return xs[k:] + xs[:k]\n```"
+    },
+    {
+      "question": "把非空列表 xs 循环左移 4 位（移出左边的元素接到右边），返回新列表。\n例如：solve([4, 18, 18, 2, 13]) 返回 [13, 4, 18, 18, 2]。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    k = 4 % len(xs)\n    return xs[k:] + xs[:k]\n```"
+    },
+    {
+      "question": "去掉整数列表 xs 中的重复元素，保留每个数第一次出现的顺序，返回新列表。\n例如：solve([6, 2, 0, 0]) 返回 [6, 2, 0]。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    seen = set()\n    out = []\n    for x in xs:\n        if x not in seen:\n            seen.add(x)\n            out.append(x)\n    return out\n```"
+    },
+    {
+      "question": "返回整数列表 xs 中所有能被 9 整除的数之和（没有就返回 0）。\n例如：solve([20]) 返回 0。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    return sum(x for x in xs if x % 9 == 0)\n```"
+    },
+    {
+      "question": "返回整数列表 xs 中所有能被 2 整除的数之和（没有就返回 0）。\n例如：solve([5, 24, -3]) 返回 24。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    return sum(x for x in xs if x % 2 == 0)\n```"
+    },
+    {
+      "question": "返回非空整数列表 xs 中最小值第一次出现的下标。\n例如：solve([0, 0, 0, 6, 7, 3, 4, 0]) 返回 0。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    return xs.index(min(xs))\n```"
+    },
+    {
+      "question": "返回字符串 s 中长度大于 4 的单词个数（单词以空格分隔）。\n例如：solve('ul ess dts crtour apsc') 返回 1。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(s):\n    return sum(1 for w in s.split() if len(w) > 4)\n```"
+    },
+    {
+      "question": "返回非空整数列表 xs 的最大值减最小值。\n例如：solve([8]) 返回 0。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    return max(xs) - min(xs)\n```"
+    },
+    {
+      "question": "返回整数列表 xs 中所有能被 7 整除的数之和（没有就返回 0）。\n例如：solve([-4, 0, 14]) 返回 14。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    return sum(x for x in xs if x % 7 == 0)\n```"
+    },
+    {
+      "question": "把字符串 s 重复 2 次，中间用 '+' 连接，返回结果。\n例如：solve('obbl') 返回 'obbl+obbl'。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(s):\n    return '+'.join([s] * 2)\n```"
+    },
+    {
+      "question": "返回非空整数列表 xs 的最大值减最小值。\n例如：solve([30, 15, -4, 26]) 返回 34。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    return max(xs) - min(xs)\n```"
+    },
+    {
+      "question": "把非空列表 xs 循环左移 1 位（移出左边的元素接到右边），返回新列表。\n例如：solve([3, 12, 9, 8]) 返回 [12, 9, 8, 3]。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    k = 1 % len(xs)\n    return xs[k:] + xs[:k]\n```"
+    },
+    {
+      "question": "返回整数列表 xs 中大于 14 的数的个数。\n例如：solve([19, 19, -5, 5]) 返回 2。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    return sum(1 for x in xs if x > 14)\n```"
+    },
+    {
+      "question": "去掉整数列表 xs 中的重复元素，保留每个数第一次出现的顺序，返回新列表。\n例如：solve([1, 0, 4, 0, 5, 3, 0, 2]) 返回 [1, 0, 4, 5, 3, 2]。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    seen = set()\n    out = []\n    for x in xs:\n        if x not in seen:\n            seen.add(x)\n            out.append(x)\n    return out\n```"
+    },
+    {
+      "question": "把整数 x 限制在 [2, 17] 范围内：小于 2 返回 2，大于 17 返回 17，否则返回 x。\n例如：solve(16) 返回 16。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(x):\n    return max(2, min(17, x))\n```"
+    },
+    {
+      "question": "把非空列表 xs 循环左移 4 位（移出左边的元素接到右边），返回新列表。\n例如：solve([7, 17, 17]) 返回 [17, 17, 7]。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    k = 4 % len(xs)\n    return xs[k:] + xs[:k]\n```"
+    },
+    {
+      "question": "返回非空整数列表 xs 中最小值第一次出现的下标。\n例如：solve([8, 7, 3, 0, 1, 8, 5]) 返回 3。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    return xs.index(min(xs))\n```"
+    },
+    {
+      "question": "返回非空整数列表 xs 的最大值减最小值。\n例如：solve([13, 23, 30, 30, 2, 20, 23]) 返回 28。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    return max(xs) - min(xs)\n```"
+    },
+    {
+      "question": "返回字符 'r' 在字符串 s 中出现的次数。\n例如：solve('ltloc') 返回 0。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(s):\n    return s.count('r')\n```"
+    },
+    {
+      "question": "把整数 x 限制在 [-2, 13] 范围内：小于 -2 返回 -2，大于 13 返回 13，否则返回 x。\n例如：solve(9) 返回 9。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(x):\n    return max(-2, min(13, x))\n```"
+    },
+    {
+      "question": "返回字符串 s 中元音字母（a、e、i、o、u，不分大小写）的个数。\n例如：solve('lob') 返回 1。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(s):\n    return sum(1 for c in s.lower() if c in 'aeiou')\n```"
+    },
+    {
+      "question": "返回 1 到 n（含）之间所有 9 的倍数之和。\n例如：solve(53) 返回 135。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(n):\n    return sum(i for i in range(1, n + 1) if i % 9 == 0)\n```"
+    },
+    {
+      "question": "返回非空整数列表 xs 的最大值减最小值。\n例如：solve([10, 7]) 返回 3。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    return max(xs) - min(xs)\n```"
+    },
+    {
+      "question": "把非空列表 xs 循环左移 3 位（移出左边的元素接到右边），返回新列表。\n例如：solve([6, 5, 1, 11, 19, 5, 4]) 返回 [11, 19, 5, 4, 6, 5, 1]。",
+      "correct": true,
+      "format_ok": true,
+      "completion": "```python\ndef solve(xs):\n    k = 3 % len(xs)\n    return xs[k:] + xs[:k]\n```"
+    }
+  ],
+  "examples": [
+    {
+      "question": "返回整数列表 xs 中大于 8 的数的个数。\n例如：solve([12, 1]) 返回 1。",
+      "answer": "def solve(xs):\n    return sum(1 for x in xs if x > 8)",
+      "completion": "```python\ndef solve(xs):\n    return sum(1 for x in xs if x > 8)\n```",
+      "correct": true
+    },
+    {
+      "question": "返回非空整数列表 xs 的最大值减最小值。\n例如：solve([3]) 返回 0。",
+      "answer": "def solve(xs):\n    return max(xs) - min(xs)",
+      "completion": "```python\ndef solve(xs):\n    return max(xs) - min(xs)\n```",
+      "correct": true
+    },
+    {
+      "question": "返回整数列表 xs 中所有能被 6 整除的数之和（没有就返回 0）。\n例如：solve([3, 30, 24, 22, 2, -1]) 返回 54。",
+      "answer": "def solve(xs):\n    return sum(x for x in xs if x % 6 == 0)",
+      "completion": "```python\ndef solve(xs):\n    return sum(x for x in xs if x % 6 == 0)\n```",
+      "correct": true
+    },
+    {
+      "question": "把字符串 s 中每个单词（以空格分隔）的首字母大写、其余字母小写，用一个空格连接后返回。\n例如：solve('SE') 返回 'Se'。",
+      "answer": "def solve(s):\n    return ' '.join(w.capitalize() for w in s.split())",
+      "completion": "```python\ndef solve(s):\n    return ' '.join(w.capitalize() for w in s.split())\n```",
+      "correct": true
+    },
+    {
+      "question": "判断字符串 s 是不是回文（正着读和倒着读一样），返回 True 或 False。\n例如：solve('lbl') 返回 True。",
+      "answer": "def solve(s):\n    return s == s[::-1]",
+      "completion": "```python\ndef solve(s):\n    return s == s[::-1]\n```",
+      "correct": true
+    }
+  ],
+  "seconds": 50.5
+}

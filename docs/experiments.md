@@ -419,3 +419,88 @@ this model scale the only way out is for the accuracy component to start produci
    test whether the collapse in run B is specifically a KL problem or a general exploration problem.
    Clip-higher needs `--ppo_epochs > 1` to do anything: with one update per rollout batch the ratio is
    exactly 1 and nothing is ever clipped (`clip_frac` was 0 in all 12 runs of the grid).
+
+## Harder tasks: 3-digit arithmetic, and a first look at a code environment
+
+Everything here ran on the Mac (MPS, bf16), **one seed per variant**, and training on MPS is not bitwise
+reproducible, so read differences of a few points as suggestive. Records are in
+`records/posttrain_v3/`; `records/posttrain_v3/summarize.py` recomputes every number below.
+
+### 1–3 digit +/−: the variants separate a little, and one at a time they are not yet distinguishable
+
+The first round's SFT policy saw only 1–2 digit problems, so on `arith_v2` (1–3 digits; the larger operand
+has 3 digits in 5 problems of 9) it starts at **test 0.290** (1d 0.480, 2d 0.675, **3d 0.038**) with a
+format rate of 1.000: it writes the right shape and the wrong algorithm for any `b` with three non-zero
+digits (it splits off two parts and drops the hundreds). Silent-group fraction is 0.72 at the start, against
+0.9 at the end of the first round, which is the point of the harder set. For scale, SFT on the 1–3 digit
+`sft.jsonl` (4000 rows, 1 epoch) reaches test 0.490.
+
+GRPO from that policy, 300 steps, 32 prompts × 8 samples, `--learning_rate 2e-5`, `--max_new_tokens 120`
+(`scripts/mac_posttrain_v3.sh`):
+
+| Variant | dev | test | 1d | 2d | 3d | format | silent, steps 201–300 | s / step |
+|---|---|---|---|---|---|---|---|---|
+| SFT (1–2 digit) | 0.300 | 0.290 | 0.480 | 0.675 | 0.038 | 1.000 | – | – |
+| GRPO | 0.540 | 0.544 | 0.880 | 0.810 | 0.334 | 1.000 | 0.795 | 11–13 |
+| GRPO, `--ppo_epochs 2` | 0.524 | 0.542 | 0.920 | 0.902 | 0.272 | 1.000 | 0.839 | 14–22 |
+| Dr. GRPO | 0.564 | 0.588 | 0.860 | 0.865 | 0.383 | 1.000 | 0.814 | ~10 |
+| DAPO-lite | 0.560 | 0.586 | 0.840 | 0.865 | 0.383 | 1.000 | 0.786 | ~8 |
+| DAPO-lite, `--ppo_epochs 2` | 0.546 | 0.570 | 0.900 | 0.853 | 0.352 | 1.000 | 0.833 | ~8.5 |
+
+(s / step is the mean per 50-step window; some windows overlapped my own concurrent jobs, so the
+`ppo_epochs 2` GRPO figure is an upper bound.)
+
+1. **RL does what SFT on the same distribution cannot do cheaply.** Every variant is far above the SFT
+   policy it started from (paired McNemar against it: +132 to +160 problems gained, 6 to 16 lost, p < 1e-26),
+   and the gain is where the policy was weak: 3d went from 0.04 to 0.27–0.38. Training-sample accuracy was still
+   rising at the end in all five runs (plain GRPO: 0.429 over steps 101–200, 0.532 over 201–300), while the
+   dev curve was slowing (0.532 at step 250, 0.540 at 300), so these are not clearly converged numbers.
+2. **Dr. GRPO and DAPO-lite are ahead of plain GRPO by about 4 points on test, and equal to each other.**
+   Paired on the 500 test items, Dr. GRPO vs GRPO is 39 vs 17 (p < 0.01) and DAPO-lite vs GRPO 37 vs 16
+   (p = 0.01); Dr. GRPO vs DAPO-lite is 16 vs 17. **This p-value counts items, not runs**: two runs of the
+   same variant differ by seed and MPS noise as well, which one run cannot show. The second seed of
+   `grpo` and `dapo_lite` that was meant to put a number on that did not finish before this was written.
+3. **`--ppo_epochs 2` gave a different profile, not a better one.** `grpo_p2` is best on 1d and 2d (0.920,
+   0.902) and worst on 3d (0.272); paired with `grpo` it is a tie (35 vs 36). With a second pass the
+   ratio leaves 1 and **clipping finally fires**: `clip_frac` is 0.001–0.002 for GRPO and 0.003–0.010 for
+   DAPO-lite (0 at `--ppo_epochs 1`, as before), so the clip-higher half of DAPO-lite is exercised for the
+   first time. The accuracy effect at 300 steps is within noise.
+4. **`entropy_all` (new, over every sampled group before the filter) shows how little the filter's
+   entropy misleads.** For DAPO-lite `entropy` (kept groups) and `entropy_all` differ by at most 0.003
+   absolute: 0.039 vs 0.041 in steps 1–50, 0.025 vs 0.022 in steps 201–300. The first round's
+   "DAPO-lite's entropy is not comparable" concern is real but small at this scale; the kept groups are
+   the higher-entropy ones late in training (non-silent prompts are the ones the policy is unsure about).
+5. **The filter pays for itself in time.** DAPO-lite updates on 5–9 groups of the 32 per step and runs at
+   about 8 s a step, 30% faster than GRPO, at no cost in accuracy.
+
+### A code environment (`envs/pyfunc.py`): the cold start decides whether RL has anything to do
+
+26 templated families of small Python functions, rewarded by running hidden tests in a sandbox (see the
+module docstring; the environment and sandbox are in their own PR). Three results, none of them an RL result:
+
+1. **SFT on all families memorises the templates.** After SFT on 22 families (4000 rows, 2 epochs, loss
+   0.0000), dev and test on new instances of those families are **1.000**, and on 4 families it never saw
+   it is **0.000**. There is nothing for RL to improve on the seen families and nothing it can find on the
+   unseen ones.
+2. **SFT on 12 families leaves the other 10 at 0.000** (loss 0.0000 again), and a GRPO probe on those gives
+   `acc` 0.00 and `silent_group_frac` 1.00: every group has zero variance, `grad_norm` is exactly 0, and the
+   only thing the policy collects is the 0.2 format reward.
+3. **Three SFT examples per remaining family are enough to get a signal**: on the 10 RL-only families greedy
+   test accuracy is 0.410, split by family into four at 1.00 and six at 0.00 (the policy copied a template
+   for the families where the three examples happened to be enough), and a GRPO probe samples `acc` 0.27–0.35
+   with silent fraction 0.53–0.75. The 12 SFT-only families stay at 1.000 and the 4 untrained families are at
+   0.023 (one family, `is_prime`, at 0.14).
+
+The GRPO run on that policy (`scripts/mac_pyfunc_v2.sh`) **was not completed**: the Mac ran out of memory (25 of
+26.6 GB of swap in use), steps took minutes and I stopped it, so there is no number for what RL adds on
+the 10 families or for transfer to the 4 untrained ones. Two things for whoever reruns it: all-or-nothing
+per-family behaviour means test accuracy on the RL families will move in steps of whole families, so report
+it per family (`eval_env.py --group_by family` and `summarize.py` do), and the SFT stage should stop earlier
+or mix in more families so that SFT does not collapse each family to one template.
+
+### What this changes in the plan
+
+The step 3 question from the first round ("can the variants be separated?") now has a partial answer: on
+a task where the SFT policy is weak, the zero-variance-aware variants lead by 4 points and are 30% faster,
+and `--ppo_epochs 2` exercises the clip but does not obviously help. The honest next experiment is two more
+seeds of `grpo`, `dr_grpo` and `dapo_lite` at 600 steps, since the curves are still rising.

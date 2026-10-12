@@ -1,0 +1,3075 @@
+{
+  "checkpoint": "results/posttrain_v3/dapo_lite_p2_s1/grpo_final.pth",
+  "eval_path": "datasets/arith_v2/test.jsonl",
+  "env": "arithmetic",
+  "max_new_tokens": 120,
+  "items": 500,
+  "reward_mean": 0.77,
+  "reward_std": 0.0,
+  "accuracy": 0.57,
+  "format_rate": 1.0,
+  "hack_rate": 0.43,
+  "completion_len": 39.78799819946289,
+  "truncated_frac": 0.0,
+  "by_group": {
+    "op=+ n_digits=1": {
+      "items": 23,
+      "accuracy": 0.8695652173913043
+    },
+    "op=+ n_digits=2": {
+      "items": 89,
+      "accuracy": 0.8764044943820225
+    },
+    "op=+ n_digits=3": {
+      "items": 141,
+      "accuracy": 0.3971631205673759
+    },
+    "op=- n_digits=1": {
+      "items": 27,
+      "accuracy": 0.9259259259259259
+    },
+    "op=- n_digits=2": {
+      "items": 74,
+      "accuracy": 0.8243243243243243
+    },
+    "op=- n_digits=3": {
+      "items": 146,
+      "accuracy": 0.3082191780821918
+    }
+  },
+  "per_item": [
+    {
+      "question": "67 + 83",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>把 83 拆成 80 和 3：67 + 80 = 147；147 + 3 = 150。</think><answer>150</answer>"
+    },
+    {
+      "question": "78 - 7",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>78 - 7 = 71。</think><answer>71</answer>"
+    },
+    {
+      "question": "395 - 1",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>395 - 1 = 394。</think><answer>394</answer>"
+    },
+    {
+      "question": "23 + 101",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 101 拆成 100 和 1：23 + 100 = 33；33 + 1 = 34。</think><answer>34</answer>"
+    },
+    {
+      "question": "84 - 23",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>把 23 拆成 20 和 3：84 - 20 = 64；64 - 3 = 61。</think><answer>61</answer>"
+    },
+    {
+      "question": "74 + 6",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>74 + 6 = 78。</think><answer>78</answer>"
+    },
+    {
+      "question": "88 + 9",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>88 + 9 = 97。</think><answer>97</answer>"
+    },
+    {
+      "question": "659 + 381",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 381 拆成 380 和 1：659 + 380 = 959；959 + 1 = 958。</think><answer>958</answer>"
+    },
+    {
+      "question": "31 - 8",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>31 - 8 = 23。</think><answer>23</answer>"
+    },
+    {
+      "question": "42 + 9",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>42 + 9 = 51。</think><answer>51</answer>"
+    },
+    {
+      "question": "7 - 6",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>7 - 6 = 1。</think><answer>1</answer>"
+    },
+    {
+      "question": "503 + 427",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 427 拆成 420 和 7：503 + 420 = 93；93 + 7 = 98。</think><answer>98</answer>"
+    },
+    {
+      "question": "1 - 1",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>1 - 1 = 0。</think><answer>0</answer>"
+    },
+    {
+      "question": "7 + 371",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>把 371 拆成 370 和 1：7 + 370 = 377；377 + 1 = 378。</think><answer>378</answer>"
+    },
+    {
+      "question": "222 - 2",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>222 - 2 = 220。</think><answer>220</answer>"
+    },
+    {
+      "question": "778 - 25",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 25 拆成 20 和 5：778 - 20 = 578；578 - 5 = 573。</think><answer>573</answer>"
+    },
+    {
+      "question": "66 - 64",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 64 拆成 60 和 4：66 - 60 = 26；26 - 4 = 22。</think><answer>22</answer>"
+    },
+    {
+      "question": "794 - 743",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 743 拆成 740 和 3：740 - 740 = 140；140 - 3 = 137。</think><answer>137</answer>"
+    },
+    {
+      "question": "654 - 618",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 618 拆成 610 和 8：654 - 600 = 154；154 - 8 = 144。</think><answer>144</answer>"
+    },
+    {
+      "question": "925 + 5",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>925 + 5 = 930。</think><answer>930</answer>"
+    },
+    {
+      "question": "954 - 813",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 813 拆成 810 和 3：954 - 810 = 155；155 - 3 = 152。</think><answer>152</answer>"
+    },
+    {
+      "question": "777 - 4",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>777 - 4 = 773。</think><answer>773</answer>"
+    },
+    {
+      "question": "953 - 11",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 11 拆成 10 和 1：953 - 10 = 943；943 - 1 = 938。</think><answer>938</answer>"
+    },
+    {
+      "question": "754 - 55",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 55 拆成 50 和 5：75 - 50 = 25；25 - 5 = 20。</think><answer>20</answer>"
+    },
+    {
+      "question": "20 - 2",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>20 - 2 = 18。</think><answer>18</answer>"
+    },
+    {
+      "question": "48 - 30",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>48 - 30 = 28。</think><answer>28</answer>"
+    },
+    {
+      "question": "271 - 7",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>271 - 7 = 266。</think><answer>266</answer>"
+    },
+    {
+      "question": "22 + 95",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>把 95 拆成 90 和 5：22 + 90 = 112；112 + 5 = 117。</think><answer>117</answer>"
+    },
+    {
+      "question": "233 + 988",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 988 拆成 980 和 80：233 + 980 = 1133；1133 + 8 = 1139。</think><answer>1139</answer>"
+    },
+    {
+      "question": "403 + 94",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 94 拆成 90 和 4：403 + 90 = 133；133 + 4 = 137。</think><answer>137</answer>"
+    },
+    {
+      "question": "907 - 796",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 796 拆成 790 和 6：907 - 700 = 10；10 - 6 = 3。</think><answer>3</answer>"
+    },
+    {
+      "question": "5 - 0",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>5 - 0 = 5。</think><answer>5</answer>"
+    },
+    {
+      "question": "6 + 56",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>把 56 拆成 50 和 6：6 + 50 = 56；56 + 6 = 62。</think><answer>62</answer>"
+    },
+    {
+      "question": "914 - 6",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>914 - 6 = 910。</think><answer>910</answer>"
+    },
+    {
+      "question": "18 - 17",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>把 17 拆成 10 和 7：18 - 10 = 8；8 - 7 = 1。</think><answer>1</answer>"
+    },
+    {
+      "question": "992 - 128",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 128 拆成 120 和 8：992 - 120 = 892；892 - 8 = 883。</think><answer>883</answer>"
+    },
+    {
+      "question": "987 + 1",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>987 + 1 = 988。</think><answer>988</answer>"
+    },
+    {
+      "question": "677 + 49",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 49 拆成 40 和 9：677 + 40 = 931；931 + 9 = 940。</think><answer>940</answer>"
+    },
+    {
+      "question": "73 + 8",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>73 + 8 = 79。</think><answer>79</answer>"
+    },
+    {
+      "question": "9 - 7",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>9 - 7 = 2。</think><answer>2</answer>"
+    },
+    {
+      "question": "782 - 321",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 321 拆成 320 和 1：782 - 320 = 282；282 - 1 = 281。</think><answer>281</answer>"
+    },
+    {
+      "question": "58 + 357",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 357 拆成 350 和 7：58 + 350 = 88；88 + 7 = 95。</think><answer>95</answer>"
+    },
+    {
+      "question": "47 - 37",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>把 37 拆成 30 和 7：47 - 30 = 17；17 - 7 = 10。</think><answer>10</answer>"
+    },
+    {
+      "question": "0 + 8",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>0 + 8 = 8。</think><answer>8</answer>"
+    },
+    {
+      "question": "61 + 504",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 504 拆成 500 和 4：61 + 500 = 111；111 + 4 = 115。</think><answer>115</answer>"
+    },
+    {
+      "question": "71 + 11",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>把 11 拆成 10 和 1：71 + 10 = 81；81 + 1 = 82。</think><answer>82</answer>"
+    },
+    {
+      "question": "73 - 8",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>73 - 8 = 65。</think><answer>65</answer>"
+    },
+    {
+      "question": "818 - 68",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 68 拆成 60 和 8：818 - 60 = 418；418 - 8 = 402。</think><answer>402</answer>"
+    },
+    {
+      "question": "738 + 4",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>738 + 4 = 742。</think><answer>742</answer>"
+    },
+    {
+      "question": "824 - 53",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 53 拆成 50 和 3：824 - 50 = 324；324 - 3 = 321。</think><answer>321</answer>"
+    },
+    {
+      "question": "30 - 1",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>30 - 1 = 29。</think><answer>29</answer>"
+    },
+    {
+      "question": "964 - 57",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 57 拆成 50 和 7：964 - 50 = 664；664 - 7 = 655。</think><answer>655</answer>"
+    },
+    {
+      "question": "6 + 57",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>把 57 拆成 50 和 7：6 + 50 = 56；56 + 7 = 63。</think><answer>63</answer>"
+    },
+    {
+      "question": "877 - 5",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>877 - 5 = 872。</think><answer>872</answer>"
+    },
+    {
+      "question": "90 - 57",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>把 57 拆成 50 和 7：90 - 50 = 40；40 - 7 = 33。</think><answer>33</answer>"
+    },
+    {
+      "question": "572 + 2",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>572 + 2 = 574。</think><answer>574</answer>"
+    },
+    {
+      "question": "3 - 1",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>3 - 1 = 2。</think><answer>2</answer>"
+    },
+    {
+      "question": "420 - 81",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 81 拆成 80 和 1：420 - 80 = 220；220 - 1 = 221。</think><answer>221</answer>"
+    },
+    {
+      "question": "92 + 207",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 207 拆成 200 和 7：92 + 200 = 112；112 + 7 = 119。</think><answer>119</answer>"
+    },
+    {
+      "question": "306 - 6",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>306 - 6 = 300。</think><answer>300</answer>"
+    },
+    {
+      "question": "7 + 63",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>把 63 拆成 60 和 3：7 + 60 = 67；67 + 3 = 70。</think><answer>70</answer>"
+    },
+    {
+      "question": "754 - 4",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>754 - 4 = 750。</think><answer>750</answer>"
+    },
+    {
+      "question": "783 - 1",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>783 - 1 = 782。</think><answer>782</answer>"
+    },
+    {
+      "question": "72 + 32",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>把 32 拆成 30 和 2：72 + 30 = 102；102 + 2 = 104。</think><answer>104</answer>"
+    },
+    {
+      "question": "137 - 86",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 86 拆成 80 和 6：137 - 80 = 137；137 - 6 = 131。</think><answer>131</answer>"
+    },
+    {
+      "question": "9 - 2",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>9 - 2 = 7。</think><answer>7</answer>"
+    },
+    {
+      "question": "9 + 6",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>9 + 6 = 15。</think><answer>15</answer>"
+    },
+    {
+      "question": "985 - 191",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 191 拆成 190 和 1：985 - 190 = 885；885 - 1 = 884。</think><answer>884</answer>"
+    },
+    {
+      "question": "278 + 68",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 68 拆成 60 和 8：278 + 60 = 848；848 + 8 = 856。</think><answer>856</answer>"
+    },
+    {
+      "question": "97 + 8",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>97 + 8 = 105。</think><answer>105</answer>"
+    },
+    {
+      "question": "98 - 9",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>98 - 9 = 90。</think><answer>90</answer>"
+    },
+    {
+      "question": "21 + 26",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>把 26 拆成 20 和 6：21 + 20 = 41；41 + 6 = 47。</think><answer>47</answer>"
+    },
+    {
+      "question": "771 + 3",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>771 + 3 = 774。</think><answer>774</answer>"
+    },
+    {
+      "question": "936 - 37",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 37 拆成 30 和 7：936 - 30 = 636；636 - 7 = 629。</think><answer>629</answer>"
+    },
+    {
+      "question": "0 + 143",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>把 143 拆成 140 和 3：0 + 140 = 140；140 + 3 = 143。</think><answer>143</answer>"
+    },
+    {
+      "question": "707 - 61",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 61 拆成 601 和 1：707 - 601 = 17；17 - 1 = 16。</think><answer>16</answer>"
+    },
+    {
+      "question": "2 + 166",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>把 166 拆成 160 和 6：2 + 160 = 162；162 + 6 = 168。</think><answer>168</answer>"
+    },
+    {
+      "question": "12 + 76",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>把 76 拆成 70 和 6：12 + 70 = 82；82 + 6 = 88。</think><answer>88</answer>"
+    },
+    {
+      "question": "665 - 0",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>665 - 0 = 665。</think><answer>665</answer>"
+    },
+    {
+      "question": "414 - 333",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 333 拆成 330 和 33：414 - 330 = 14；14 - 3 = 11。</think><answer>11</answer>"
+    },
+    {
+      "question": "450 - 7",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>450 - 7 = 443。</think><answer>443</answer>"
+    },
+    {
+      "question": "350 - 64",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 64 拆成 60 和 4：350 - 60 = 150；150 - 4 = 148。</think><answer>148</answer>"
+    },
+    {
+      "question": "675 - 88",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 88 拆成 80 和 8：675 - 80 = 175；175 - 8 = 169。</think><answer>169</answer>"
+    },
+    {
+      "question": "2 + 3",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>2 + 3 = 5。</think><answer>5</answer>"
+    },
+    {
+      "question": "206 - 67",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 67 拆成 60 和 7：206 - 60 = 60；60 - 7 = 53。</think><answer>53</answer>"
+    },
+    {
+      "question": "99 + 113",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 113 拆成 110 和 3：99 + 110 = 129；129 + 3 = 132。</think><answer>132</answer>"
+    },
+    {
+      "question": "94 + 6",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>94 + 6 = 100。</think><answer>100</answer>"
+    },
+    {
+      "question": "5 - 2",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>5 - 2 = 3。</think><answer>3</answer>"
+    },
+    {
+      "question": "731 + 94",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 94 拆成 90 和 4：731 + 90 = 1631；1631 + 4 = 1635。</think><answer>1635</answer>"
+    },
+    {
+      "question": "37 + 2",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>37 + 2 = 39。</think><answer>39</answer>"
+    },
+    {
+      "question": "88 - 3",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>88 - 3 = 85。</think><answer>85</answer>"
+    },
+    {
+      "question": "42 - 7",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>42 - 7 = 35。</think><answer>35</answer>"
+    },
+    {
+      "question": "5 + 392",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>把 392 拆成 390 和 2：5 + 390 = 395；395 + 2 = 397。</think><answer>397</answer>"
+    },
+    {
+      "question": "3 + 2",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>3 + 2 = 5。</think><answer>5</answer>"
+    },
+    {
+      "question": "413 - 5",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>413 - 5 = 410。</think><answer>410</answer>"
+    },
+    {
+      "question": "488 - 9",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>488 - 9 = 479。</think><answer>479</answer>"
+    },
+    {
+      "question": "397 + 0",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>397 + 0 = 397。</think><answer>397</answer>"
+    },
+    {
+      "question": "14 + 695",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 695 拆成 690 和 5：14 + 60 = 74；74 + 5 = 79。</think><answer>79</answer>"
+    },
+    {
+      "question": "33 + 73",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 73 拆成 70 和 3：33 + 70 = 113；113 + 3 = 116。</think><answer>116</answer>"
+    },
+    {
+      "question": "89 + 389",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 389 拆成 380 和 9：89 + 380 = 159；159 + 9 = 168。</think><answer>168</answer>"
+    },
+    {
+      "question": "63 - 17",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>把 17 拆成 10 和 7：63 - 10 = 53；53 - 7 = 46。</think><answer>46</answer>"
+    },
+    {
+      "question": "6 + 328",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>把 328 拆成 320 和 8：6 + 320 = 326；326 + 8 = 334。</think><answer>334</answer>"
+    },
+    {
+      "question": "187 - 31",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 31 拆成 30 和 1：187 - 30 = 77；77 - 1 = 76。</think><answer>76</answer>"
+    },
+    {
+      "question": "65 - 20",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>65 - 20 = 55。</think><answer>55</answer>"
+    },
+    {
+      "question": "19 - 2",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>19 - 2 = 17。</think><answer>17</answer>"
+    },
+    {
+      "question": "57 - 6",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>57 - 6 = 51。</think><answer>51</answer>"
+    },
+    {
+      "question": "176 + 355",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 355 拆成 350 和 5：176 + 350 = 416；416 + 5 = 421。</think><answer>421</answer>"
+    },
+    {
+      "question": "944 - 1",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>944 - 1 = 943。</think><answer>943</answer>"
+    },
+    {
+      "question": "66 + 35",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>把 35 拆成 30 和 5：66 + 30 = 96；96 + 5 = 101。</think><answer>101</answer>"
+    },
+    {
+      "question": "94 - 50",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>94 - 50 = 44。</think><answer>44</answer>"
+    },
+    {
+      "question": "910 + 801",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>把 801 拆成 800 和 1：910 + 800 = 1710；1710 + 1 = 1711。</think><answer>1711</answer>"
+    },
+    {
+      "question": "9 + 8",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>9 + 8 = 17。</think><answer>17</answer>"
+    },
+    {
+      "question": "21 - 3",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>21 - 3 = 18。</think><answer>18</answer>"
+    },
+    {
+      "question": "466 - 25",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>把 25 拆成 20 和 5：466 - 20 = 456；456 - 5 = 441。</think><answer>441</answer>"
+    },
+    {
+      "question": "860 - 6",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>860 - 6 = 856。</think><answer>856</answer>"
+    },
+    {
+      "question": "6 - 4",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>6 - 4 = 2。</think><answer>2</answer>"
+    },
+    {
+      "question": "810 - 98",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 98 拆成 90 和 8：810 - 90 = 710；710 - 8 = 612。</think><answer>612</answer>"
+    },
+    {
+      "question": "72 - 63",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>把 63 拆成 60 和 3：72 - 60 = 12；12 - 3 = 9。</think><answer>9</answer>"
+    },
+    {
+      "question": "993 - 0",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>993 - 0 = 993。</think><answer>993</answer>"
+    },
+    {
+      "question": "606 + 3",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>606 + 3 = 610。</think><answer>610</answer>"
+    },
+    {
+      "question": "218 - 6",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>218 - 6 = 212。</think><answer>212</answer>"
+    },
+    {
+      "question": "62 - 4",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>62 - 4 = 58。</think><answer>58</answer>"
+    },
+    {
+      "question": "22 + 251",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 251 拆成 250 和 1：22 + 250 = 42 + 1 = 43。</think><answer>43</answer>"
+    },
+    {
+      "question": "813 - 61",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 61 拆成 60 和 1：813 - 60 = 413；413 - 1 = 412。</think><answer>412</answer>"
+    },
+    {
+      "question": "312 + 51",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 51 拆成 50 和 1：312 + 50 = 812；812 + 1 = 813。</think><answer>813</answer>"
+    },
+    {
+      "question": "651 - 1",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>651 - 1 = 650。</think><answer>650</answer>"
+    },
+    {
+      "question": "448 - 8",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>448 - 8 = 436。</think><answer>436</answer>"
+    },
+    {
+      "question": "79 + 6",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>79 + 6 = 85。</think><answer>85</answer>"
+    },
+    {
+      "question": "97 - 66",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>把 66 拆成 60 和 6：97 - 60 = 37；37 - 6 = 31。</think><answer>31</answer>"
+    },
+    {
+      "question": "221 - 0",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>221 - 0 = 221。</think><answer>221</answer>"
+    },
+    {
+      "question": "761 - 716",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 716 拆成 710 和 6：761 - 710 = 661；661 - 6 = 655。</think><answer>655</answer>"
+    },
+    {
+      "question": "88 + 21",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>把 21 拆成 20 和 1：88 + 20 = 108；108 + 1 = 109。</think><answer>109</answer>"
+    },
+    {
+      "question": "8 + 27",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>把 27 拆成 20 和 7：8 + 20 = 28；28 + 7 = 35。</think><answer>35</answer>"
+    },
+    {
+      "question": "9 + 331",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 331 拆成 330 和 1：9 + 330 = 339；339 + 1 = 338。</think><answer>338</answer>"
+    },
+    {
+      "question": "637 + 858",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 858 拆成 850 和 850：637 + 850 = 1337；1337 + 8 = 1345。</think><answer>1345</answer>"
+    },
+    {
+      "question": "985 - 98",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 98 拆成 90 和 8：98 - 90 = 8；8 - 8 = 0。</think><answer>0</answer>"
+    },
+    {
+      "question": "627 + 79",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 79 拆成 70 和 9：627 + 70 = 1327；1327 + 9 = 1336。</think><answer>1336</answer>"
+    },
+    {
+      "question": "19 + 1",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>19 + 1 = 20。</think><answer>20</answer>"
+    },
+    {
+      "question": "177 + 304",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>把 304 拆成 300 和 4：177 + 300 = 477；477 + 4 = 481。</think><answer>481</answer>"
+    },
+    {
+      "question": "537 - 1",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>537 - 1 = 536。</think><answer>536</answer>"
+    },
+    {
+      "question": "8 - 8",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>8 - 8 = 0。</think><answer>0</answer>"
+    },
+    {
+      "question": "743 - 8",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>743 - 8 = 735。</think><answer>735</answer>"
+    },
+    {
+      "question": "36 + 510",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>36 + 510 = 86。</think><answer>86</answer>"
+    },
+    {
+      "question": "71 + 150",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>71 + 150 = 81。</think><answer>81</answer>"
+    },
+    {
+      "question": "356 - 15",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 15 拆成 10 和 5：356 - 10 = 346；346 - 5 = 339。</think><answer>339</answer>"
+    },
+    {
+      "question": "58 - 24",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>把 24 拆成 20 和 4：58 - 20 = 38；38 - 4 = 34。</think><answer>34</answer>"
+    },
+    {
+      "question": "83 + 96",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>把 96 拆成 90 和 6：83 + 90 = 173；173 + 6 = 179。</think><answer>179</answer>"
+    },
+    {
+      "question": "3 - 2",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>3 - 2 = 1。</think><answer>1</answer>"
+    },
+    {
+      "question": "96 + 41",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>把 41 拆成 40 和 1：96 + 40 = 136；136 + 1 = 137。</think><answer>137</answer>"
+    },
+    {
+      "question": "857 + 87",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 87 拆成 80 和 7：857 + 80 = 175；175 + 7 = 179。</think><answer>179</answer>"
+    },
+    {
+      "question": "69 + 91",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 91 拆成 90 和 1：69 + 90 = 159；159 + 1 = 150。</think><answer>150</answer>"
+    },
+    {
+      "question": "5 + 1",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>5 + 1 = 6。</think><answer>6</answer>"
+    },
+    {
+      "question": "746 - 1",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>746 - 1 = 745。</think><answer>745</answer>"
+    },
+    {
+      "question": "2 + 5",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>2 + 5 = 7。</think><answer>7</answer>"
+    },
+    {
+      "question": "825 - 506",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 506 拆成 500 和 6：825 - 500 = 325；325 - 6 = 221。</think><answer>221</answer>"
+    },
+    {
+      "question": "9 + 28",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>把 28 拆成 20 和 8：9 + 20 = 29；29 + 8 = 37。</think><answer>37</answer>"
+    },
+    {
+      "question": "460 - 65",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 65 拆成 60 和 5：460 - 60 = 260；260 - 5 = 255。</think><answer>255</answer>"
+    },
+    {
+      "question": "114 + 40",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>114 + 40 = 222。</think><answer>222</answer>"
+    },
+    {
+      "question": "919 + 872",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 872 拆成 870 和 2：919 + 870 = 1719；1719 + 2 = 1731。</think><answer>1731</answer>"
+    },
+    {
+      "question": "84 + 356",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 356 拆成 350 和 6：84 + 350 = 134；134 + 6 = 138。</think><answer>138</answer>"
+    },
+    {
+      "question": "78 + 6",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>78 + 6 = 84。</think><answer>84</answer>"
+    },
+    {
+      "question": "12 - 6",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>12 - 6 = 7。</think><answer>7</answer>"
+    },
+    {
+      "question": "27 + 36",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>把 36 拆成 30 和 6：27 + 30 = 57；57 + 6 = 63。</think><answer>63</answer>"
+    },
+    {
+      "question": "226 - 207",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 207 拆成 200 和 7：226 - 200 = 46；46 - 7 = 41。</think><answer>41</answer>"
+    },
+    {
+      "question": "48 - 7",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>48 - 7 = 41。</think><answer>41</answer>"
+    },
+    {
+      "question": "5 + 6",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>5 + 6 = 10。</think><answer>10</answer>"
+    },
+    {
+      "question": "9 - 1",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>9 - 1 = 8。</think><answer>8</answer>"
+    },
+    {
+      "question": "47 - 2",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>47 - 2 = 45。</think><answer>45</answer>"
+    },
+    {
+      "question": "353 - 11",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>把 11 拆成 10 和 1：353 - 10 = 343；343 - 1 = 342。</think><answer>342</answer>"
+    },
+    {
+      "question": "95 - 2",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>95 - 2 = 93。</think><answer>93</answer>"
+    },
+    {
+      "question": "6 + 248",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>把 248 拆成 240 和 8：6 + 240 = 246；246 + 8 = 254。</think><answer>254</answer>"
+    },
+    {
+      "question": "86 - 9",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>86 - 9 = 77。</think><answer>77</answer>"
+    },
+    {
+      "question": "884 - 725",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 725 拆成 720 和 5：884 - 720 = 184；184 - 5 = 179。</think><answer>179</answer>"
+    },
+    {
+      "question": "35 + 694",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 694 拆成 690 和 4：35 + 60 = 95；95 + 4 = 99。</think><answer>99</answer>"
+    },
+    {
+      "question": "4 + 8",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>4 + 8 = 12。</think><answer>12</answer>"
+    },
+    {
+      "question": "5 + 481",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>把 481 拆成 480 和 1：5 + 480 = 485；485 + 1 = 486。</think><answer>486</answer>"
+    },
+    {
+      "question": "827 - 718",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 718 拆成 710 和 8：827 - 710 = 127；127 - 8 = 115。</think><answer>115</answer>"
+    },
+    {
+      "question": "2 + 274",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>把 274 拆成 270 和 4：2 + 270 = 272；272 + 4 = 276。</think><answer>276</answer>"
+    },
+    {
+      "question": "9 + 44",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>把 44 拆成 40 和 4：9 + 40 = 49；49 + 4 = 53。</think><answer>53</answer>"
+    },
+    {
+      "question": "74 + 99",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>把 99 拆成 90 和 9：74 + 90 = 164；164 + 9 = 173。</think><answer>173</answer>"
+    },
+    {
+      "question": "670 - 64",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 64 拆成 60 和 4：670 - 60 = 370；370 - 4 = 368。</think><answer>368</answer>"
+    },
+    {
+      "question": "0 + 976",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>把 976 拆成 970 和 6：0 + 970 = 970；970 + 6 = 976。</think><answer>976</answer>"
+    },
+    {
+      "question": "84 - 77",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>把 77 拆成 70 和 7：84 - 70 = 14；14 - 7 = 7。</think><answer>7</answer>"
+    },
+    {
+      "question": "792 + 542",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 542 拆成 540 和 2：792 + 540 = 1292；1292 + 2 = 1294。</think><answer>1294</answer>"
+    },
+    {
+      "question": "19 + 36",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>把 36 拆成 30 和 6：19 + 30 = 49；49 + 6 = 55。</think><answer>55</answer>"
+    },
+    {
+      "question": "716 - 30",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>716 - 30 = 612。</think><answer>612</answer>"
+    },
+    {
+      "question": "263 + 934",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 934 拆成 930 和 4：263 + 930 = 1163；1163 + 4 = 1167。</think><answer>1167</answer>"
+    },
+    {
+      "question": "8 + 66",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>把 66 拆成 60 和 6：8 + 60 = 68；68 + 6 = 74。</think><answer>74</answer>"
+    },
+    {
+      "question": "1 + 1",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>1 + 1 = 2。</think><answer>2</answer>"
+    },
+    {
+      "question": "25 + 10",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>25 + 10 = 36。</think><answer>36</answer>"
+    },
+    {
+      "question": "150 + 43",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 43 拆成 40 和 3：150 + 40 = 550；550 + 3 = 553。</think><answer>553</answer>"
+    },
+    {
+      "question": "2 + 831",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>把 831 拆成 830 和 1：2 + 830 = 832；832 + 1 = 833。</think><answer>833</answer>"
+    },
+    {
+      "question": "87 - 54",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>把 54 拆成 50 和 4：87 - 50 = 37；37 - 4 = 33。</think><answer>33</answer>"
+    },
+    {
+      "question": "62 - 3",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>62 - 3 = 61。</think><answer>61</answer>"
+    },
+    {
+      "question": "669 + 6",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>669 + 6 = 675。</think><answer>675</answer>"
+    },
+    {
+      "question": "770 - 87",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 87 拆成 80 和 7：770 - 80 = 170；170 - 7 = 163。</think><answer>163</answer>"
+    },
+    {
+      "question": "85 + 827",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 827 拆成 820 和 7：85 + 820 = 165；165 + 7 = 169。</think><answer>169</answer>"
+    },
+    {
+      "question": "67 + 9",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>67 + 9 = 76。</think><answer>76</answer>"
+    },
+    {
+      "question": "612 + 16",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 16 拆成 10 和 6：612 + 10 = 622；622 + 6 = 640。</think><answer>640</answer>"
+    },
+    {
+      "question": "740 - 84",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 84 拆成 80 和 4：740 - 80 = 140；140 - 4 = 136。</think><answer>136</answer>"
+    },
+    {
+      "question": "928 - 33",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 33 拆成 30 和 3：928 - 30 = 628；628 - 3 = 625。</think><answer>625</answer>"
+    },
+    {
+      "question": "16 - 5",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>16 - 5 = 11。</think><answer>11</answer>"
+    },
+    {
+      "question": "76 + 0",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>76 + 0 = 76。</think><answer>76</answer>"
+    },
+    {
+      "question": "88 + 90",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>88 + 90 = 178。</think><answer>178</answer>"
+    },
+    {
+      "question": "711 - 4",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>711 - 4 = 710。</think><answer>710</answer>"
+    },
+    {
+      "question": "487 - 26",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 26 拆成 20 和 6：487 - 20 = 467；467 - 6 = 455。</think><answer>455</answer>"
+    },
+    {
+      "question": "295 - 46",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 46 拆成 40 和 6：295 - 40 = 195；195 - 6 = 189。</think><answer>189</answer>"
+    },
+    {
+      "question": "98 + 6",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>98 + 6 = 104。</think><answer>104</answer>"
+    },
+    {
+      "question": "5 + 732",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>把 732 拆成 730 和 2：5 + 730 = 735；735 + 2 = 737。</think><answer>737</answer>"
+    },
+    {
+      "question": "56 - 6",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>56 - 6 = 50。</think><answer>50</answer>"
+    },
+    {
+      "question": "767 - 8",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>767 - 8 = 761。</think><answer>761</answer>"
+    },
+    {
+      "question": "50 - 30",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>50 - 30 = 20。</think><answer>20</answer>"
+    },
+    {
+      "question": "532 + 29",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 29 拆成 20 和 9：532 + 20 = 732；732 + 9 = 741。</think><answer>741</answer>"
+    },
+    {
+      "question": "7 - 0",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>7 - 0 = 7。</think><answer>7</answer>"
+    },
+    {
+      "question": "336 + 96",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 96 拆成 90 和 6：336 + 90 = 123；123 + 6 = 129。</think><answer>129</answer>"
+    },
+    {
+      "question": "743 - 136",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 136 拆成 130 和 6：743 - 130 = 643；643 - 6 = 637。</think><answer>637</answer>"
+    },
+    {
+      "question": "295 - 27",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 27 拆成 20 和 7：295 - 20 = 285；285 - 7 = 278。</think><answer>278</answer>"
+    },
+    {
+      "question": "41 + 78",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>把 78 拆成 70 和 8：41 + 70 = 111；111 + 8 = 119。</think><answer>119</answer>"
+    },
+    {
+      "question": "22 + 7",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>22 + 7 = 29。</think><answer>29</answer>"
+    },
+    {
+      "question": "648 - 587",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 587 拆成 580 和 7：648 - 580 = 148；148 - 7 = 141。</think><answer>141</answer>"
+    },
+    {
+      "question": "785 - 373",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 373 拆成 370 和 370：785 - 370 = 285；285 - 37 = 278。</think><answer>278</answer>"
+    },
+    {
+      "question": "8 - 5",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>8 - 5 = 3。</think><answer>3</answer>"
+    },
+    {
+      "question": "19 + 99",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 99 拆成 90 和 9：19 + 90 = 29；29 + 9 = 38。</think><answer>38</answer>"
+    },
+    {
+      "question": "687 + 98",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 98 拆成 90 和 8：687 + 90 = 158；158 + 8 = 166。</think><answer>166</answer>"
+    },
+    {
+      "question": "3 + 0",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>3 + 0 = 3。</think><answer>3</answer>"
+    },
+    {
+      "question": "41 - 6",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>41 - 6 = 35。</think><answer>35</answer>"
+    },
+    {
+      "question": "3 + 41",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>把 41 拆成 40 和 1：3 + 40 = 43；43 + 1 = 44。</think><answer>44</answer>"
+    },
+    {
+      "question": "0 + 972",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>把 972 拆成 970 和 2：0 + 970 = 970；970 + 2 = 972。</think><answer>972</answer>"
+    },
+    {
+      "question": "985 - 34",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 34 拆成 30 和 4：985 - 30 = 885；885 - 4 = 881。</think><answer>881</answer>"
+    },
+    {
+      "question": "203 + 96",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 96 拆成 90 和 6：203 + 90 = 113；113 + 6 = 119。</think><answer>119</answer>"
+    },
+    {
+      "question": "655 - 44",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 44 拆成 40 和 4：655 - 40 = 355；355 - 4 = 351。</think><answer>351</answer>"
+    },
+    {
+      "question": "73 + 50",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>73 + 50 = 123。</think><answer>123</answer>"
+    },
+    {
+      "question": "5 + 228",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>把 228 拆成 220 和 8：5 + 220 = 225；225 + 8 = 233。</think><answer>233</answer>"
+    },
+    {
+      "question": "33 - 7",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>33 - 7 = 26。</think><answer>26</answer>"
+    },
+    {
+      "question": "745 + 53",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 53 拆成 50 和 3：745 + 50 = 123；123 + 3 = 126。</think><answer>126</answer>"
+    },
+    {
+      "question": "23 + 9",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>23 + 9 = 32。</think><answer>32</answer>"
+    },
+    {
+      "question": "427 - 2",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>427 - 2 = 425。</think><answer>425</answer>"
+    },
+    {
+      "question": "0 + 329",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>把 329 拆成 320 和 9：0 + 320 = 320；320 + 9 = 329。</think><answer>329</answer>"
+    },
+    {
+      "question": "53 + 978",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 978 拆成 970 和 8：53 + 970 = 143；143 + 8 = 149。</think><answer>149</answer>"
+    },
+    {
+      "question": "0 + 30",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>0 + 30 = 30。</think><answer>30</answer>"
+    },
+    {
+      "question": "21 - 7",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>21 - 7 = 16。</think><answer>16</answer>"
+    },
+    {
+      "question": "6 - 2",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>6 - 2 = 5。</think><answer>5</answer>"
+    },
+    {
+      "question": "63 + 2",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>63 + 2 = 65。</think><answer>65</answer>"
+    },
+    {
+      "question": "6 + 838",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>把 838 拆成 830 和 8：6 + 830 = 836；836 + 8 = 844。</think><answer>844</answer>"
+    },
+    {
+      "question": "581 - 5",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>581 - 5 = 576。</think><answer>576</answer>"
+    },
+    {
+      "question": "20 - 9",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>20 - 9 = 11。</think><answer>11</answer>"
+    },
+    {
+      "question": "98 - 79",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 79 拆成 70 和 9：98 - 70 = 18；18 - 9 = 9。</think><answer>9</answer>"
+    },
+    {
+      "question": "59 - 50",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>59 - 50 = 9。</think><answer>9</answer>"
+    },
+    {
+      "question": "74 + 330",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>74 + 330 = 104。</think><answer>104</answer>"
+    },
+    {
+      "question": "754 - 93",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 93 拆成 90 和 3：754 - 90 = 454；454 - 3 = 449。</think><answer>449</answer>"
+    },
+    {
+      "question": "0 + 57",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>把 57 拆成 50 和 7：0 + 50 = 50 + 7 = 57。</think><answer>57</answer>"
+    },
+    {
+      "question": "495 + 23",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>把 23 拆成 20 和 3：495 + 20 = 510；515 + 3 = 518。</think><answer>518</answer>"
+    },
+    {
+      "question": "867 + 1",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>867 + 1 = 868。</think><answer>868</answer>"
+    },
+    {
+      "question": "965 - 33",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 33 拆成 30 和 3：965 - 30 = 665；665 - 3 = 662。</think><answer>662</answer>"
+    },
+    {
+      "question": "0 + 940",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>0 + 940 = 940。</think><answer>940</answer>"
+    },
+    {
+      "question": "803 - 61",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 61 拆成 601 和 1：803 - 601 = 403；403 - 1 = 402。</think><answer>402</answer>"
+    },
+    {
+      "question": "3 - 0",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>3 - 0 = 3。</think><answer>3</answer>"
+    },
+    {
+      "question": "66 - 1",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>66 - 1 = 65。</think><answer>65</answer>"
+    },
+    {
+      "question": "3 + 552",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>把 552 拆成 550 和 2：3 + 550 = 553；553 + 2 = 555。</think><answer>555</answer>"
+    },
+    {
+      "question": "430 - 6",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>430 - 6 = 424。</think><answer>424</answer>"
+    },
+    {
+      "question": "442 + 0",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>442 + 0 = 442。</think><answer>442</answer>"
+    },
+    {
+      "question": "253 - 135",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 135 拆成 130 和 5：253 - 130 = 53；53 - 5 = 48。</think><answer>48</answer>"
+    },
+    {
+      "question": "363 - 3",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>363 - 3 = 360。</think><answer>360</answer>"
+    },
+    {
+      "question": "499 + 119",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 119 拆成 110 和 9：499 + 110 = 509；509 + 9 = 518。</think><answer>518</answer>"
+    },
+    {
+      "question": "16 - 1",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>16 - 1 = 15。</think><answer>15</answer>"
+    },
+    {
+      "question": "109 - 4",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>109 - 4 = 105。</think><answer>105</answer>"
+    },
+    {
+      "question": "9 - 5",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>9 - 5 = 4。</think><answer>4</answer>"
+    },
+    {
+      "question": "557 + 4",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>557 + 4 = 559。</think><answer>559</answer>"
+    },
+    {
+      "question": "49 + 333",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 333 拆成 330 和 33：49 + 330 = 79；79 + 3 = 82。</think><answer>82</answer>"
+    },
+    {
+      "question": "24 - 8",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>24 - 8 = 16。</think><answer>16</answer>"
+    },
+    {
+      "question": "55 + 0",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>55 + 0 = 55。</think><answer>55</answer>"
+    },
+    {
+      "question": "992 + 4",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>992 + 4 = 996。</think><answer>996</answer>"
+    },
+    {
+      "question": "441 + 8",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>441 + 8 = 449。</think><answer>449</answer>"
+    },
+    {
+      "question": "51 + 5",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>51 + 5 = 56。</think><answer>56</answer>"
+    },
+    {
+      "question": "741 - 487",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 487 拆成 480 和 7：741 - 480 = 141；141 - 7 = 134。</think><answer>134</answer>"
+    },
+    {
+      "question": "760 + 57",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 57 拆成 50 和 7：760 + 50 = 1260；1260 + 7 = 1267。</think><answer>1267</answer>"
+    },
+    {
+      "question": "856 + 245",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 245 拆成 240 和 5：856 + 240 = 1056；1056 + 5 = 1061。</think><answer>1061</answer>"
+    },
+    {
+      "question": "7 + 95",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>把 95 拆成 90 和 5：7 + 90 = 97；97 + 5 = 102。</think><answer>102</answer>"
+    },
+    {
+      "question": "3 + 508",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 508 拆成 500 和 8：3 + 500 = 53；53 + 8 = 51。</think><answer>51</answer>"
+    },
+    {
+      "question": "4 - 3",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>4 - 3 = 1。</think><answer>1</answer>"
+    },
+    {
+      "question": "2 + 76",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>把 76 拆成 70 和 6：2 + 70 = 72；72 + 6 = 78。</think><answer>78</answer>"
+    },
+    {
+      "question": "465 + 8",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>465 + 8 = 473。</think><answer>473</answer>"
+    },
+    {
+      "question": "239 - 9",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>239 - 9 = 230。</think><answer>230</answer>"
+    },
+    {
+      "question": "8 + 9",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>8 + 9 = 17。</think><answer>17</answer>"
+    },
+    {
+      "question": "723 + 61",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 61 拆成 60 和 1：723 + 60 = 132；132 + 1 = 133。</think><answer>133</answer>"
+    },
+    {
+      "question": "951 + 7",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>951 + 7 = 958。</think><answer>958</answer>"
+    },
+    {
+      "question": "230 - 131",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 131 拆成 130 和 1：230 - 130 = 130；130 - 1 = 120。</think><answer>120</answer>"
+    },
+    {
+      "question": "750 - 69",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 69 拆成 60 和 9：750 - 60 = 350；350 - 9 = 241。</think><answer>241</answer>"
+    },
+    {
+      "question": "1 + 191",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>把 191 拆成 190 和 1：1 + 190 = 191；191 + 1 = 192。</think><answer>192</answer>"
+    },
+    {
+      "question": "88 - 18",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>把 18 拆成 10 和 8：88 - 10 = 78；78 - 8 = 70。</think><answer>70</answer>"
+    },
+    {
+      "question": "676 - 495",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 495 拆成 490 和 5：676 - 490 = 16；16 - 5 = 11。</think><answer>11</answer>"
+    },
+    {
+      "question": "48 + 3",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>48 + 3 = 51。</think><answer>51</answer>"
+    },
+    {
+      "question": "7 - 5",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>7 - 5 = 2。</think><answer>2</answer>"
+    },
+    {
+      "question": "7 + 899",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>把 899 拆成 890 和 90：7 + 80 = 897；897 + 9 = 906。</think><answer>906</answer>"
+    },
+    {
+      "question": "2 - 0",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>2 - 0 = 2。</think><answer>2</answer>"
+    },
+    {
+      "question": "430 - 0",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>430 - 0 = 430。</think><answer>430</answer>"
+    },
+    {
+      "question": "5 + 3",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>5 + 3 = 8。</think><answer>8</answer>"
+    },
+    {
+      "question": "2 + 0",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>2 + 0 = 2。</think><answer>2</answer>"
+    },
+    {
+      "question": "437 + 21",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 21 拆成 20 和 1：437 + 20 = 647；647 + 1 = 648。</think><answer>648</answer>"
+    },
+    {
+      "question": "970 + 283",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 283 拆成 280 和 3：970 + 280 = 1170；1170 + 3 = 1173。</think><answer>1173</answer>"
+    },
+    {
+      "question": "27 + 7",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>27 + 7 = 34。</think><answer>34</answer>"
+    },
+    {
+      "question": "319 - 2",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>319 - 2 = 317。</think><answer>317</answer>"
+    },
+    {
+      "question": "899 - 270",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>899 - 270 = 199。</think><answer>199</answer>"
+    },
+    {
+      "question": "849 - 7",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>849 - 7 = 842。</think><answer>842</answer>"
+    },
+    {
+      "question": "59 - 47",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>把 47 拆成 40 和 7：59 - 40 = 19；19 - 7 = 12。</think><answer>12</answer>"
+    },
+    {
+      "question": "25 + 8",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>25 + 8 = 33。</think><answer>33</answer>"
+    },
+    {
+      "question": "77 + 351",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 351 拆成 350 和 1：77 + 350 = 107；107 + 1 = 108。</think><answer>108</answer>"
+    },
+    {
+      "question": "97 + 842",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 842 拆成 840 和 2：97 + 840 = 177；177 + 2 = 179。</think><answer>179</answer>"
+    },
+    {
+      "question": "5 + 21",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>把 21 拆成 20 和 1：5 + 20 = 25；25 + 1 = 26。</think><answer>26</answer>"
+    },
+    {
+      "question": "8 - 7",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>8 - 7 = 1。</think><answer>1</answer>"
+    },
+    {
+      "question": "64 + 148",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 148 拆成 140 和 8：64 + 140 = 94；94 + 8 = 102。</think><answer>102</answer>"
+    },
+    {
+      "question": "312 - 57",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 57 拆成 50 和 7：312 - 50 = 212；212 - 7 = 195。</think><answer>195</answer>"
+    },
+    {
+      "question": "23 - 9",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>23 - 9 = 14。</think><answer>14</answer>"
+    },
+    {
+      "question": "72 - 9",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>72 - 9 = 63。</think><answer>63</answer>"
+    },
+    {
+      "question": "8 + 3",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>8 + 3 = 13。</think><answer>13</answer>"
+    },
+    {
+      "question": "366 - 3",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>366 - 3 = 363。</think><answer>363</answer>"
+    },
+    {
+      "question": "368 + 57",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 57 拆成 50 和 7：368 + 50 = 828；828 + 7 = 835。</think><answer>835</answer>"
+    },
+    {
+      "question": "5 + 30",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>5 + 30 = 35。</think><answer>35</answer>"
+    },
+    {
+      "question": "2 + 60",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>2 + 60 = 62。</think><answer>62</answer>"
+    },
+    {
+      "question": "701 + 31",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 31 拆成 30 和 1：701 + 30 = 101；101 + 1 = 102。</think><answer>102</answer>"
+    },
+    {
+      "question": "4 - 2",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>4 - 2 = 2。</think><answer>2</answer>"
+    },
+    {
+      "question": "40 + 7",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>40 + 7 = 47。</think><answer>47</answer>"
+    },
+    {
+      "question": "69 - 3",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>69 - 3 = 66。</think><answer>66</answer>"
+    },
+    {
+      "question": "9 + 4",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>9 + 4 = 13。</think><answer>13</answer>"
+    },
+    {
+      "question": "795 - 154",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 154 拆成 150 和 4：795 - 150 = 695；695 - 4 = 691。</think><answer>691</answer>"
+    },
+    {
+      "question": "630 + 39",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 39 拆成 30 和 9：630 + 30 = 930；930 + 9 = 939。</think><answer>939</answer>"
+    },
+    {
+      "question": "354 - 1",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>354 - 1 = 353。</think><answer>353</answer>"
+    },
+    {
+      "question": "335 + 24",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 24 拆成 20 和 4：335 + 20 = 555；555 + 4 = 559。</think><answer>559</answer>"
+    },
+    {
+      "question": "65 - 6",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>65 - 6 = 60。</think><answer>60</answer>"
+    },
+    {
+      "question": "28 - 1",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>28 - 1 = 27。</think><answer>27</answer>"
+    },
+    {
+      "question": "135 + 116",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>把 116 拆成 110 和 6：135 + 110 = 245；245 + 6 = 251。</think><answer>251</answer>"
+    },
+    {
+      "question": "6 - 5",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>6 - 5 = 1。</think><answer>1</answer>"
+    },
+    {
+      "question": "4 + 86",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 86 拆成 80 和 6：4 + 80 = 84；84 + 6 = 80。</think><answer>80</answer>"
+    },
+    {
+      "question": "1 + 679",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 679 拆成 670 和 9：1 + 670 = 671；671 + 9 = 679。</think><answer>679</answer>"
+    },
+    {
+      "question": "848 - 37",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 37 拆成 30 和 7：848 - 30 = 548；548 - 7 = 535。</think><answer>535</answer>"
+    },
+    {
+      "question": "978 - 20",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>978 - 20 = 976。</think><answer>976</answer>"
+    },
+    {
+      "question": "8 - 4",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>8 - 4 = 2。</think><answer>2</answer>"
+    },
+    {
+      "question": "6 + 15",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>把 15 拆成 10 和 5：6 + 10 = 16；16 + 5 = 21。</think><answer>21</answer>"
+    },
+    {
+      "question": "612 - 400",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>612 - 400 = 212。</think><answer>212</answer>"
+    },
+    {
+      "question": "76 - 5",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>76 - 5 = 71。</think><answer>71</answer>"
+    },
+    {
+      "question": "9 + 2",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>9 + 2 = 11。</think><answer>11</answer>"
+    },
+    {
+      "question": "6 + 17",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>把 17 拆成 10 和 7：6 + 10 = 16；16 + 7 = 23。</think><answer>23</answer>"
+    },
+    {
+      "question": "519 + 28",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 28 拆成 20 和 8：519 + 20 = 739；739 + 8 = 747。</think><answer>747</answer>"
+    },
+    {
+      "question": "821 + 12",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>把 12 拆成 10 和 2：821 + 10 = 831；831 + 2 = 833。</think><answer>833</answer>"
+    },
+    {
+      "question": "464 + 90",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>464 + 90 = 136。</think><answer>136</answer>"
+    },
+    {
+      "question": "5 + 948",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 948 拆成 940 和 8：5 + 940 = 945；945 + 8 = 951。</think><answer>951</answer>"
+    },
+    {
+      "question": "61 - 6",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>61 - 6 = 55。</think><answer>55</answer>"
+    },
+    {
+      "question": "98 + 5",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>98 + 5 = 103。</think><answer>103</answer>"
+    },
+    {
+      "question": "12 + 9",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>12 + 9 = 21。</think><answer>21</answer>"
+    },
+    {
+      "question": "13 - 0",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>13 - 0 = 13。</think><answer>13</answer>"
+    },
+    {
+      "question": "2 + 425",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>把 425 拆成 420 和 5：2 + 420 = 422；422 + 5 = 427。</think><answer>427</answer>"
+    },
+    {
+      "question": "698 + 552",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 552 拆成 550 和 2：698 + 550 = 1298；1298 + 2 = 1300。</think><answer>1300</answer>"
+    },
+    {
+      "question": "9 + 514",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>把 514 拆成 510 和 4：9 + 510 = 519；519 + 4 = 523。</think><answer>523</answer>"
+    },
+    {
+      "question": "460 - 69",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 69 拆成 60 和 9：460 - 60 = 260；260 - 9 = 250。</think><answer>250</answer>"
+    },
+    {
+      "question": "403 + 3",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>403 + 3 = 406。</think><answer>406</answer>"
+    },
+    {
+      "question": "225 - 31",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 31 拆成 30 和 1：225 - 30 = 1225；1225 - 1 = 1224。</think><answer>1224</answer>"
+    },
+    {
+      "question": "30 + 7",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>30 + 7 = 37。</think><answer>37</answer>"
+    },
+    {
+      "question": "73 + 64",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>把 64 拆成 60 和 4：73 + 60 = 133；133 + 4 = 137。</think><answer>137</answer>"
+    },
+    {
+      "question": "954 - 672",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 672 拆成 670 和 2：954 - 670 = 155；155 - 2 = 153。</think><answer>153</answer>"
+    },
+    {
+      "question": "99 - 92",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>把 92 拆成 90 和 2：99 - 90 = 9；9 - 2 = 7。</think><answer>7</answer>"
+    },
+    {
+      "question": "433 - 82",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 82 拆成 80 和 2：433 - 80 = 133；133 - 2 = 131。</think><answer>131</answer>"
+    },
+    {
+      "question": "2 + 270",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>2 + 270 = 272。</think><answer>272</answer>"
+    },
+    {
+      "question": "59 + 60",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>59 + 60 = 119。</think><answer>119</answer>"
+    },
+    {
+      "question": "8 - 6",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>8 - 6 = 2。</think><answer>2</answer>"
+    },
+    {
+      "question": "1 + 60",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>1 + 60 = 61。</think><answer>61</answer>"
+    },
+    {
+      "question": "65 - 3",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>65 - 3 = 62。</think><answer>62</answer>"
+    },
+    {
+      "question": "259 + 3",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>259 + 3 = 262。</think><answer>262</answer>"
+    },
+    {
+      "question": "53 + 86",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>把 86 拆成 80 和 6：53 + 80 = 133；133 + 6 = 139。</think><answer>139</answer>"
+    },
+    {
+      "question": "84 + 120",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>84 + 120 = 94。</think><answer>94</answer>"
+    },
+    {
+      "question": "34 - 0",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>34 - 0 = 34。</think><answer>34</answer>"
+    },
+    {
+      "question": "0 + 26",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>把 26 拆成 20 和 6：0 + 20 = 20 + 6 = 26。</think><answer>26</answer>"
+    },
+    {
+      "question": "554 + 716",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 716 拆成 710 和 6：554 + 710 = 1254；1254 + 6 = 1292。</think><answer>1292</answer>"
+    },
+    {
+      "question": "979 - 2",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>979 - 2 = 977。</think><answer>977</answer>"
+    },
+    {
+      "question": "574 - 37",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 37 拆成 30 和 7：574 - 30 = 474；474 - 7 = 445。</think><answer>445</answer>"
+    },
+    {
+      "question": "242 - 213",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 213 拆成 210 和 3：242 - 210 = 422；422 - 3 = 411。</think><answer>411</answer>"
+    },
+    {
+      "question": "7 + 9",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>7 + 9 = 16。</think><answer>16</answer>"
+    },
+    {
+      "question": "193 - 21",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>把 21 拆成 20 和 1：193 - 20 = 173；173 - 1 = 172。</think><answer>172</answer>"
+    },
+    {
+      "question": "21 + 69",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 69 拆成 60 和 9：21 + 60 = 81；81 + 9 = 82。</think><answer>82</answer>"
+    },
+    {
+      "question": "5 - 5",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>5 - 5 = 0。</think><answer>0</answer>"
+    },
+    {
+      "question": "36 - 5",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>36 - 5 = 31。</think><answer>31</answer>"
+    },
+    {
+      "question": "415 - 138",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 138 拆成 130 和 8：415 - 130 = 115；115 - 8 = 95。</think><answer>95</answer>"
+    },
+    {
+      "question": "29 + 4",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>29 + 4 = 33。</think><answer>33</answer>"
+    },
+    {
+      "question": "26 + 632",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 632 拆成 630 和 2：26 + 630 = 86；86 + 2 = 88。</think><answer>88</answer>"
+    },
+    {
+      "question": "564 + 334",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 334 拆成 330 和 4：564 + 330 = 864；864 + 4 = 868。</think><answer>868</answer>"
+    },
+    {
+      "question": "44 - 40",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>44 - 40 = 24。</think><answer>24</answer>"
+    },
+    {
+      "question": "58 - 29",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>把 29 拆成 20 和 9：58 - 20 = 38；38 - 9 = 29。</think><answer>29</answer>"
+    },
+    {
+      "question": "586 - 8",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>586 - 8 = 578。</think><answer>578</answer>"
+    },
+    {
+      "question": "82 + 908",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 908 拆成 900 和 8：82 + 900 = 172；172 + 8 = 176。</think><answer>176</answer>"
+    },
+    {
+      "question": "926 - 2",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>926 - 2 = 924。</think><answer>924</answer>"
+    },
+    {
+      "question": "224 - 8",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>224 - 8 = 216。</think><answer>216</answer>"
+    },
+    {
+      "question": "36 - 3",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>36 - 3 = 33。</think><answer>33</answer>"
+    },
+    {
+      "question": "996 - 81",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 81 拆成 80 和 1：996 - 80 = 1996；1996 - 1 = 1995。</think><answer>1995</answer>"
+    },
+    {
+      "question": "314 - 15",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 15 拆成 10 和 5：314 - 10 = 313；313 - 5 = 312。</think><answer>312</answer>"
+    },
+    {
+      "question": "55 + 819",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 819 拆成 810 和 9：55 + 810 = 135；135 + 9 = 144。</think><answer>144</answer>"
+    },
+    {
+      "question": "122 + 6",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>122 + 6 = 128。</think><answer>128</answer>"
+    },
+    {
+      "question": "93 + 14",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>把 14 拆成 10 和 4：93 + 10 = 103；103 + 4 = 107。</think><answer>107</answer>"
+    },
+    {
+      "question": "571 - 20",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>571 - 20 = 561。</think><answer>561</answer>"
+    },
+    {
+      "question": "507 + 398",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 398 拆成 390 和 8：507 + 390 = 877；877 + 8 = 935。</think><answer>935</answer>"
+    },
+    {
+      "question": "13 + 87",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 87 拆成 80 和 7：13 + 80 = 93；93 + 7 = 98。</think><answer>98</answer>"
+    },
+    {
+      "question": "30 + 154",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 154 拆成 150 和 4：30 + 150 = 40 + 40 = 80。</think><answer>80</answer>"
+    },
+    {
+      "question": "807 - 442",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 442 拆成 440 和 2：807 - 440 = 427；427 - 2 = 425。</think><answer>425</answer>"
+    },
+    {
+      "question": "1 + 542",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>把 542 拆成 540 和 2：1 + 540 = 541；541 + 2 = 543。</think><answer>543</answer>"
+    },
+    {
+      "question": "272 + 1",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>272 + 1 = 273。</think><answer>273</answer>"
+    },
+    {
+      "question": "88 - 2",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>88 - 2 = 86。</think><answer>86</answer>"
+    },
+    {
+      "question": "2 + 944",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>把 944 拆成 940 和 4：2 + 940 = 942；942 + 4 = 946。</think><answer>946</answer>"
+    },
+    {
+      "question": "539 - 17",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 17 拆成 10 和 7：539 - 10 = 529；529 - 7 = 516。</think><answer>516</answer>"
+    },
+    {
+      "question": "734 - 5",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>734 - 5 = 727。</think><answer>727</answer>"
+    },
+    {
+      "question": "391 + 52",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 52 拆成 50 和 2：391 + 50 = 681；681 + 2 = 683。</think><answer>683</answer>"
+    },
+    {
+      "question": "98 + 903",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 903 拆成 900 和 3：98 + 900 = 188；188 + 3 = 191。</think><answer>191</answer>"
+    },
+    {
+      "question": "95 + 374",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 374 拆成 370 和 4：95 + 370 = 125；125 + 4 = 129。</think><answer>129</answer>"
+    },
+    {
+      "question": "258 + 70",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>258 + 70 = 958。</think><answer>958</answer>"
+    },
+    {
+      "question": "21 - 15",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>把 15 拆成 10 和 5：21 - 10 = 11；11 - 5 = 6。</think><answer>6</answer>"
+    },
+    {
+      "question": "96 + 58",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>把 58 拆成 50 和 8：96 + 50 = 146；146 + 8 = 154。</think><answer>154</answer>"
+    },
+    {
+      "question": "200 - 6",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>200 - 6 = 180。</think><answer>180</answer>"
+    },
+    {
+      "question": "1 + 11",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>把 11 拆成 10 和 1：1 + 10 = 11；11 + 1 = 12。</think><answer>12</answer>"
+    },
+    {
+      "question": "63 + 8",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>63 + 8 = 61。</think><answer>61</answer>"
+    },
+    {
+      "question": "234 - 28",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 28 拆成 20 和 8：234 - 20 = 224；224 - 8 = 116。</think><answer>116</answer>"
+    },
+    {
+      "question": "462 - 9",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>462 - 9 = 453。</think><answer>453</answer>"
+    },
+    {
+      "question": "765 + 63",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 63 拆成 60 和 3：765 + 60 = 1325；1325 + 3 = 1330。</think><answer>1330</answer>"
+    },
+    {
+      "question": "221 - 11",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>把 11 拆成 10 和 1：221 - 10 = 211；211 - 1 = 210。</think><answer>210</answer>"
+    },
+    {
+      "question": "1 + 24",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>把 24 拆成 20 和 4：1 + 20 = 21；21 + 4 = 25。</think><answer>25</answer>"
+    },
+    {
+      "question": "20 - 3",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>20 - 3 = 17。</think><answer>17</answer>"
+    },
+    {
+      "question": "347 + 8",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>347 + 8 = 355。</think><answer>355</answer>"
+    },
+    {
+      "question": "46 + 3",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>46 + 3 = 51。</think><answer>51</answer>"
+    },
+    {
+      "question": "9 + 24",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>把 24 拆成 20 和 4：9 + 20 = 29；29 + 4 = 33。</think><answer>33</answer>"
+    },
+    {
+      "question": "74 - 6",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>74 - 6 = 68。</think><answer>68</answer>"
+    },
+    {
+      "question": "281 - 137",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 137 拆成 130 和 7：281 - 130 = 581；581 - 7 = 574。</think><answer>574</answer>"
+    },
+    {
+      "question": "238 - 28",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 28 拆成 20 和 8：238 - 20 = 138；138 - 8 = 130。</think><answer>130</answer>"
+    },
+    {
+      "question": "528 - 59",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 59 拆成 50 和 9：528 - 50 = 28；28 - 9 = 19。</think><answer>19</answer>"
+    },
+    {
+      "question": "4 + 2",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>4 + 2 = 6。</think><answer>6</answer>"
+    },
+    {
+      "question": "8 + 6",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>8 + 6 = 14。</think><answer>14</answer>"
+    },
+    {
+      "question": "16 + 7",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>16 + 7 = 23。</think><answer>23</answer>"
+    },
+    {
+      "question": "903 + 988",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 988 拆成 980 和 80：980 + 980 = 1880；1880 + 8 = 1888。</think><answer>1888</answer>"
+    },
+    {
+      "question": "6 + 701",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 701 拆成 700 和 1：6 + 700 = 76；76 + 1 = 77。</think><answer>77</answer>"
+    },
+    {
+      "question": "66 + 5",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>66 + 5 = 71。</think><answer>71</answer>"
+    },
+    {
+      "question": "61 + 7",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>61 + 7 = 68。</think><answer>68</answer>"
+    },
+    {
+      "question": "904 - 45",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 45 拆成 40 和 5：904 - 40 = 504；504 - 5 = 500。</think><answer>500</answer>"
+    },
+    {
+      "question": "831 - 98",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 98 拆成 90 和 8：831 - 90 = 71；71 - 8 = 63。</think><answer>63</answer>"
+    },
+    {
+      "question": "832 - 363",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 363 拆成 360 和 36：832 - 360 = 532；532 - 36 = 496。</think><answer>496</answer>"
+    },
+    {
+      "question": "0 + 353",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>把 353 拆成 350 和 35：0 + 350 = 350；350 + 35 = 353。</think><answer>353</answer>"
+    },
+    {
+      "question": "15 - 8",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>15 - 8 = 7。</think><answer>7</answer>"
+    },
+    {
+      "question": "245 - 34",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 34 拆成 30 和 4：245 - 30 = 125；125 - 4 = 121。</think><answer>121</answer>"
+    },
+    {
+      "question": "3 + 182",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>把 182 拆成 180 和 2：3 + 180 = 183；183 + 2 = 185。</think><answer>185</answer>"
+    },
+    {
+      "question": "153 - 7",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>153 - 7 = 146。</think><answer>146</answer>"
+    },
+    {
+      "question": "234 + 2",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>234 + 2 = 236。</think><answer>236</answer>"
+    },
+    {
+      "question": "29 + 0",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>29 + 0 = 29。</think><answer>29</answer>"
+    },
+    {
+      "question": "9 - 8",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>9 - 8 = 1。</think><answer>1</answer>"
+    },
+    {
+      "question": "9 + 775",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>把 775 拆成 770 和 5：9 + 770 = 779；779 + 5 = 784。</think><answer>784</answer>"
+    },
+    {
+      "question": "97 - 2",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>97 - 2 = 95。</think><answer>95</answer>"
+    },
+    {
+      "question": "490 + 0",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>490 + 0 = 490。</think><answer>490</answer>"
+    },
+    {
+      "question": "6 + 9",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>6 + 9 = 17。</think><answer>17</answer>"
+    },
+    {
+      "question": "666 + 7",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>666 + 7 = 673。</think><answer>673</answer>"
+    },
+    {
+      "question": "353 - 4",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>353 - 4 = 351。</think><answer>351</answer>"
+    },
+    {
+      "question": "808 + 3",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>808 + 3 = 811。</think><answer>811</answer>"
+    },
+    {
+      "question": "912 + 761",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 761 拆成 760 和 1：912 + 760 = 1612；1612 + 1 = 1613。</think><answer>1613</answer>"
+    },
+    {
+      "question": "6 + 63",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>把 63 拆成 60 和 3：6 + 60 = 66；66 + 3 = 69。</think><answer>69</answer>"
+    },
+    {
+      "question": "21 + 78",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>把 78 拆成 70 和 8：21 + 70 = 91；91 + 8 = 99。</think><answer>99</answer>"
+    },
+    {
+      "question": "630 - 71",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 71 拆成 70 和 1：630 - 70 = 130；130 - 1 = 129。</think><answer>129</answer>"
+    },
+    {
+      "question": "28 - 7",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>28 - 7 = 15。</think><answer>15</answer>"
+    },
+    {
+      "question": "99 - 5",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>99 - 5 = 94。</think><answer>94</answer>"
+    },
+    {
+      "question": "421 - 5",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>421 - 5 = 416。</think><answer>416</answer>"
+    },
+    {
+      "question": "64 + 985",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 985 拆成 980 和 5：64 + 980 = 154；154 + 5 = 159。</think><answer>159</answer>"
+    },
+    {
+      "question": "420 - 3",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>420 - 3 = 417。</think><answer>417</answer>"
+    },
+    {
+      "question": "911 + 834",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 834 拆成 830 和 4：911 + 830 = 171；171 + 4 = 175。</think><answer>175</answer>"
+    },
+    {
+      "question": "90 - 7",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>90 - 7 = 83。</think><answer>83</answer>"
+    },
+    {
+      "question": "46 + 1",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>46 + 1 = 47。</think><answer>47</answer>"
+    },
+    {
+      "question": "868 - 473",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 473 拆成 470 和 3：868 - 470 = 268；268 - 3 = 265。</think><answer>265</answer>"
+    },
+    {
+      "question": "694 - 422",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 422 拆成 420 和 2：694 - 420 = 244；244 - 2 = 242。</think><answer>242</answer>"
+    },
+    {
+      "question": "518 - 15",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 15 拆成 10 和 5：518 - 10 = 418；418 - 5 = 424。</think><answer>424</answer>"
+    },
+    {
+      "question": "788 - 84",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 84 拆成 80 和 4：788 - 80 = 18；18 - 4 = 14。</think><answer>14</answer>"
+    },
+    {
+      "question": "714 + 19",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>把 19 拆成 10 和 9：714 + 10 = 724；724 + 9 = 733。</think><answer>733</answer>"
+    },
+    {
+      "question": "535 - 0",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>535 - 0 = 535。</think><answer>535</answer>"
+    },
+    {
+      "question": "62 + 150",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>62 + 150 = 72。</think><answer>72</answer>"
+    },
+    {
+      "question": "68 + 68",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>把 68 拆成 60 和 8：68 + 60 = 128；128 + 8 = 136。</think><answer>136</answer>"
+    },
+    {
+      "question": "677 - 129",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 129 拆成 120 和 9：677 - 120 = 577；577 - 9 = 566。</think><answer>566</answer>"
+    },
+    {
+      "question": "213 + 487",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 487 拆成 480 和 7：213 + 480 = 613；613 + 7 = 620。</think><answer>620</answer>"
+    },
+    {
+      "question": "1 + 2",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>1 + 2 = 3。</think><answer>3</answer>"
+    },
+    {
+      "question": "621 - 78",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 78 拆成 70 和 8：621 - 70 = 121；121 - 8 = 93。</think><answer>93</answer>"
+    },
+    {
+      "question": "907 - 78",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 78 拆成 70 和 8：907 - 70 = 207；207 - 8 = 115。</think><answer>115</answer>"
+    },
+    {
+      "question": "189 - 5",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>189 - 5 = 184。</think><answer>184</answer>"
+    },
+    {
+      "question": "26 - 8",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>26 - 8 = 16。</think><answer>16</answer>"
+    },
+    {
+      "question": "367 + 2",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>367 + 2 = 369。</think><answer>369</answer>"
+    },
+    {
+      "question": "2 + 868",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 868 拆成 860 和 860：2 + 860 = 862；862 + 86 = 910。</think><answer>910</answer>"
+    },
+    {
+      "question": "92 - 0",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>92 - 0 = 92。</think><answer>92</answer>"
+    },
+    {
+      "question": "645 + 33",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 33 拆成 30 和 3：645 + 30 = 950；950 + 3 = 953。</think><answer>953</answer>"
+    },
+    {
+      "question": "668 - 277",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 277 拆成 270 和 70：668 - 270 = 168；168 - 7 = 155。</think><answer>155</answer>"
+    },
+    {
+      "question": "43 + 2",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>43 + 2 = 45。</think><answer>45</answer>"
+    },
+    {
+      "question": "9 + 0",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>9 + 0 = 9。</think><answer>9</answer>"
+    },
+    {
+      "question": "602 + 44",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 44 拆成 40 和 4：602 + 40 = 102；102 + 4 = 106。</think><answer>106</answer>"
+    },
+    {
+      "question": "545 - 256",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 256 拆成 250 和 6：545 - 250 = 145；145 - 6 = 139。</think><answer>139</answer>"
+    },
+    {
+      "question": "19 - 4",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>19 - 4 = 15。</think><answer>15</answer>"
+    },
+    {
+      "question": "36 - 7",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>36 - 7 = 31。</think><answer>31</answer>"
+    },
+    {
+      "question": "64 + 3",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>64 + 3 = 67。</think><answer>67</answer>"
+    },
+    {
+      "question": "492 - 351",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>把 351 拆成 350 和 1：492 - 350 = 142；142 - 1 = 141。</think><answer>141</answer>"
+    },
+    {
+      "question": "491 + 95",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 95 拆成 90 和 5：491 + 90 = 131；131 + 5 = 136。</think><answer>136</answer>"
+    },
+    {
+      "question": "5 + 26",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>把 26 拆成 20 和 6：5 + 20 = 25；25 + 6 = 31。</think><answer>31</answer>"
+    },
+    {
+      "question": "6 - 0",
+      "correct": true,
+      "format_ok": true,
+      "completion": "<think>6 - 0 = 6。</think><answer>6</answer>"
+    },
+    {
+      "question": "605 - 340",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>605 - 340 = 355。</think><answer>355</answer>"
+    },
+    {
+      "question": "217 - 49",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 49 拆成 40 和 9：217 - 40 = 117；117 - 9 = 92。</think><answer>92</answer>"
+    },
+    {
+      "question": "940 - 368",
+      "correct": false,
+      "format_ok": true,
+      "completion": "<think>把 368 拆成 360 和 8：940 - 360 = 640；640 - 8 = 632。</think><answer>632</answer>"
+    }
+  ],
+  "examples": [
+    {
+      "question": "67 + 83",
+      "answer": "150",
+      "completion": "<think>把 83 拆成 80 和 3：67 + 80 = 147；147 + 3 = 150。</think><answer>150</answer>",
+      "correct": true
+    },
+    {
+      "question": "78 - 7",
+      "answer": "71",
+      "completion": "<think>78 - 7 = 71。</think><answer>71</answer>",
+      "correct": true
+    },
+    {
+      "question": "395 - 1",
+      "answer": "394",
+      "completion": "<think>395 - 1 = 394。</think><answer>394</answer>",
+      "correct": true
+    },
+    {
+      "question": "23 + 101",
+      "answer": "124",
+      "completion": "<think>把 101 拆成 100 和 1：23 + 100 = 33；33 + 1 = 34。</think><answer>34</answer>",
+      "correct": false
+    },
+    {
+      "question": "84 - 23",
+      "answer": "61",
+      "completion": "<think>把 23 拆成 20 和 3：84 - 20 = 64；64 - 3 = 61。</think><answer>61</answer>",
+      "correct": true
+    }
+  ],
+  "seconds": 9.3
+}
