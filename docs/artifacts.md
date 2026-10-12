@@ -50,6 +50,10 @@ pretrain-v2/pretrain_final.pth --sft.py--> posttrain-v1/sft --grpo.py × 12（RT
 - 一组里有多个模型时，文件名是 `<跑次>.<原文件名>`（如 `grpo_s1.grpo_final.pth`），取回时放回 `results/<阶段>_v<N>/<跑次>/<原文件名>`。
 - 以后的产物照此办理（下一轮后训练是 `posttrain-v2`）：在本文加一节同样格式的说明，写明起点权重（哪一组的哪个文件）、训练数据、commit 和结果，
   再给 `scripts/fetch_artifacts.sh` 加上这一组。
+- 上传：文件、`README.md`（由本文那一节生成）和 `SHA256SUMS` 先放进 `results/artifacts/<组名>/`。魔搭用
+  `modelscope upload irroca/whetstone-artifacts results/artifacts/<组名> <组名> --repo-type model`；GitHub 用
+  `scripts/upload_github_release.sh <组名> "<标题>"`，已传完的文件会跳过，重跑到输出 `GITHUB OK` 为止。两边都传完后，
+  用 `fetch_artifacts.sh` 从魔搭取回核对一遍。
 
 ---
 
