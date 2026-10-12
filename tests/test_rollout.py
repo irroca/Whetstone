@@ -264,6 +264,53 @@ def test_run_rollouts_scores_decoded_text_with_the_env():
     assert not rollouts[0].truncated.any()
 
 
+def test_run_rollouts_generates_equal_length_prompts_together():
+    """Prompts of one token count share generate calls of at most max_rows rows, and every group
+    still gets the completions generated from its own prompt."""
+    tokenizer = _tokenizer()
+    env = ArithmeticEnv(seed=0)
+    tasks = env.sample(16)
+    prompts = [build_prompt_ids(tokenizer, env, task) for task in tasks]
+    task_of = {tuple(p.tolist()): task for p, task in zip(prompts, tasks)}
+    calls = []
+
+    class GoldPolicy:
+        """Answers each row with the gold completion of the task its prompt came from."""
+
+        training = False
+
+        def eval(self):
+            return self
+
+        def train(self):
+            return self
+
+        def generate(self, input_ids, **kwargs):
+            calls.append(input_ids.size(0))
+            rows = [
+                tokenizer(env.gold_completion(task_of[tuple(row)]), add_special_tokens=False).input_ids
+                + [EOS]
+                for row in input_ids.tolist()
+            ]
+            width = max(map(len, rows))
+            return torch.tensor([row + [PAD] * (width - len(row)) for row in rows])
+
+    rollouts = run_rollouts(
+        GoldPolicy(), tokenizer, env, tasks, group_size=3, max_new_tokens=64, max_rows=10
+    )
+
+    lengths = [p.size(0) for p in prompts]
+    per_length = [lengths.count(n) for n in set(lengths)]
+    assert len(per_length) > 1, "the sample should mix prompt lengths"
+    expected_rows = []  # max_rows=10 fits 3 groups of 3 per call
+    for n in per_length:
+        expected_rows += [9] * (n // 3) + ([3 * (n % 3)] if n % 3 else [])
+    assert sorted(calls) == sorted(expected_rows)
+    assert [r.task for r in rollouts] == tasks
+    assert all(torch.equal(r.prompt_ids, p) for r, p in zip(rollouts, prompts))
+    assert all(reward.correct for r in rollouts for reward in r.rewards)
+
+
 def test_rollout_stats_reports_hacking_and_silent_groups():
     hacked = Reward(0.2, 0.0, 0.2, True, False, "9")
     correct = Reward(1.2, 1.0, 0.2, True, True, "2")
