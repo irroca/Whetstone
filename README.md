@@ -66,7 +66,7 @@ CPU 单测和 smoke 跑得起来。它在代码上的压缩率只有 2.23 字符
 ```text
 config.py  model.py  dataset.py  losses.py  train_utils.py  trainer.py  rollout.py   # 核心库
 pretrain.py  sft.py  distill.py  dpo.py  grpo.py                         # 五个训练阶段
-eval_ppl.py  chat.py  analyze_grpo.py  train_tokenizer.py  bench_train.py  # 评估与工具
+eval_ppl.py  eval_env.py  chat.py  analyze_grpo.py  train_tokenizer.py  bench_train.py  # 评估与工具
 run_ablation.py  probes.py                                               # 数据消融
 datatools/   envs/   configs/   tests/   docs/   tokenizer/   scripts/   records/
 ```
@@ -84,6 +84,7 @@ datatools/   envs/   configs/   tests/   docs/   tokenizer/   scripts/   records
 | `rollout.py` | GRPO 在线采样：分组 rollout、completion mask、logprob |
 | `pretrain.py` / `sft.py` / `distill.py` / `dpo.py` / `grpo.py` | 五个阶段的训练入口 |
 | `eval_ppl.py` / `chat.py` | 困惑度评估、交互式生成 |
+| `eval_env.py` | 任意 checkpoint 在环境题集上的贪心准确率（与 GRPO 的 `eval_accuracy` 同一口径），按题型拆开 |
 | `analyze_runs.py` / `analyze_grpo.py` | 训练记录复盘（全阶段）、RL 指标分析 |
 | `run_ablation.py` / `probes.py` | 数据消融编排（数据池 → 分词器 → 各组语料 → 训练 → 评测 → 汇总表）；基座模型评测 |
 | `configs/` | 配比 spec（正式 `mixture_v2.json`，消融用的基础配比 `mixture_v1.json`）、消融 spec（`ablation_v1.json`）|
@@ -91,7 +92,8 @@ datatools/   envs/   configs/   tests/   docs/   tokenizer/   scripts/   records
 | `docs/experiments.md` | 实验协议与已记录的跑批结果 |
 | `records/` | 重要运行的原始记录（正式预训练、H800 吞吐、消融、语料构建报告），每个文件的说明在 `records/README.md` |
 | `docs/artifacts.md` / `scripts/fetch_artifacts.sh` | 权重和语料等大文件存在哪、每个文件是什么、给谁用；取回并校验的脚本 |
-| `scripts/autodl/` | 在 AutoDL 上传数据、预检、量吞吐、正式训练的脚本 |
+| `scripts/autodl/` | 在 AutoDL 上传数据、预检、量吞吐、正式预训练和后训练的脚本 |
+| `scripts/arith_data.sh` | 算术环境的后训练数据（SFT / DPO / GRPO 题库 / dev / test），固定种子，评测题不进任何训练集 |
 
 ## 从零到训练：完整顺序
 
@@ -119,14 +121,21 @@ python3 bench_train.py --tokenizer_path tokenizer/v1_32k --dim 768 --n_layers 12
   --n_kv_heads 3 --max_seq_len 2048 --batch_sizes 8 16 32 --compile False True \
   --attention_backends default cudnn --peak_tflops 312
 
-# 6. 五个阶段（架构只在第一步声明，后续自动继承；完整参数见 docs/status.md §4 步骤 6）
+# 6. 五个阶段（架构只在第一步声明，后续从 checkpoint 继承；分词器每一步都要指定，默认的是 zh_6400；
+#    预训练的完整参数见 docs/status.md §4 步骤 6，后训练见 scripts/autodl/posttrain.sh）
 python3 pretrain.py --dim 768 --n_layers 12 --n_heads 12 --n_kv_heads 3 \
   --tokenizer_path tokenizer/v1_32k --max_seq_len 2048 --data_path datasets/mixture_v2/train.bin \
   --val_data_path datasets/mixture_v2/val.bin --batch_size 16 --accumulation_steps 16 \
   --learning_rate 6e-4 --dtype bfloat16 --save_dir results
-python3 sft.py     --pretrained_path results/pretrain_final.pth --data_path datasets/sft.jsonl
-python3 dpo.py     --policy_path results/sft_final.pth --data_path datasets/preference.jsonl
-python3 grpo.py    --policy_path results/dpo_final.pth --env arithmetic
+bash scripts/arith_data.sh datasets/arith_v1    # 算术环境的后训练数据，见「Mini-RLVR」一节
+python3 sft.py     --pretrained_path results/pretrain_final.pth --data_path datasets/arith_v1/sft.jsonl \
+  --tokenizer_path tokenizer/v1_32k --max_seq_len 128
+python3 dpo.py     --policy_path results/sft_final.pth --data_path datasets/arith_v1/preference.jsonl \
+  --tokenizer_path tokenizer/v1_32k
+python3 grpo.py    --policy_path results/sft_final.pth --data_path datasets/arith_v1/grpo_prompts.jsonl \
+  --eval_path datasets/arith_v1/dev.jsonl --eval_size 500 --micro_batch_size 64 --tokenizer_path tokenizer/v1_32k
+python3 eval_env.py --checkpoint results/grpo_final.pth --eval_path datasets/arith_v1/test.jsonl \
+  --tokenizer_path tokenizer/v1_32k
 
 # 7. 任意 checkpoint 的每源 bits per byte、语言混淆率、few-shot 加法
 python3 probes.py --checkpoint results/pretrain_final.pth --holdout datasets/mixture_v2/holdout.jsonl \
@@ -594,8 +603,9 @@ printf '磨刀石是用来做什么的？\nquit\n' | python3 chat.py \
 ## 数据格式
 
 **Pretrain** (`{"text": "..."}` JSONL)  
-**SFT** (`{"conversations": [{"role":"user","content":"..."},{"role":"assistant","content":"..."}]}`)  
-**DPO** (`{"prompt":"...","chosen":"...","rejected":"..."}`)  
+**SFT** (`{"conversations": [{"role":"user","content":"..."},{"role":"assistant","content":"..."}]}`；
+开头可以有一轮 `system`，没有时由 chat template 补默认的；缺 `role` 时按奇偶当 user / assistant)  
+**DPO** (`{"prompt":"...","chosen":"...","rejected":"..."}`，可选 `"system"`)  
 **RLVR 评测集** (`{"question":"17 + 8","answer":"25"}`，其余字段进 `Task.meta`)
 
 GRPO 阶段没有「目标输出」这种数据——prompt 由环境生成，监督信号只有奖励标量。
@@ -623,13 +633,18 @@ GRPO 阶段没有「目标输出」这种数据——prompt 由环境生成，�
 - `envs/base.py` 定义 `Task` / `Reward` / `TaskEnv` 接口与注册表；加新环境只需实现
   `sample_task` / `render` / `score`，训练代码不用动。
 
-同一个环境还负责造别的阶段的数据，所以四个后训练阶段能在同一批题目上对比：
+同一个环境还负责造别的阶段的数据，所以四个后训练阶段能在同一批题目上对比。SFT 和 DPO 的样本带着
+环境的 system prompt，编码出来和 GRPO rollout 的 prompt 逐 token 相同：
 
 ```bash
-python3 -m envs.generate_data --split sft        --n 2000 --out datasets/arith_sft.jsonl
-python3 -m envs.generate_data --split preference --n 1000 --out datasets/arith_pref.jsonl
-python3 -m envs.generate_data --split eval       --n 200  --out datasets/arith_eval.jsonl
+python3 -m envs.generate_data --split eval --n 500 --seed 777 --distinct --out datasets/arith_eval.jsonl
+python3 -m envs.generate_data --split sft  --n 4000 --exclude datasets/arith_eval.jsonl --out datasets/arith_sft.jsonl
 ```
+
+一两位数加减法一共只有约 1.5 万道不同的题，而且一半的题至少有一个一位数，所以各自独立抽样时，4000 条的
+SFT 集会包含 500 条评测集里 55% 的题。`--exclude` 去掉给定题集里的题，`--distinct` 让评测集里没有重复题。
+`scripts/arith_data.sh` 用固定种子造出全套：test（只在最后报一次）、dev（训练中看、用来选模型），以及不含这两者的
+SFT、DPO 和 GRPO 题库。
 
 ### 算法（`losses.py` + `rollout.py`）
 
@@ -662,7 +677,9 @@ A_i = \frac{r_i - \mathrm{mean}(\mathbf r)}{\mathrm{std}(\mathbf r) + \varepsilo
 
 - **一个 group = 同一 prompt 重复 G 次**。模型的 RoPE 按 `start_pos` 取位置、没有 left-padding 偏移，
   不同长度的 prompt 不能拼一个 batch 生成；同 prompt 复制天然等长，顺带就是 GRPO 需要的分组结构。
-  代价是多个 prompt 只能逐个 generate。
+  `run_rollouts` 把**等长**的 prompt 归到一起，每次 `generate` 最多 `max_rows`（默认 128）行。小模型逐 token
+  解码受调度开销限制：MPS 上一步 1 行 11 ms、32 行 18 ms、128 行 47 ms。一两位数算术题的 prompt 只有
+  69、70、71 三种长度，500 道题的贪心评测因此快了约 20 倍。
 - **completion mask 截到每行自己的第一个 EOS（含）**，复用已有的 batch>1 逐行 EOS 生成逻辑；
   之后的 pad 一律不计入 loss。
 - **log-prob 是重算的，不是采样时顺手记的**。temperature / top-p 改变的是采样分布，
@@ -799,8 +816,11 @@ LLMConfig(dim=512, n_layers=8, n_heads=8, n_kv_heads=8, vocab_size=6400, max_seq
 - **GRPO 需要冷启动**：策略必须已经会输出环境要求的格式，否则每条 rollout 都是 0 奖励、
   组内零方差、`grad_norm` 恒为 0。先用 `envs.generate_data --split sft` 的数据做 SFT。
   反过来，SFT 训到完全饱和（熵极低）同样采不出奖励差异，也学不动——冷启动要**够但不过**。
-- **一次 `generate` 只处理一个 prompt 的 group**：模型没有 left-padding 的 RoPE 偏移，
-  不同长度 prompt 不能同批生成。多个 prompt 只能串行，这是当前实现的吞吐上限。
+- **只有等长的 prompt 能同批生成**：模型没有 left-padding 的 RoPE 偏移。`run_rollouts` 按 prompt 长度
+  分桶，长度各不相同的 prompt 仍然逐个生成。
+- **GRPO 的大 batch 要配 `--micro_batch_size`**：rollout 是分桶生成的，但训练前向默认一次吃下整批。
+  32 道题 × 8 条在 Mac（48GB）上不分块会把内存换页换满，15 分钟一步都没跑完；`--micro_batch_size 32`
+  时每步约 9 秒，内存只多占约 16GB。分块和整批的 loss 相同（有单测）。
 - **`--top_p < 1` 时训练数据严格来说是 off-policy 的**：采样分布被截断过，而重要性比用的是
   策略自身分布。默认 `--top_p 1.0` 就是为了避免这个偏差。
 - **GRPO 的 `loss` 不是进度指标**：on-policy 且 `seq_mean` 聚合时它恒等于 0，看 `grad_norm`。
