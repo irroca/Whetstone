@@ -169,7 +169,8 @@ Every step appends one JSON line to `{save_dir}/grpo_metrics.jsonl`. Plot at min
 | `hack_rate` | Fraction of well-formed wrong answers — the reward-hacking curve |
 | `silent_group_frac` | Share of groups with no reward variance (wasted compute) |
 | `grad_norm` | Whether a step carried signal at all (`loss` is ~0 by construction for `seq_mean`) |
-| `entropy` | Collapse detector; watch it against `kl` when `--kl_coeff 0` |
+| `entropy` | Collapse detector; watch it against `kl` when `--kl_coeff 0`. Covers the groups the update used |
+| `entropy_all` | The same over every sampled group, before `--filter_zero_variance`; the one to compare across variants (absent before the first round's rerun) |
 | `completion_len` | Length drift / reward-shaping side effects |
 
 ## Ablation grid: 4 variants × 3 seeds on the 100M model (RTX 4090, 2026-10-12)

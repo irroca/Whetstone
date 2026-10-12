@@ -22,7 +22,7 @@ from typing import Sequence
 
 def evaluate_tasks(model, tokenizer, env, tasks, *, max_new_tokens: int, device: str,
                    group_by: Sequence[str] = ()) -> dict:
-    """Greedy rollout per task: GRPO's eval statistics, per-group accuracy and a few examples."""
+    """Greedy rollout per task: GRPO's eval statistics, per-group accuracy, per-item outcomes and a few examples."""
     from rollout import rollout_stats, run_rollouts
 
     rollouts = run_rollouts(
@@ -40,6 +40,13 @@ def evaluate_tasks(model, tokenizer, env, tasks, *, max_new_tokens: int, device:
         "items": len(rollouts),
         **stats,
         "by_group": {key: {"items": n, "accuracy": right / n} for key, (n, right) in sorted(counts.items())},
+        # One row per task, in the task file's order, so two checkpoints' files pair item by item
+        # (``paired.py``). The group means above cannot tell a real gap from noise on 500 items.
+        "per_item": [
+            {"question": r.task.question, "correct": bool(r.rewards[0].correct),
+             "format_ok": bool(r.rewards[0].format_ok), "completion": r.texts[0]}
+            for r in rollouts
+        ],
         "examples": [
             {"question": r.task.question, "answer": r.task.answer, "completion": r.texts[0],
              "correct": r.rewards[0].correct}

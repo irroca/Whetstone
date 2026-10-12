@@ -9,7 +9,7 @@ from dataset import PreferenceDataset, SFTDataset
 from envs import ArithmeticEnv
 from envs.base import Reward, Task
 from envs.generate_data import build_rows, write_jsonl
-from losses import token_logprobs
+from losses import token_entropy, token_logprobs
 from model import Whetstone
 from rollout import (
     build_prompt_ids,
@@ -150,6 +150,21 @@ def test_compute_logprobs_micro_batching_matches_single_pass():
 
     assert chunked.shape == (6, 8)
     assert torch.allclose(chunked, full, atol=1e-5)
+
+
+def test_compute_logprobs_returns_entropy_from_the_same_pass():
+    torch.manual_seed(0)
+    model = _tiny_model()
+    input_ids = torch.randint(0, 10, (5, 8))
+    targets = torch.randint(0, 10, (5, 8))
+
+    logprobs, entropy = compute_logprobs(model, input_ids, targets, micro_batch_size=2, return_entropy=True)
+    with torch.no_grad():
+        logits = model(input_ids).logits.float()
+
+    assert torch.allclose(logprobs, token_logprobs(logits, targets), atol=1e-5)
+    assert torch.allclose(entropy, token_entropy(logits), atol=1e-5)
+    assert entropy.shape == (5, 8)
 
 
 def test_compute_logprobs_restores_training_mode():

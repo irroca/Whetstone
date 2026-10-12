@@ -22,6 +22,7 @@ TRAIN_COLUMNS = (
     "hack_rate",
     "silent_group_frac",
     "entropy",
+    "entropy_all",
     "kl",
     "grad_norm",
     "completion_len",

@@ -66,7 +66,7 @@ CPU 单测和 smoke 跑得起来。它在代码上的压缩率只有 2.23 字符
 ```text
 config.py  model.py  dataset.py  losses.py  train_utils.py  trainer.py  rollout.py   # 核心库
 pretrain.py  sft.py  distill.py  dpo.py  grpo.py                         # 五个训练阶段
-eval_ppl.py  eval_env.py  chat.py  analyze_grpo.py  train_tokenizer.py  bench_train.py  # 评估与工具
+eval_ppl.py  eval_env.py  paired.py  chat.py  analyze_grpo.py  train_tokenizer.py  bench_train.py  # 评估与工具
 run_ablation.py  probes.py                                               # 数据消融
 datatools/   envs/   configs/   tests/   docs/   tokenizer/   scripts/   records/
 ```
@@ -84,7 +84,7 @@ datatools/   envs/   configs/   tests/   docs/   tokenizer/   scripts/   records
 | `rollout.py` | GRPO 在线采样：分组 rollout、completion mask、logprob |
 | `pretrain.py` / `sft.py` / `distill.py` / `dpo.py` / `grpo.py` | 五个阶段的训练入口 |
 | `eval_ppl.py` / `chat.py` | 困惑度评估、交互式生成 |
-| `eval_env.py` | 任意 checkpoint 在环境题集上的贪心准确率（与 GRPO 的 `eval_accuracy` 同一口径），按题型拆开 |
+| `eval_env.py` / `paired.py` | 任意 checkpoint 在环境题集上的贪心准确率（与 GRPO 的 `eval_accuracy` 同一口径），按题型拆开，并逐题记下对错；`paired.py A.json B.json` 对两个检查点做配对的 McNemar 精确检验 |
 | `analyze_runs.py` / `analyze_grpo.py` | 训练记录复盘（全阶段）、RL 指标分析 |
 | `run_ablation.py` / `probes.py` | 数据消融编排（数据池 → 分词器 → 各组语料 → 训练 → 评测 → 汇总表）；基座模型评测 |
 | `configs/` | 配比 spec（正式 `mixture_v2.json`，消融用的基础配比 `mixture_v1.json`）、消融 spec（`ablation_v1.json`）|

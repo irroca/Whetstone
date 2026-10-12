@@ -382,7 +382,9 @@ rather than duplicating commands here.
   - **With `--filter_zero_variance True` the training-side metrics cover only the kept groups.**
     `rollout_stats` (reward, accuracy, `silent_group_frac`) sees the whole batch, but `entropy`,
     `kl`, `grad_norm` and `clip_frac` are computed after the filter, and a step with no group left
-    logs them as 0 and makes no update. Its entropy is not comparable with an unfiltered run's.
+    logs them as 0 and makes no update. Its `entropy` is not comparable with an unfiltered run's; use `entropy_all`, which
+    covers every sampled group before the filter (the dropped ones get a no-grad forward from the sampling weights). It is
+    absent from runs recorded before it existed.
   - GRPO needs a policy that already emits the env's output format, otherwise every rollout scores
     0, every group has zero reward variance, and `grad_norm` is exactly 0. Cold start with SFT on
     `envs.generate_data --split sft` output first.
