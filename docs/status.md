@@ -180,7 +180,7 @@ HF_HUB_OFFLINE=1 python3 -m pytest tests/ -q      # Mac 上 522 passed、1 skipp
 | [#20](https://github.com/irroca/Whetstone/pull/20) | 交接文档：GitHub 上的产物也齐了 | 已合并（squash）|
 | [#21](https://github.com/irroca/Whetstone/pull/21) | 后训练的本地准备：repetition penalty、system prompt、评测集隔离、rollout 分桶、`eval_env.py`、4090 启动脚本 | 已合并（squash）|
 | [#22](https://github.com/irroca/Whetstone/pull/22) | 第一轮后训练的结果和存档：记录、实验分析、`posttrain-v1` 产物组、换到新电脑的交接 | 已合并（squash）|
-| [#23](https://github.com/irroca/Whetstone/pull/23) | 可续传的 GitHub 上传脚本 `scripts/upload_github_release.sh`；记下 `posttrain-v1` 在 GitHub 上还差 10 份权重 | 待合并 |
+| [#23](https://github.com/irroca/Whetstone/pull/23) | 可续传的 GitHub 上传脚本 `scripts/upload_github_release.sh`；记下 `posttrain-v1` 在 GitHub 上还差 10 份权重 | 已合并（squash）|
 
 **教训**：stacked PR 要么严格按自下而上的顺序合，要么在合之前把上层 PR 的 base 直接改成 `main`。
 `squash` 合并会切断祖先关系，所以一旦顺序错了，后续那个 PR 的内容不会自动跟过来，
@@ -879,13 +879,8 @@ python3 pretrain.py --dim 768 --n_layers 12 --n_heads 12 --n_kv_heads 3 \
 6. 存档：无卡模式开机，在实例上把 13 份权重和配置直接 `modelscope upload` 到魔搭的 `posttrain-v1/`
    （5.2GB 用了 6 分钟，第一次就成功）；记录和题目文件打成两个压缩包，连同 `README.md`（由 `docs/artifacts.md`
    的那一节生成）和 `SHA256SUMS` 一起传上去。Mac 上用 `fetch_artifacts.sh posttrain-v1` 从魔搭取回、逐个核对，
-   再从这份传 GitHub Release，按 GitHub 给的摘要核对。小的记录进 git：`records/posttrain_v1/`、`posttrain_trial/`、
-   `autodl_4090/`，以及 Mac 冒烟的 `posttrain_mac_smoke/`（已脱敏）。
-   **GitHub 那份还没传完**：10-12 20:34 电脑要休眠，停在 30 个文件里的 20 个（`README.md`、`SHA256SUMS`、两个压缩包、
-   13 个 config 和 `dapo_lite_s1/s2/s3` 三份权重，都已按摘要核对），差另外 10 份权重。旧 Mac 上
-   `bash scripts/upload_github_release.sh posttrain-v1` 续传，直到输出 `GITHUB OK`；旧 Mac 不在了，就在新电脑上
-   `fetch_artifacts.sh posttrain-v1` 从魔搭取回再跑同一条命令。魔搭那份是全的，取回默认也走魔搭，不影响接着做。
-   传完后删掉这一段
+   再从这份传 GitHub Release，按 GitHub 给的摘要核对（10-12 22:08 两份都齐了）。小的记录进 git：
+   `records/posttrain_v1/`、`posttrain_trial/`、`autodl_4090/`，以及 Mac 冒烟的 `posttrain_mac_smoke/`（已脱敏）
 
 **下一步**（按顺序；换电脑后先按 §6 的「换到新电脑」装好环境、取回权重）：
 
