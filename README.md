@@ -68,7 +68,7 @@ config.py  model.py  dataset.py  losses.py  train_utils.py  trainer.py  rollout.
 pretrain.py  sft.py  distill.py  dpo.py  grpo.py                         # 五个训练阶段
 eval_ppl.py  chat.py  analyze_grpo.py  train_tokenizer.py  bench_train.py  # 评估与工具
 run_ablation.py  probes.py                                               # 数据消融
-datatools/   envs/   configs/   tests/   docs/   tokenizer/
+datatools/   envs/   configs/   tests/   docs/   tokenizer/   scripts/   records/
 ```
 
 | 路径 | 说明 |
@@ -89,6 +89,9 @@ datatools/   envs/   configs/   tests/   docs/   tokenizer/
 | `configs/` | 配比 spec（正式 `mixture_v2.json`，消融用的基础配比 `mixture_v1.json`）、消融 spec（`ablation_v1.json`）|
 | `docs/corpus-plan.md` | 语料候选清单、许可证、配比与消融计划 |
 | `docs/experiments.md` | 实验协议与已记录的跑批结果 |
+| `records/` | 重要运行的原始记录（正式预训练、H800 吞吐、消融、语料构建报告），每个文件的说明在 `records/README.md` |
+| `docs/artifacts.md` / `scripts/fetch_artifacts.sh` | 权重和语料等大文件存在哪、每个文件是什么、给谁用；取回并校验的脚本 |
+| `scripts/autodl/` | 在 AutoDL 上传数据、预检、量吞吐、正式训练的脚本 |
 
 ## 从零到训练：完整顺序
 
@@ -157,6 +160,16 @@ python analyze_runs.py plot results --out report.html    # 自包含 HTML，内�
 
 `plot` 生成的 HTML 不依赖任何绘图库也不引用任何外部资源，每个指标一张图、多次训练叠在一起，
 浏览器直接打开。
+
+正式预训练和数据消融的记录已经在 git 的 `records/` 里，clone 下来就能复盘，不用下载权重：
+
+```bash
+python analyze_runs.py list records/pretrain_v2 records/ablation_v1/*
+python analyze_runs.py compare records/ablation_v1/* --metric loss --split val
+```
+
+权重和语料在私有仓库，`scripts/fetch_artifacts.sh pretrain-v2 mixture-v2-eval` 取回后训练需要的部分，
+每个文件是什么见 `docs/artifacts.md`。
 
 ### 验证集指标
 

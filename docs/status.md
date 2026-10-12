@@ -1,6 +1,6 @@
 # 项目状态与路线（交接文档）
 
-**最后更新**：2026-10-11，H800 开卡 session。
+**最后更新**：2026-10-11 夜，正式预训练完成、权重和记录存进私有仓库之后。
 本文档是新 session 的入口——先读这里，再读 `AGENTS.md`。
 
 ---
@@ -17,12 +17,16 @@
 一个训练循环，续训与不中断逐位一致，checkpoint 原子写入，有 `bench_train.py` 在开卡第一个小时量
 吞吐和显存、`probes.py` 评测任意 checkpoint（§3.4）。
 
-**正式预训练 10-11 14:15 在 H800 PCIe 上开跑**（commit e223385，§4 步骤 6）。开跑前先花一小时
-把训练步从 27.1 万提到 34.2 万 token/s（+26%，MFU 25% → 32%，前后 loss 一致，过程记在 §3.3），
-10B token 从约 10.2 小时缩到约 8.1 小时，预计 22:30 前后训完；训完自动跑 probes 并关机。
+**正式预训练已完成**（10-11 14:15–22:33，一张 H800 PCIe，8.3 小时，commit e223385，§4 步骤 6）：
+99.5M 参数、99.1 亿 token，验证 loss **2.554**（困惑度 12.86），38 次验证次次下降，没有 loss 尖峰，
+一次启动跑完、没有续训。开跑前先花一小时把训练步从 27.1 万提到 34.2 万 token/s（+26%，MFU 25% → 32%，
+前后 loss 一致，过程记在 §3.3）。结果在 `docs/experiments.md`，训练记录进了 git（`records/`）；
+权重、语料和原始记录存在魔搭和 GitHub 两个私有仓库里，换电脑用 `scripts/fetch_artifacts.sh` 取回
+（每个文件是什么见 `docs/artifacts.md`）。**下一步是 §4 步骤 7（后训练）**。
 
-仓库里现有的一切数字都是 29M 玩具规模的**实现验证**，或 3 亿 token 消融代理模型的**相对比较**，
-不是能力声明。
+基座模型的起点：4-shot 一位数加法 22%、两位数 2%，离目标能力（两位数算术 + 简单 Python）还很远，
+这正是 SFT 和 GRPO 要补的。除了正式预训练的结果，仓库里其余数字都是 29M 玩具规模的**实现验证**，
+或 3 亿 token 消融代理模型的**相对比较**，不是能力声明。
 
 ---
 
@@ -85,6 +89,26 @@
   优势恒 0 → `grad_norm` 精确为 0，剩下 100 步完全没有梯度，再也起不来
 - **它只学会了格式**：accuracy 全程 0.000，而 `hack_rate` 与 `format_rate` 完全重合
 - **eval 曲线平不等于优化器坏了**：另一组 100 步 greedy eval 完全不动，但权重确实在变
+
+### 预训练好的基座模型（§4 步骤 6）
+- `results/pretrain_v2/pretrain_final.pth`（git 忽略，fp32，398MB），旁边是架构 sidecar
+  `pretrain_final.config.json`；新电脑上用 `scripts/fetch_artifacts.sh pretrain-v2` 取回。SFT 要显式传
+  `--pretrained_path results/pretrain_v2/pretrain_final.pth`（默认值是 `results/pretrain_final.pth`），
+  架构从 sidecar 自动解析
+- holdout 上的 bits per byte：代码 0.593、合成教科书 0.676、数学 0.881、英文网页 1.006、书 1.223、
+  中文网页 1.297；中文提示 2% 续写成别的语言；4-shot 加法一位数 22%、两位数 2%
+- 曲线、全部数字和与消融代理的对比在 `docs/experiments.md`，图在 `docs/figures/pretrain_v2_loss.png`
+
+### 大文件存放（不进 git）
+- 小体积的运行记录在 git 的 `records/`（1.6 MB：正式预训练、H800 上的吞吐和环境、消融、语料的构建报告），
+  目录结构和 `results/` 一样，`analyze_runs.py` 直接能读；每个文件的说明在 `records/README.md`
+- 权重、分词后的语料、未脱敏的原始记录在两个私有仓库，内容相同：魔搭 `irroca/whetstone-artifacts`
+  （国内快，默认）和 GitHub `irroca/whetstone-artifacts` 的 Release（国内直连只有 70–150 KB/s）。
+  分三组：`pretrain-v2`（基座模型）、`mixture-v2`（语料）、`ablation-v1`（消融小模型）。**每个文件是什么、
+  给谁用、什么时候需要，都在 `docs/artifacts.md`**，每组文件旁边也有一份对应的 `README.md`
+- 取回：`scripts/fetch_artifacts.sh pretrain-v2 mixture-v2-eval` 是后训练需要的全部（约 1 GB），下载后逐个
+  核对 SHA-256，再放到 `results/`、`datasets/` 下原来的位置
+- 以后的产物照同样的办法存（组名 `sft-v1`、`grpo-v1`……），在 `docs/artifacts.md` 加一节说明
 
 ---
 
@@ -599,7 +623,7 @@ done
 **v1_32k 让所有旧 checkpoint 失效**——`resolve_model_config` 会在 `vocab_size` 不匹配时直接报错，
 这是设计如此。
 
-### 步骤 6：正式预训练（~100M / 10B token，租卡）
+### 步骤 6：正式预训练（~100M / 10B token，租卡）✅ 已完成（10-11 22:33）
 本机 MPS 跑 10B token 要约 13 天（§3.3），所以租卡。开卡前按 0.71 GFLOP/token、MFU 35–45% 估的，
 最后一行是实测：
 
@@ -658,6 +682,20 @@ loss 没变；然后 `BATCH=32 ACCUM=8 COMPILE=True ATTENTION=cudnn bash scripts
 验证 loss 每 500 步单调下降（5.465 → 4.009 → 3.492 → 3.254 → 3.110 → 3.021 → 2.958 → 2.909）；预热后
 grad norm 中位数 0.31、最大 0.57；含验证和存档平均每步 1.569 秒，预计 22:31 训完。
 
+22:33:47 训完：一次启动，8.29 小时；两次日志之间的吞吐中位数 33.64 万 token/s，全程平均 33.19 万，
+编译、验证和存档一共只占 6.5 分钟。最后一步的验证 loss 2.5539（困惑度 12.86），22:35:48 probes 跑完
+（116 秒），随即关机。全部结果在 `docs/experiments.md`。之后用无卡模式开机，把实例上的记录、临时脚本、
+环境信息、AutoDL 面板的 GPU 监控数据库和两份权重（最终权重，以及带优化器状态的 `epoch_1_checkpoint.pth`，
+1.19GB，只在接着预训练时有用）全部拷回本机，按服务器上算的 SHA-256 核对过，再存进魔搭和 GitHub 两个私有
+仓库（`docs/artifacts.md`）。断点里的模型权重和最终权重逐个张量相同。没留的只有第 18,500 次更新的中间断点
+`latest_checkpoint.pth`。
+
+**还没传完**（10-12 08:00）：这台电脑换了网络之后，往两个仓库传大文件都经常中途超时，失败一次整个文件重来，
+2GB 的分段要试好几次才成一次。带优化器状态的断点两边都还没有；训练集的 6 段压缩包，魔搭缺 `part-ab`、`part-ac`，GitHub 缺
+`part-ac`、`part-ae`、`part-af`。这些只在接着预训练时用到，后训练需要的（基座模型、验证集、留出集、评测集、
+消融模型）两边都齐了。完整副本还在本机 `results/artifacts/` 和 AutoDL 实例的数据盘上，补齐之前两处都别删，
+实例也别释放。缺文件时 `fetch_artifacts.sh` 会列出来并退出，不会只放一部分。
+
 **正式命令**（`scripts/autodl/pretrain.sh` 跑的就是这条；`batch_size × accumulation_steps × 2047`
 保持约 50 万 token，共 18,919 次更新）：
 
@@ -676,10 +714,10 @@ python3 pretrain.py --dim 768 --n_layers 12 --n_heads 12 --n_kv_heads 3 \
 - 本机已用这条命令在真实数据上冒烟（MPS，batch 2，6 次更新，中间续训一次）：99.5M 参数，初始 loss
   10.6（≈ ln 32768），验证正常，checkpoint 1.19GB，续训从第 7 个 batch 接上。加载分词器和训练全程
   不联网，AutoDL 连不上 HF 也不影响
-- 按上面的例子共 18,919 次更新，最后一次验证在第 18,500 次，之后的 419 次没有验证；训完的评测靠
-  下面的 `probes.py`
-- 训完 `pretrain.sh` 会接着跑 `probes.py`，结果写到 `results/pretrain_v2/probes.json`；把它和
-  `runs/` 拷回本机，填 `docs/experiments.md`。关机不清数据盘（实例被释放才清），用无卡模式开机拷
+- 共 18,919 次更新。定期验证的最后一次在第 18,500 次；最后一步不是 `--val_every` 的整数倍时，
+  `pretrain.py` 训完会在最后一步再验证一次（这次是第 18,919 次），之后由 `probes.py` 评测
+- 训完 `pretrain.sh` 会接着跑 `probes.py`，结果写到 `results/pretrain_v2/probes.json`。关机不清数据盘
+  （实例被释放才清），所以训完用无卡模式开机，把结果拷回本机
 
 **AutoDL 的坑**：
 
@@ -712,11 +750,31 @@ python3 pretrain.py --dim 768 --n_layers 12 --n_heads 12 --n_kv_heads 3 \
 - 开卡模式是 20 核（`cpu.max` 2000000/100000）、120GB 内存；`env.sh` 照样按配额设线程数
 - H800 PCIe 满载时一直顶着 350W 功耗墙，SM 频率在 1215–1725 MHz 之间浮动，吞吐随温度略降
   （正式训练开头几分钟从 34.4 万降到 34.0 万）
+- 无卡模式下从实例往外拷很慢：10-11 夜实测出方向一共只有约 200–300 KB/s，开 8 个连接也不叠加
+  （同时本机从清华镜像下载是 24 MB/s），398MB 的最终权重拷了约半小时。用不上的大文件就别往回拷
+- 本机新版 OpenSSH 的 `scp` 走 SFTP 协议，远端路径里的 `{a,b}` 不会展开；拷多个文件用 `rsync`
+  或者分开写
+- 国内从 GitHub Release 下载很慢：10-11 夜实测公开和私有仓库的 Release 都只有 70–150 KB/s，AutoDL 无卡
+  实例上也一样（无卡模式下学术加速连不上）；同一时刻从 Cloudflare 下载有 10 MB/s，往 GitHub 上传也有
+  4.7 MB/s。所以大文件在魔搭另存了一份，`fetch_artifacts.sh` 默认从魔搭拉
+- 从 GitHub 拉还会断：用 `gh release download` 下 398MB 的权重，45 分钟时读超时，留下半个文件，
+  `--skip-existing` 重跑时还会把它当成已下完。`fetch_artifacts.sh` 因此改用 `curl -C -` 断点续传
+- 大文件上传也会断：10-12 凌晨往 GitHub 传文件反复报 408（上传无活动超时）、连接被重置，200MB 的也不例外；
+  往魔搭传 1GB 以上的文件常写超时。两边都是失败一次整个文件重来，以后的产物切成几百 MB 一段再传
 
 ### 步骤 7：重建后训练四阶段
 SFT / KD / DPO 的数据要基于新语料和可验证任务重做（`envs.generate_data` 负责算术那部分；
 代码任务的环境还没写，见 §5）。然后 GRPO——这次 accuracy 应该终于有方差了，这是整个项目
 最关键的验证点。
+
+- **起点**：`results/pretrain_v2/pretrain_final.pth`，4-shot 一位数加法 22%、两位数 2%（§1）。在新机器上先
+  `scripts/fetch_artifacts.sh pretrain-v2 mixture-v2-eval` 取回基座模型、验证集、留出集和评测集。GRPO 之前
+  的 SFT 冷启动要先让模型稳定输出环境要求的格式，否则全组零奖励、梯度恒为 0（§1 的结论）
+- **算力**：100M 模型在 Apple 芯片的 MPS + bf16 上训练约 9k token/s（§3.3），1000 万 token 的 SFT 约
+  20 分钟；GRPO 的 rollout 更费时间，计划租一张便宜的卡做，不再用 H800
+- **动手前先修**：`model.generate` 的 repetition penalty 不分 logit 正负一律除以系数，负 logit 的 token
+  反而被抬高（HF 的做法是正值除、负值乘）。`chat.py` 默认 1.2，probes 不开 repetition penalty、
+  不受影响。实际影响不大，但评测 SFT 之前应该修掉并补一条单测
 
 ---
 
@@ -757,7 +815,7 @@ PPO critic、PRM（过程奖励模型）、MoE、多卡并行、推理服务化�
 | 加速器 | 无 | **Apple M5 Pro，MPS** | CUDA |
 | `--device` 默认 | `cpu` | **`mps`**（自动选）| `cuda` |
 | `--dtype` | 只能 `float32` | `bfloat16` | `bfloat16` |
-| 数据 | `datasets/` 是空的 | 评测集 `datasets/eval/`、冒烟语料 `datasets/smoke_full/`、消融数据 `datasets/ablation_v1/`，正式数据集 `datasets/mixture_v2/`（已完成，约 20GB 待上传；都被 git 忽略）| 从本机上传 `mixture_v2` |
+| 数据 | `datasets/` 是空的 | 评测集 `datasets/eval/`、冒烟语料 `datasets/smoke_full/`、消融数据 `datasets/ablation_v1/`，正式数据集 `datasets/mixture_v2/`（约 20GB，已传到 AutoDL 训完）、预训练结果 `results/pretrain_v2/`（都被 git 忽略；新电脑上用 `scripts/fetch_artifacts.sh` 从私有仓库取回，见 `docs/artifacts.md`）| `scripts/fetch_artifacts.sh` 取回需要的组 |
 
 本地环境搭建：
 
