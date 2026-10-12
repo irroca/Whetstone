@@ -1,6 +1,7 @@
 # 项目状态与路线（交接文档）
 
-**最后更新**：2026-10-12，后训练的本地准备（Mac 上冒烟、4090 启动脚本）完成之后。
+**最后更新**：2026-10-12 晚，第一轮后训练（4090 上 SFT + 12 个 GRPO 跑次）完成、权重和记录存档之后。
+之后换电脑：原来那台 Mac 不再使用，接着做需要的一切都在 git 和两个私有仓库里，新电脑怎么接上见 §6。
 本文档是新 session 的入口——先读这里，再读 `AGENTS.md`。
 
 ---
@@ -24,15 +25,17 @@
 权重、语料和原始记录存在魔搭和 GitHub 两个私有仓库里，换电脑用 `scripts/fetch_artifacts.sh` 取回
 （每个文件是什么见 `docs/artifacts.md`）。
 
-**后训练的本地准备已完成**（10-12，§4 步骤 7）：修了 repetition penalty；SFT / DPO 样本带上环境的 system
-prompt；dev / test 两个评测集不进任何训练数据；rollout 把等长 prompt 合并生成；`eval_env.py` 给任意
-checkpoint 在 test 上打分。Mac 上冒烟：SFT 冷启动后 dev 贪心准确率 0.618，GRPO 100 步（约 15 分钟）把它
-推到 **0.778**，格式和长度都没变。这是 accuracy 本身第一次被 RL 推上去（两位数加法 0.76 → 0.91、两位数
-减法 0.47 → 0.65），上一轮 29M 模型只学会了格式。
-**下一步是在 AutoDL 的 RTX 4090 上跑 `scripts/autodl/start_posttrain.sh`**（步骤 7 的「租卡跑」）。
+**第一轮后训练已完成**（10-12，§4 步骤 7）：在一张 RTX 4090 上 3.7 小时，SFT 一次，再从同一个 SFT 权重
+跑 4 种 GRPO 变体 × 3 个种子，各 500 步。一两位数加减法的 test 贪心准确率从 SFT 的 0.628 升到
+**0.938–0.962**（12 个跑次平均 0.948），格式一直是 1.000：被 RL 推上去的是 accuracy 本身，两位数的题基本
+做对（加法 0.986、减法 0.976），上一轮 29M 模型只学会了格式。四种变体（GRPO、加 KL、Dr. GRPO、DAPO-lite）
+之间分不出高低，原因也查清了：每批只更新一次时截断从不触发，回答长度几乎不变，剩下的差别只是梯度的
+尺度，被 AdamW 吸收了。唯一实在的差别是 DAPO-lite 跳过零方差组，省了 17% 的时间。权重存成私有仓库的
+`posttrain-v1` 组，记录在 `records/posttrain_v1/`，分析在 `docs/experiments.md`。
+**下一步**（步骤 7 末尾）：DPO-only 基线；换更难的题，让九成题组零方差的局面变成有用的信号；代码环境（§5 阶段 B）。
 
-基座模型的起点：4-shot 一位数加法 22%、两位数 2%，离目标能力（两位数算术 + 简单 Python）还很远，
-这正是 SFT 和 GRPO 要补的。除了正式预训练的结果，仓库里其余数字都是 29M 玩具规模的**实现验证**，
+基座模型的起点：4-shot 一位数加法 22%、两位数 2%。目标能力是两位数算术 + 简单 Python，算术这一半
+这一轮已经做到。除了正式预训练和这一轮后训练的结果，仓库里其余数字都是 29M 玩具规模的**实现验证**，
 或 3 亿 token 消融代理模型的**相对比较**，不是能力声明。
 
 ---
@@ -97,6 +100,23 @@ checkpoint 在 test 上打分。Mac 上冒烟：SFT 冷启动后 dev 贪心准�
 - **它只学会了格式**：accuracy 全程 0.000，而 `hack_rate` 与 `format_rate` 完全重合
 - **eval 曲线平不等于优化器坏了**：另一组 100 步 greedy eval 完全不动，但权重确实在变
 
+以上是 29M 的 CPU 实验。100M 上的第一轮后训练（§4 步骤 7）：
+
+- **有了够强的冷启动，GRPO 推高的是 accuracy**：test 0.628 → 0.948（12 个跑次平均），格式从头到尾 1.000
+- **四种变体分不出高低，而且是能解释的**：`--ppo_epochs 1` 时重要性比恒为 1，截断从不触发，clip-higher 等于
+  没开；回答长度几乎不变，Dr. GRPO 要去掉的长度偏差在这里不存在；剩下的差别只是梯度尺度（Dr. GRPO 小 7 倍、
+  DAPO-lite 大 12 倍），AdamW 对尺度不敏感
+- **后期九成的题组零方差**，DAPO-lite 跳过它们省了 17% 的时间，准确率不变
+- **一位数的题是泛化测试**：dev / test 把 155 道一位数题拿走了 134 道，训练里几乎没有，它们的准确率最低、
+  种子间波动最大
+
+### 后训练的模型（§4 步骤 7）
+- `results/posttrain_v1/sft/sft_final.pth` 和 `results/posttrain_v1/<变体>_s<种子>/grpo_final.pth`（git 忽略，
+  各 398MB）。新电脑上 `scripts/fetch_artifacts.sh posttrain-v1-sft` 只取 SFT 权重（接着做 DPO、蒸馏、重跑 GRPO
+  的起点），`posttrain-v1` 取全部 13 个。dev 上最好的是 `dapo_lite_s1`（dev 0.982、test 0.950），要用一个 GRPO
+  策略往下做就用它
+- 题目文件 `datasets/arith_v1/` 由 `scripts/arith_data.sh` 逐字节重造，取回 `posttrain-v1` 时也会一起解压出来
+
 ### 预训练好的基座模型（§4 步骤 6）
 - `results/pretrain_v2/pretrain_final.pth`（git 忽略，fp32，398MB），旁边是架构 sidecar
   `pretrain_final.config.json`；新电脑上用 `scripts/fetch_artifacts.sh pretrain-v2` 取回。SFT 要显式传
@@ -107,15 +127,17 @@ checkpoint 在 test 上打分。Mac 上冒烟：SFT 冷启动后 dev 贪心准�
 - 曲线、全部数字和与消融代理的对比在 `docs/experiments.md`，图在 `docs/figures/pretrain_v2_loss.png`
 
 ### 大文件存放（不进 git）
-- 小体积的运行记录在 git 的 `records/`（1.6 MB：正式预训练、H800 上的吞吐和环境、消融、语料的构建报告），
-  目录结构和 `results/` 一样，`analyze_runs.py` 直接能读；每个文件的说明在 `records/README.md`
+- 小体积的运行记录在 git 的 `records/`（9.2 MB：正式预训练、H800 上的吞吐和环境、消融、语料的构建报告，
+  以及后训练的正式跑、试跑、4090 的环境和 Mac 上的冒烟），目录结构和 `results/` 一样，`analyze_runs.py`
+  直接能读；每个文件的说明在 `records/README.md`
 - 权重、分词后的语料、未脱敏的原始记录在两个私有仓库，内容相同：魔搭 `irroca/whetstone-artifacts`
   （国内快，默认）和 GitHub `irroca/whetstone-artifacts` 的 Release（国内直连只有 70–150 KB/s）。
-  分三组：`pretrain-v2`（基座模型）、`mixture-v2`（语料）、`ablation-v1`（消融小模型）。**每个文件是什么、
-  给谁用、什么时候需要，都在 `docs/artifacts.md`**，每组文件旁边也有一份对应的 `README.md`
-- 取回：`scripts/fetch_artifacts.sh pretrain-v2 mixture-v2-eval` 是后训练需要的全部（约 1 GB），下载后逐个
-  核对 SHA-256，再放到 `results/`、`datasets/` 下原来的位置
-- 以后的产物照同样的办法存（组名 `sft-v1`、`grpo-v1`……），在 `docs/artifacts.md` 加一节说明
+  分四组：`pretrain-v2`（基座模型）、`mixture-v2`（语料）、`ablation-v1`（消融小模型）、`posttrain-v1`（SFT 和
+  12 个 GRPO 策略）。**每个文件是什么、给谁用、什么时候需要，都在 `docs/artifacts.md`**，每组文件旁边也有
+  一份对应的 `README.md`
+- 取回：`scripts/fetch_artifacts.sh posttrain-v1-sft` 是接着做后训练需要的（0.4 GB），从头做后训练要
+  `pretrain-v2 mixture-v2-eval`（约 1 GB）。下载后逐个核对 SHA-256，再放到 `results/`、`datasets/` 下原来的位置
+- 以后的产物照同样的办法存（下一轮后训练是 `posttrain-v2`），在 `docs/artifacts.md` 加一节说明
 
 ---
 
@@ -156,7 +178,8 @@ HF_HUB_OFFLINE=1 python3 -m pytest tests/ -q      # Mac 上 522 passed、1 skipp
 | [#18](https://github.com/irroca/Whetstone/pull/18) | nvidia-smi 的 100% 和 45GB 说明了什么、没说明什么；正式预训练中途检查 | 已合并（squash）|
 | [#19](https://github.com/irroca/Whetstone/pull/19) | 预训练收尾：`records/`、私有仓库里的权重和语料（`docs/artifacts.md`）、`fetch_artifacts.sh` | 已合并（squash）|
 | [#20](https://github.com/irroca/Whetstone/pull/20) | 交接文档：GitHub 上的产物也齐了 | 已合并（squash）|
-| [#21](https://github.com/irroca/Whetstone/pull/21) | 后训练的本地准备：repetition penalty、system prompt、评测集隔离、rollout 分桶、`eval_env.py`、4090 启动脚本 | 待合并 |
+| [#21](https://github.com/irroca/Whetstone/pull/21) | 后训练的本地准备：repetition penalty、system prompt、评测集隔离、rollout 分桶、`eval_env.py`、4090 启动脚本 | 已合并（squash）|
+| [#22](https://github.com/irroca/Whetstone/pull/22) | 第一轮后训练的结果和存档：记录、实验分析、`posttrain-v1` 产物组、换到新电脑的交接 | 待合并 |
 
 **教训**：stacked PR 要么严格按自下而上的顺序合，要么在合之前把上层 PR 的 base 直接改成 `main`。
 `squash` 合并会切断祖先关系，所以一旦顺序错了，后续那个 PR 的内容不会自动跟过来，
@@ -771,11 +794,14 @@ python3 pretrain.py --dim 768 --n_layers 12 --n_heads 12 --n_kv_heads 3 \
   `--skip-existing` 重跑时还会把它当成已下完。`fetch_artifacts.sh` 因此改用 `curl -C -` 断点续传
 - 大文件上传也会断：10-12 凌晨往 GitHub 传文件反复报 408（上传无活动超时）、连接被重置，200MB 的也不例外；
   往魔搭传 1GB 以上的文件常写超时。两边都是失败一次整个文件重来，以后的产物切成几百 MB 一段再传
+- 无卡模式下从实例往魔搭传却很快：10-12 晚 13 份 398MB 的权重 6 分钟传完（约 14 MB/s），一次成功。所以产物
+  直接从实例传魔搭，再在本机从魔搭取回、核对，然后传 GitHub，不要先拷回本机
+- pip：4090 那台实例上 AutoDL 默认的阿里云镜像返回 403，清华源和腾讯源都正常
+  （`-i https://pypi.tuna.tsinghua.edu.cn/simple`）
 
-### 步骤 7：重建后训练四阶段（本地准备完成，下一步租 4090）
-SFT / KD / DPO 的数据要基于新语料和可验证任务重做（`envs.generate_data` 负责算术那部分；
-代码任务的环境还没写，见 §5）。然后 GRPO——这次 accuracy 应该终于有方差了，这是整个项目
-最关键的验证点。
+### 步骤 7：后训练第一轮（SFT 冷启动 + 4 种 GRPO × 3 个种子）✅ 已完成（10-12 19:39）
+这一轮在算术环境上做了 SFT 冷启动和 GRPO，DPO 和 KD 留到下一轮（代码任务的环境还没写，见 §5）。
+整个项目最关键的验证点——GRPO 推高的是 accuracy 本身，而不只是格式——已经坐实（§0、`docs/experiments.md`）。
 
 - **起点**：`results/pretrain_v2/pretrain_final.pth`，4-shot 一位数加法 22%、两位数 2%（§1）。在新机器上先
   `scripts/fetch_artifacts.sh pretrain-v2` 取回基座模型（评测 bits per byte 才需要再加 `mixture-v2-eval`）。
@@ -799,7 +825,7 @@ SFT / KD / DPO 的数据要基于新语料和可验证任务重做（`envs.gener
    preference `234dedcdc995007a`、grpo_prompts `59134139878d71a2`）
 3. **rollout 把等长 prompt 合并生成**（`run_rollouts(..., max_rows=128)`）。100M 模型逐 token 解码受调度开销
    限制，MPS 上一步 1 行 11 ms、32 行 18 ms、128 行 47 ms；算术 prompt 只有 69 / 70 / 71 三种长度。500 题的
-   贪心评测快了约 20 倍（结果不变），GRPO 每步 8 题 × 8 条从 5.5 秒降到约 3.2 秒
+   贪心评测快了约 20 倍（结果不变），GRPO 每步 8 题 × 8 条从约 5.6 秒降到约 3.2 秒
 4. **`eval_env.py`**：任意 checkpoint 在题集上的贪心准确率，和 GRPO 的 `eval_accuracy` 同一口径，按运算符和
    位数拆开。SFT-only / DPO-only 基线和最后的 test 数字都用它
 5. **`scripts/autodl/posttrain.sh` / `start_posttrain.sh`**：造数据 → SFT → 每个变体 × 种子跑一次 GRPO（都从
@@ -818,36 +844,70 @@ SFT / KD / DPO 的数据要基于新语料和可验证任务重做（`envs.gener
   accuracy 本身在涨，不是格式**：上一轮 29M 模型做不到的事（§1）。学习率按余弦退到底时 accuracy 还在涨；
   每 25 步的窗口里，组内零方差的比例在 0.38–0.46 之间，熵从 0.027 降到 0.020。`eval_env.py` 在最终权重上
   算出的也是 0.778，两边口径一致。这只是 dev 上的冒烟，test 留给 4090 上的正式跑
-- **内存**：同样的 batch 不分块（`--micro_batch_size 0`）把 48GB 的 Mac 换页换满，15 分钟一步都没跑完
+- **内存**：同样的 batch 不分块（`--micro_batch_size 0`）把 48GB 的 Mac 换页换满，每步 22–153 秒，分块后约 9 秒
+  （`records/posttrain_mac_smoke/grpo_timing_b32/`）
 
-**租卡跑**（AutoDL RTX 4090 24GB）：
+**4090 上的经过**（AutoDL RTX 4090 24GB，代码 `58c7bb0`，版本和测试日志在 `records/autodl_4090/environment/`）：
 
-1. 开卡，镜像和 H800 那次一样（PyTorch 2.8 + CUDA 12.8 + Python 3.12）。代码：`source /etc/network_turbo`
-   后 `git clone`，不行就在本机 `git bundle create` 传上去；`pip install -r requirements.txt modelscope`
-2. 用户自己 `modelscope login`，然后 `bash scripts/fetch_artifacts.sh pretrain-v2`（只取基座模型，398MB）
-3. `source scripts/autodl/env.sh && python -m pytest tests/ -q`
-4. 试跑约 5 分钟：`OUT=/root/autodl-tmp/results/posttrain_trial STEPS=20 VARIANTS=grpo bash
-   scripts/autodl/posttrain.sh`。看 SFT 的 dev 准确率是不是 0.6 上下、每步几秒、`nvidia-smi` 的显存，然后删掉
-   试跑目录
-5. `bash scripts/autodl/start_posttrain.sh`：默认四个变体（GRPO、+KL 0.02、Dr. GRPO、DAPO-lite）× 种子 1，
-   每个 500 步、lr 1e-5、每步 32 题 × 8 条、micro-batch 64、每 25 步在 dev 的 500 题上评测一次。日志在
-   `/root/autodl-tmp/results/posttrain_v1/run.log`，跑完关机。每步多久以试跑为准；粗估 4090 上 2 秒左右，
-   一个变体 15–20 分钟，四个共 1–1.5 小时
-6. 结果：`dev.json` / `test.json` / `grpo_metrics.jsonl` / `runs/` 都很小，拷回本机进 `records/posttrain_v1/`；
-   五份权重（各 398MB）作为新的一组 `posttrain-v1` 存进两个私有仓库（带 `README.md` 和 `SHA256SUMS`）
+1. 开卡，镜像和 H800 那次一样（PyTorch 2.8 + CUDA 12.8 + Python 3.12）。`source /etc/network_turbo` 后
+   `git clone` 一次成功。**AutoDL 默认的阿里云 pip 镜像在这台实例上返回 403**，清华源和腾讯源都正常：
+   `pip install -r requirements.txt modelscope -i https://pypi.tuna.tsinghua.edu.cn/simple`
+2. 用户自己 `modelscope login`；`bash scripts/fetch_artifacts.sh pretrain-v2` 34 秒取回基座模型；测试
+   522 passed、1 skipped，26.6 秒
+3. 试跑（`OUT=/root/autodl-tmp/results/posttrain_trial STEPS=20 VARIANTS=grpo`，2 分钟）：SFT 13 秒，dev 0.636、
+   test 0.628；20 步 GRPO 反而把 dev 拉到 0.588。原因是余弦调度按总步数算，20 步时 10% 的预热只有 2 步，
+   第 2 步就到了满学习率。按 Mac 冒烟的设置（100 步、`--max_new_tokens 64`、micro-batch 32）再诊断一次，
+   dev 0.636 → 0.764，和 Mac 上的走势一致，于是照原计划开正式跑。试跑的记录在 `records/posttrain_trial/`
+4. 正式跑：`SEEDS="1 2 3" bash scripts/autodl/start_posttrain.sh`，四个变体（GRPO、+KL 0.02、Dr. GRPO、
+   DAPO-lite）× 三个种子，每个 500 步、lr 1e-5、每步 32 题 × 8 条、micro-batch 64、每 25 步在 dev 的 500 题上
+   评测一次。10-12 15:55 到 19:39，共 3.7 小时，跑完自动关机。每步 2.1–2.3 秒（DAPO-lite 1.7–1.9），一次跑
+   16–20 分钟（含 dev / test 打分）；GPU 利用率中位数 52%，PyTorch 缓存分配器占的显存在每次跑的头三分钟内
+   稳定下来，各次在 15.2–22.9 GiB 之间，没有 OOM。表里的数字都可以用 `records/posttrain_v1/summarize.py` 重算。日志在
+   `records/posttrain_v1/run.log`，每 10 秒一次的 GPU 采样在 `gpu.csv`
+5. 结果（500 题贪心准确率，三个种子的平均 ± 标准差；为什么分不出高低、每种题型的数字、训练中的曲线都在
+   `docs/experiments.md` 的 Ablation grid 一节）：
 
-第一轮结果出来之后再定：沿用哪个变体、要不要 `SEEDS="1 2 3"` 补种子、学习率要不要扫，以及 DPO-only 基线
-（`dpo.py` 吃 `preference.jsonl`）和 KD。
+   | | test | dev |
+   |---|---|---|
+   | SFT | 0.628 | 0.636 |
+   | GRPO | 0.947 ± 0.006 | 0.973 |
+   | GRPO + KL 0.02 | 0.942 ± 0.004 | 0.972 |
+   | Dr. GRPO | 0.955 ± 0.007 | 0.969 |
+   | DAPO-lite | 0.949 ± 0.005 | 0.977 |
+
+6. 存档：无卡模式开机，在实例上把 13 份权重和配置直接 `modelscope upload` 到魔搭的 `posttrain-v1/`
+   （5.2GB 用了 6 分钟，第一次就成功）；记录和题目文件打成两个压缩包，连同 `README.md`（由 `docs/artifacts.md`
+   的那一节生成）和 `SHA256SUMS` 一起传上去。Mac 上用 `fetch_artifacts.sh posttrain-v1` 从魔搭取回、逐个核对，
+   再从这份传 GitHub Release，按 GitHub 给的摘要核对。小的记录进 git：`records/posttrain_v1/`、`posttrain_trial/`、
+   `autodl_4090/`，以及 Mac 冒烟的 `posttrain_mac_smoke/`（已脱敏）
+
+**下一步**（按顺序；换电脑后先按 §6 的「换到新电脑」装好环境、取回权重）：
+
+1. **DPO-only 基线**，实验表里还空着的一行，Mac 上就能跑（2000 对）：
+   `python3 dpo.py --policy_path results/posttrain_v1/sft/sft_final.pth --tokenizer_path tokenizer/v1_32k
+   --data_path datasets/arith_v1/preference.jsonl --max_seq_len 128 --batch_size 16 --dtype bfloat16
+   --save_dir results/posttrain_v2/dpo`，再用 `eval_env.py` 在 dev / test 上打分。DPO 看偏好对的排序准确率，
+   别看 loss
+2. **换更难的题**：后期九成题组零方差，信号所剩无几。`generate_data --max_digits 3` 环境已支持；也可以按策略
+   自己的解题率选题；乘法要在 `envs/arithmetic.py` 里加运算符。造新数据时给每种题型的 held-out 份额设上限
+   （这一轮 dev / test 拿走了 155 道一位数题里的 134 道），或者把一位数单独报成泛化指标
+3. **让变体之间分得出高低**：`--ppo_epochs 2` 以上（截断才会起作用）、回答长度有变化的任务（Dr. GRPO 和
+   DAPO 针对的长度偏差才存在），并且在过滤之前记录整批的熵
+4. **`eval_env.py` 输出逐题对错**（现在只留 5 个例子），变体之间就能做配对检验（McNemar），比现在两个独立的
+   500 题比例灵敏得多
+5. **KD**：老师用 dev 上最好的 `dapo_lite_s1`，学生用同词表的小模型（`ablation-v1` 里词表 32k 的 42.5M
+   消融模型），看蒸馏能把多少准确率带到小模型上
+6. **代码环境**（§5 阶段 B）
 
 ---
 
 ## 5. 长期计划
 
-### 阶段 A：把可验证任务做实（当前重心）
-- 100M 双语模型，预训练 + 后训练全链路跑通
-- 算术任务上 GRPO 让 **accuracy 真正上升**（不只是 format rate）——这是上一轮没做到的。Mac 冒烟里已经
-  看到（dev 0.618 → 0.778，§4 步骤 7），还要在 4090 上用 test 集和多个种子坐实
-- 填满 `docs/experiments.md` 的消融表
+### 阶段 A：把可验证任务做实 ✅ 第一轮完成
+- ~~100M 双语模型，预训练 + 后训练全链路跑通~~ 预训练、SFT、GRPO 已跑通；DPO 和 KD 还没在 100M 上跑
+- ~~算术任务上 GRPO 让 **accuracy 真正上升**（不只是 format rate）~~ 已坐实：test 0.628 → 0.948，12 个跑次、
+  三个种子（§4 步骤 7）
+- 填满 `docs/experiments.md` 的消融表：还差 DPO-only、只给格式奖励、宽松解析三行（下一步见 §4 步骤 7 末尾）
 
 ### 阶段 B：第二个环境——代码任务
 `envs/base.py` 的 `TaskEnv` 接口已经留好（`sample_task` / `render` / `score`），加环境不用动
@@ -859,27 +919,30 @@ Fellows 那类岗位明确在做的「creating RL environments」。
 
 ### 阶段 C：算法侧的消融与技术博客
 现在都是开关，可以直接跑：
-- Dr. GRPO（去 std 归一化 + 常数分母）vs GRPO
-- DAPO（token-level loss + clip-higher + dynamic sampling）
-- 难度课程（用 `big_math` 的 `llama8b_solve_rate` 筛中等难度题，避开零方差组）
-- 熵下界 vs KL 锚定，验证崩溃是 KL 问题还是一般的探索问题
+- ~~Dr. GRPO（去 std 归一化 + 常数分母）vs GRPO~~、~~DAPO（token-level loss + clip-higher + dynamic sampling）~~
+  第一轮已跑（§4 步骤 7）：在一两位数算术上分不出高低，原因是截断不触发、长度不变、尺度被 AdamW 吸收。
+  要让它们分出高低，得换成 `--ppo_epochs > 1`、长度会变的任务
+- 难度课程（用 `big_math` 的 `llama8b_solve_rate` 筛中等难度题，避开零方差组）——第一轮后期九成题组零方差，
+  这一条现在最值得做
+- 熵下界 vs KL 锚定，验证崩溃是 KL 问题还是一般的探索问题（100M 上从 63% 的冷启动出发没有崩溃，
+  要在更难、冷启动更弱的任务上看）
 
-博客建议题目仍然偏现象而不是教程，例如《在小模型上，GRPO 学会的是计算还是格式？》。
-素材已经有了一半（§1 末尾那三条结论）。
+博客建议题目仍然偏现象而不是教程，例如《在小模型上，GRPO 学会的是计算还是格式？》。素材已经够了：
+29M 上只学会格式（§1 那三条结论），100M 冷启动够强时学会了计算，以及四种变体为什么在这里分不出高低。
 
 ### 明确不做
 PPO critic、PRM（过程奖励模型）、MoE、多卡并行、推理服务化、量化。
 
 ---
 
-## 6. 从云端切到本地：环境差异
+## 6. 本地环境，以及换到新电脑
 
-| | 云端（之前） | 本地 Mac（现在） | 5060Ti / 租的卡 |
+| | 云端（最早） | 本地 Mac（到 10-12 为止） | 租的卡 / 新电脑 |
 |---|---|---|---|
-| 加速器 | 无 | **Apple M5 Pro，MPS** | CUDA |
+| 加速器 | 无 | **Apple M5 Pro，MPS** | CUDA（新电脑是 Mac 的话同左）|
 | `--device` 默认 | `cpu` | **`mps`**（自动选）| `cuda` |
 | `--dtype` | 只能 `float32` | `bfloat16` | `bfloat16` |
-| 数据 | `datasets/` 是空的 | 评测集 `datasets/eval/`、冒烟语料 `datasets/smoke_full/`、消融数据 `datasets/ablation_v1/`，正式数据集 `datasets/mixture_v2/`（约 20GB，已传到 AutoDL 训完）、预训练结果 `results/pretrain_v2/`（都被 git 忽略；新电脑上用 `scripts/fetch_artifacts.sh` 从私有仓库取回，见 `docs/artifacts.md`）| `scripts/fetch_artifacts.sh` 取回需要的组 |
+| 数据 | `datasets/` 是空的 | 评测集、冒烟语料、消融数据、正式数据集、预训练和后训练的结果都在本机（git 忽略）。用得上的都存进了两个私有仓库，没存的见下面「换到新电脑」 | `scripts/fetch_artifacts.sh` 取回需要的组（`docs/artifacts.md`）|
 
 本地环境搭建：
 
@@ -903,12 +966,43 @@ HF_HUB_OFFLINE=1 python -m pytest tests/ -q     # 522 passed、1 skipped，其�
   （`build_autocast_scaler` 里的逻辑），别以为是 bug
 - 系统自带的 Python 是 3.9，**跑不了**（`transformers` 5.x 要 3.10+）。必须用 3.12 的 venv
 - **`bigcode/starcoderdata`（代码语料）和 `big_math` 是 gated 的**（自动批准），要先在 HF 上接受条款，
-  再 `hf auth login`（或设 `HF_TOKEN`）。其余语料和七个去污染评测集都不需要。本机已登录并接受了
-  starcoderdata 的条款，`big_math` 还没有。`hf` 命令在 venv 里（`.venv/bin/hf`），系统 Python 没有
+  再 `hf auth login`（或设 `HF_TOKEN`）。其余语料和七个去污染评测集都不需要。条款跟着 HF 账号走：
+  这个账号接受了 starcoderdata 的，`big_math` 还没有。`hf` 命令在 venv 里（`.venv/bin/hf`），系统 Python 没有
 - **磁盘预算**：10B token 的 JSONL 约 30GB，预 tokenize 成 `uint16` 后约 20GB，
   加上 HF 缓存，留 100GB 比较稳妥。不要下全量语料——FineWeb2-HQ 的 `cmn_Hani` 是 784GB，
   我们用 `streaming=True` 只取需要的量
 - `datasets/`、`results*/`、`*.pth` 都在 `.gitignore` 里
+
+### 换到新电脑（10-12 之后）
+
+原来那台 Mac 10-12 之后不再使用，接着做需要的东西都在 git 和两个私有仓库里。新电脑上按顺序：
+
+1. `git clone https://github.com/irroca/Whetstone.git`，按上面的「本地环境搭建」建 venv、装依赖、跑测试，另外
+   `uv pip install modelscope`（`fetch_artifacts.sh` 要用；国内慢就加 `--index-url https://pypi.tuna.tsinghua.edu.cn/simple`）。
+   git 身份只设在本仓库（`git config user.name` / `user.email`），和以前的提交保持一致
+2. 登录，都由用户自己在终端里做，token 不经过任何脚本：`modelscope login`（产物仓库是私有的，
+   `fetch_artifacts.sh` 默认从魔搭取）、`gh auth login`（开 PR；`--source github` 从 GitHub 取）。`hf auth login`
+   只有重建语料时才要；gated 数据集的条款跟着 HF 账号走，接受过的不用再接受
+3. 取回产物：接着做后训练（DPO、KD、新一轮 GRPO）只要 `bash scripts/fetch_artifacts.sh posttrain-v1-sft`
+   （0.4 GB：SFT 权重、题目文件、原始记录）；要 12 个 GRPO 策略（比如拿 `dapo_lite_s1` 当 KD 的老师）用
+   `posttrain-v1`（5.2 GB）；从基座重做 SFT 加 `pretrain-v2`，算 bits per byte 加 `mixture-v2-eval`。
+   复盘这一轮不用取任何东西：记录在 `records/`，`python3 records/posttrain_v1/summarize.py` 重算全部数字
+4. AutoDL：SSH 私钥只在旧 Mac 上。新电脑上重新生成一把（`ssh-keygen -t ed25519 -f ~/.ssh/whetstone_autodl`），
+   开新实例时用密码登录一次装上公钥，之后只用密钥。`scripts/autodl/upload.sh` 默认连
+   `~/.ssh/whetstone_autodl.conf` 里的 `Host h800`（`HostName` / `Port` / `User root` / `IdentityFile`），
+   也可以用 `AUTODL_SSH` 指定别的主机
+
+旧 Mac 上有意没有带走的（需要时都能重造）：
+
+- `datasets/mixture_v2/` 的未分词 JSONL 和各来源的原始 JSONL（共 74GB）：`python3 -m datatools.prepare
+  configs/mixture_v2.json`，约一天。分词后的 `.bin` 和评测集在 `mixture-v2` 组
+- 消融各臂的训练数据和数据池的 `train.jsonl`（`datasets/ablation_v1/` 的大部分）：`run_ablation.py` 能重新生成；
+  各臂带优化器状态的 checkpoint 不再需要
+- 冒烟语料 `datasets/smoke_full/`：`python3 -m datatools.prepare configs/mixture_v1.json --scale 0.001 --out_dir
+  datasets/smoke_full`（§4 步骤 3）；更早的 `datasets/smoke/` 已被它取代
+- Mac 上后训练冒烟的权重（`results_smoke/`）：已被 `posttrain-v1` 取代。记录在 `records/posttrain_mac_smoke/`，
+  未脱敏的原件在 `posttrain_v1-records.tar.gz`
+- Hugging Face 的下载缓存
 
 ---
 
@@ -941,11 +1035,17 @@ HF_HUB_OFFLINE=1 python -m pytest tests/ -q     # 522 passed、1 skipped，其�
    HF 客户端会自己重试（实测扛过 13 分钟断网）。在它重试时再起一份，正是第一次正式构建丢掉
    3.6 小时的原因；现在第二份会被锁拒掉，而 `prepare` 真退出了就重跑同一条命令，已完成的源会复用
 13. **GRPO 的大 batch 一定要配 `--micro_batch_size`**。rollout 分桶生成，但训练侧的前向默认一次吃下
-   整批：32 道题 × 8 条在 48GB 的 Mac 上把内存换页换满，15 分钟一步都没跑完
+   整批：32 道题 × 8 条在 48GB 的 Mac 上把内存换页换满，每步 22–153 秒，`--micro_batch_size 32` 后约 9 秒
 14. **评测题要显式排除**。一两位数加减法只有约 1.5 万道题，独立抽样的 SFT 集含评测集 55% 的题。
    用 `scripts/arith_data.sh` 造数据，别直接调 `generate_data` 各抽各的
 15. **MPS 上训练不逐位可复现**。同配置、同种子、同数据的两次 SFT，dev 准确率是 0.618 和 0.650。
-   比较 GRPO 变体要从同一个 SFT checkpoint 出发、跑多个种子
+   比较 GRPO 变体要从同一个 SFT checkpoint 出发、跑多个种子（CUDA 上 SFT 是逐位可复现的）
+16. **`--ppo_epochs 1` 时截断从不触发**。每批 rollout 只更新一次，旧 log-prob 就在更新前用同一份权重算出，
+   重要性比恒为 1，`clip_frac` 恒为 0，clip-higher（`--clip_eps_high`）等于没开。要比截断就得 `--ppo_epochs > 1`
+17. **`--filter_zero_variance True` 时记录的熵只算没被过滤的组**，也就是策略还拿不准的题。DAPO-lite 的熵比
+   别的变体高，不代表它探索得更多；跨变体比熵要在过滤之前算
+18. **held-out 集会把小题型抽空**。一位数的加减法题一共只有 155 道，dev / test 拿走了 134 道，训练里几乎
+   没有，所以这一组的准确率量的是泛化，不是「简单题」
 
 ---
 

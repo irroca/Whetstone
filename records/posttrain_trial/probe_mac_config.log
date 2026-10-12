@@ -1,0 +1,27 @@
+policy: dim=768 layers=12 heads=12 kv_heads=3 hidden=2048 vocab=32768 seq=192 -> 99.503M params
+GRPO: env=arithmetic G=8 prompts/step=32 steps=100 agg=seq_mean kl=0.0 std_norm=True filter_zero_var=False
+run: /root/autodl-tmp/results/posttrain_trial/probe_mac_config/runs/grpo_20261012-154916_884089
+step 0 (init) eval: acc=0.636 fmt=1.000
+step 10/100 reward=0.911 acc=0.71 fmt=1.00 hack=0.29 silent=0.44 len=33.0 kl=0.0000 ent=0.021 |adv|=0.517 gnorm=0.4914 lr=1.00e-05 (2.52s)
+  sample[16 + 5=21]: '<think>16 + 5 = 20。</think><answer>20</answer>'
+step 20/100 reward=0.833 acc=0.63 fmt=1.00 hack=0.37 silent=0.59 len=29.5 kl=0.0000 ent=0.031 |adv|=0.331 gnorm=0.4653 lr=9.73e-06 (2.32s)
+  sample[3 + 1=4]: '<think>3 + 1 = 4。</think><answer>4</answer>'
+step 30/100 reward=0.805 acc=0.61 fmt=1.00 hack=0.39 silent=0.53 len=35.0 kl=0.0000 ent=0.028 |adv|=0.412 gnorm=0.7267 lr=8.95e-06 (2.29s)
+  sample[22 - 4=18]: '<think>22 - 4 = 18。</think><answer>18</answer>'
+step 40/100 reward=0.864 acc=0.66 fmt=1.00 hack=0.34 silent=0.38 len=35.8 kl=0.0000 ent=0.023 |adv|=0.507 gnorm=0.6226 lr=7.75e-06 (2.07s)
+  sample[73 - 71=2]: '<think>把 71 拆成 70 和 1：73 - 70 = 3；3 - 1 = 2。</think><answer>2</answer>'
+step 50/100 reward=0.813 acc=0.61 fmt=1.00 hack=0.39 silent=0.34 len=36.5 kl=0.0000 ent=0.023 |adv|=0.544 gnorm=0.5897 lr=6.28e-06 (2.27s)
+  eval: acc=0.698 fmt=1.000
+  sample[55 + 83=138]: '<think>把 83 拆成 80 和 3：55 + 80 = 135；135 + 3 = 138。</think><answer>138</answer>'
+step 60/100 reward=0.829 acc=0.63 fmt=1.00 hack=0.37 silent=0.44 len=36.5 kl=0.0000 ent=0.025 |adv|=0.481 gnorm=0.5332 lr=4.72e-06 (2.1s)
+  sample[66 - 27=39]: '<think>把 27 拆成 20 和 7：66 - 20 = 46；46 - 7 = 39。</think><answer>39</answer>'
+step 70/100 reward=0.876 acc=0.68 fmt=1.00 hack=0.32 silent=0.38 len=37.1 kl=0.0000 ent=0.022 |adv|=0.513 gnorm=0.5510 lr=3.25e-06 (2.12s)
+  sample[82 + 7=89]: '<think>82 + 7 = 89。</think><answer>89</answer>'
+step 80/100 reward=0.930 acc=0.73 fmt=1.00 hack=0.27 silent=0.50 len=34.2 kl=0.0000 ent=0.020 |adv|=0.394 gnorm=0.5833 lr=2.05e-06 (2.13s)
+  sample[24 - 8=16]: '<think>24 - 8 = 16。</think><answer>16</answer>'
+step 90/100 reward=0.958 acc=0.76 fmt=1.00 hack=0.24 silent=0.53 len=36.8 kl=0.0000 ent=0.021 |adv|=0.389 gnorm=0.4814 lr=1.27e-06 (2.54s)
+  sample[74 + 9=83]: '<think>74 + 9 = 83。</think><answer>83</answer>'
+step 100/100 reward=0.950 acc=0.75 fmt=1.00 hack=0.25 silent=0.56 len=40.2 kl=0.0000 ent=0.017 |adv|=0.368 gnorm=0.3653 lr=1.00e-06 (2.08s)
+  eval: acc=0.764 fmt=1.000
+  sample[30 + 68=98]: '<think>把 68 拆成 60 和 8：30 + 60 = 90；90 + 8 = 98。</think><answer>98</answer>'
+Saved /root/autodl-tmp/results/posttrain_trial/probe_mac_config/grpo_final.pth; metrics -> /root/autodl-tmp/results/posttrain_trial/probe_mac_config/grpo_metrics.jsonl; run -> /root/autodl-tmp/results/posttrain_trial/probe_mac_config/runs/grpo_20261012-154916_884089

@@ -1,0 +1,20 @@
+{
+  "run_id": "sft_20261012-155541_036c1d",
+  "stage": "sft",
+  "status": "completed",
+  "finished_at": "2026-10-12T15:55:54",
+  "duration_s": 12.8,
+  "logged_points": 14,
+  "tokens": 147752,
+  "tokens_per_s": 11547.6,
+  "last": {
+    "epoch": 1,
+    "loss": 0.02374160587787628,
+    "lr": 1e-05,
+    "grad_norm": 0.42973095178604126
+  },
+  "best": {
+    "loss": 0.02374160587787628
+  },
+  "steps": 125
+}

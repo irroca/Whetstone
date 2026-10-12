@@ -1,0 +1,65 @@
+{
+  "checkpoint": "/root/autodl-tmp/results/posttrain_v1/sft/sft_final.pth",
+  "eval_path": "/root/autodl-tmp/arith_v1/test.jsonl",
+  "env": "arithmetic",
+  "max_new_tokens": 96,
+  "items": 500,
+  "reward_mean": 0.828,
+  "reward_std": 0.0,
+  "accuracy": 0.628,
+  "format_rate": 1.0,
+  "hack_rate": 0.372,
+  "completion_len": 32.305999755859375,
+  "truncated_frac": 0.0,
+  "by_group": {
+    "op=+ n_digits=1": {
+      "items": 51,
+      "accuracy": 0.6078431372549019
+    },
+    "op=+ n_digits=2": {
+      "items": 211,
+      "accuracy": 0.7630331753554502
+    },
+    "op=- n_digits=1": {
+      "items": 44,
+      "accuracy": 0.45454545454545453
+    },
+    "op=- n_digits=2": {
+      "items": 194,
+      "accuracy": 0.5257731958762887
+    }
+  },
+  "examples": [
+    {
+      "question": "67 + 83",
+      "answer": "150",
+      "completion": "<think>把 83 拆成 80 和 3：67 + 80 = 147；147 + 3 = 150。</think><answer>150</answer>",
+      "correct": true
+    },
+    {
+      "question": "78 - 7",
+      "answer": "71",
+      "completion": "<think>78 - 7 = 70。</think><answer>70</answer>",
+      "correct": false
+    },
+    {
+      "question": "25 - 1",
+      "answer": "24",
+      "completion": "<think>25 - 1 = 24。</think><answer>24</answer>",
+      "correct": true
+    },
+    {
+      "question": "46 - 0",
+      "answer": "46",
+      "completion": "<think>46 - 0 = 46。</think><answer>46</answer>",
+      "correct": true
+    },
+    {
+      "question": "74 - 3",
+      "answer": "71",
+      "completion": "<think>74 - 3 = 72。</think><answer>72</answer>",
+      "correct": false
+    }
+  ],
+  "seconds": 4.9
+}

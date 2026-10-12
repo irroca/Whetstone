@@ -14,8 +14,10 @@ git 里只放代码、文档和小体积的训练记录（`records/`，每个文
 
 ```bash
 pip install modelscope && modelscope login                     # 默认来源是魔搭；令牌在 modelscope.cn 的“访问令牌”页
-scripts/fetch_artifacts.sh pretrain-v2 mixture-v2-eval         # 后训练需要的全部：基座模型 + 验证集、留出集、评测集（约 1 GB）
-scripts/fetch_artifacts.sh pretrain-v2 mixture-v2 ablation-v1  # 全部（约 14 GB）
+scripts/fetch_artifacts.sh pretrain-v2 mixture-v2-eval         # 从头做后训练需要的全部：基座模型 + 验证集、留出集、评测集（约 1 GB）
+scripts/fetch_artifacts.sh posttrain-v1-sft                    # 接着做后训练（DPO、蒸馏、重跑 GRPO）的起点：SFT 权重 + 记录和题目（0.4 GB）
+scripts/fetch_artifacts.sh posttrain-v1                        # 再加上 12 个 GRPO 策略（共 5.2 GB）
+scripts/fetch_artifacts.sh pretrain-v2 mixture-v2 ablation-v1 posttrain-v1  # 全部（约 19 GB）
 scripts/fetch_artifacts.sh --source github pretrain-v2         # 改从 GitHub 拉，需要先 gh auth login
 scripts/fetch_artifacts.sh --with-optimizer pretrain-v2        # 连优化器断点一起拉（1.2 GB），只有接着预训练才需要
 ```
@@ -31,19 +33,22 @@ GitHub 那边下了一半的文件也会接着下。缺文件或校验不符时�
 | `pretrain-v2` | 0.4 GB，加优化器断点 1.6 GB | 正式预训练出的 100M 基座模型，以及这次运行的原始记录 | **需要**，它是 SFT 的起点 |
 | `mixture-v2` | 12.9 GB | 分词后的正式预训练语料，以及验证集、留出集、评测集 | 只用到验证集、留出集和评测集（0.6 GB），取回时写 `mixture-v2-eval` 就只拉这部分 |
 | `ablation-v1` | 1.0 GB | 6 个数据配比消融小模型，以及它们的分词器和记录 | 不需要；可以拿来快速调试流程 |
+| `posttrain-v1` | 5.2 GB | 第一轮后训练：SFT 冷启动的权重、12 个 GRPO 策略（4 种变体 × 3 个种子），以及记录和题目 | 接着做 DPO、蒸馏或重跑 GRPO 都从这里的 SFT 权重出发，取回时写 `posttrain-v1-sft` 就只拉它和记录（0.4 GB） |
 
 来龙去脉：
 
 ```
 configs/ablation_v1.json --run_ablation.py--> ablation-v1 --定下中文占比和词表--> configs/mixture_v2.json, tokenizer/v1_32k
 configs/mixture_v2.json --datatools.prepare + tokenize_corpus--> mixture-v2
-mixture-v2/train.bin --pretrain.py（H800，8.3 小时）--> pretrain-v2/pretrain_final.pth --> SFT --> GRPO（待做）
+mixture-v2/train.bin --pretrain.py（H800，8.3 小时）--> pretrain-v2/pretrain_final.pth
+pretrain-v2/pretrain_final.pth --sft.py--> posttrain-v1/sft --grpo.py × 12（RTX 4090，3.7 小时）--> posttrain-v1/<变体>_s<种子>
 ```
 
 ## 命名约定
 
 - 组名是 `<阶段>-v<N>`，和本地目录 `results/<阶段>_v<N>/`、git 里的 `records/<阶段>_v<N>/` 一一对应。
-- 以后的产物照此办理（`sft-v1`、`grpo-v1`……）：在本文加一节同样格式的说明，写明起点权重（哪一组的哪个文件）、训练数据、commit 和结果，
+- 一组里有多个模型时，文件名是 `<跑次>.<原文件名>`（如 `grpo_s1.grpo_final.pth`），取回时放回 `results/<阶段>_v<N>/<跑次>/<原文件名>`。
+- 以后的产物照此办理（下一轮后训练是 `posttrain-v2`）：在本文加一节同样格式的说明，写明起点权重（哪一组的哪个文件）、训练数据、commit 和结果，
   再给 `scripts/fetch_artifacts.sh` 加上这一组。
 
 ---
@@ -154,3 +159,55 @@ val loss 只能在同一词表内比较；跨词表看 bpb（留出集上每个 
 
 没有保留：每个臂的 `epoch_1_checkpoint.pth` / `latest_checkpoint.pth`（带优化器状态，各 0.4–0.6 GB，消融已经结束，不会再续训）；
 各臂的训练数据 `arms/*/train.bin` 和数据池的 `pool/train.jsonl`，`run_ablation.py` 能从数据源重新生成。
+
+## posttrain-v1：SFT 冷启动和 12 个 GRPO 策略
+
+2026-10-12 在 AutoDL 的一张 RTX 4090 24GB 上跑的第一轮后训练：`scripts/autodl/posttrain.sh`，代码 commit `58c7bb0`，15:55–19:39，共 3.7 小时。
+
+- **起点**：`pretrain-v2` 的 `pretrain_final.pth`。13 个模型的结构都和它相同（99.5M 参数，分词器 `tokenizer/v1_32k`）。
+- **数据**：一两位数加减法，`scripts/arith_data.sh` 用固定种子生成（就是下面的 `posttrain_v1-data.tar.gz`）。test 500 题只用来报最终成绩，
+  dev 500 题在训练中看、用来选模型；两者都不进 SFT、DPO 和 GRPO 的数据。
+- **SFT**：4000 条、1 个 epoch（125 步）、batch 32、lr 1e-4、`--max_seq_len 128`，训练 13 秒。
+- **GRPO**：12 个跑次都从这一个 SFT 权重出发，4 种变体 × 3 个种子，各 500 步：每步 32 题 × 8 条（temperature 1.0），lr 1e-5（10% 预热，
+  余弦退到 1e-6），micro-batch 64，每 25 步在 dev 上评一次。每个跑次 16–20 分钟。
+- **结果**（贪心准确率）：SFT 的 test 0.628、dev 0.636；12 个 GRPO 策略的 test 在 0.938–0.962 之间（平均 0.948），dev 0.962–0.982。
+  四种变体之间的差别不比种子之间大。分析见 Whetstone 仓库的 `docs/experiments.md` 和 `records/posttrain_v1/`。
+
+跑次的命名是 `<变体>_s<种子>`：
+
+| 变体 | `grpo.py` 的参数 | test（种子 1 / 2 / 3） | dev（种子 1 / 2 / 3） |
+|---|---|---|---|
+| `grpo` | 默认：`seq_mean`、优势除以组内标准差、不加 KL | 0.954 / 0.944 / 0.944 | 0.972 / 0.968 / 0.978 |
+| `grpo_kl` | `--kl_coeff 0.02` | 0.946 / 0.938 / 0.942 | 0.976 / 0.966 / 0.974 |
+| `dr_grpo` | `--normalize_advantage_std False --aggregation dr_grpo` | 0.948 / 0.954 / 0.962 | 0.962 / 0.968 / 0.978 |
+| `dapo_lite` | `--filter_zero_variance True --clip_eps_high 0.28 --aggregation token_mean` | 0.950 / 0.954 / 0.944 | 0.982 / 0.972 / 0.978 |
+
+dev 上最高的是 `dapo_lite_s1`（0.982，test 0.950）。按“用 dev 选模型”的约定，要拿一个 GRPO 策略往下做（比如当蒸馏的教师）就用它。
+
+| 文件 | 大小 | 是什么 | 作用 / 什么时候需要 | 放回到 |
+|---|---|---|---|---|
+| `sft.sft_final.pth` | 398 MB | SFT 冷启动后的权重（fp32 `state_dict`） | 12 个 GRPO 跑次的共同起点；以后做 DPO-only 基线（`dpo.py --policy_path`）、重跑 GRPO 也从它开始；`eval_env.py`、`chat.py --model_mode 1` 也读它 | `results/posttrain_v1/sft/sft_final.pth` |
+| `<跑次>.grpo_final.pth` | 12 个，各 398 MB | 每个 GRPO 跑次第 500 步的权重 | 评测、比较变体、往下做的起点；`chat.py --model_mode 4` | `results/posttrain_v1/<跑次>/grpo_final.pth` |
+| `sft.sft_final.config.json`、`<跑次>.grpo_final.config.json` | 13 个 | 对应的模型结构 | 永远和权重放在一起 | 和权重同一个目录 |
+| `posttrain_v1-records.tar.gz` | 1.3 MB | 原始记录，未脱敏（内容见下） | 复盘 | 在仓库根目录解压 |
+| `posttrain_v1-data.tar.gz` | 0.3 MB | 这一轮用到的 5 个题目文件 | 复现或重新评测。`scripts/arith_data.sh` 能逐字节重新生成，这份是兜底 | 在仓库根目录解压，得到 `datasets/arith_v1/` |
+| `SHA256SUMS`、`README.md` | — | 校验和、本说明 | — | — |
+
+`posttrain_v1-data.tar.gz` 里的 5 个文件：`test.jsonl` 500 题、`dev.jsonl` 500 题、`sft.jsonl` 4000 条、`preference.jsonl` 2000 对（给 DPO 的，
+这一轮没用）、`grpo_prompts.jsonl` 2 万道题（GRPO 每步从中抽 32 道）。sha256 的前 16 位：test `174cc7c11019914c`、dev `e855599f44e9d965`、
+sft `daebf99e1448c8e3`、preference `234dedcdc995007a`、grpo_prompts `59134139878d71a2`。
+
+`posttrain_v1-records.tar.gz` 里有：
+
+- `results/posttrain_v1/`：`run.log`（`posttrain.sh` 的完整日志：造数据、SFT、12 个 GRPO 跑次、每次评测和最后的汇总表）；`gpu.csv`
+  （每 10 秒一次 `nvidia-smi`：GPU 利用率、显存、功耗）；每个跑次的 `dev.json` / `test.json`（`eval_env.py` 的输出：准确率、按题型拆开的
+  准确率、前 5 个样例）、`grpo_metrics.jsonl`（每步一行训练指标，每 25 步一行 dev 评测）和 `runs/<运行 ID>/`（命令、全部参数、git commit、
+  逐步指标）；SFT 的同样几样。
+- `results/posttrain_trial/`：正式跑之前在同一台 4090 上的试跑：SFT 加 20 步 GRPO（`grpo_s1/`），以及照 Mac 冒烟的配置跑的 100 步诊断
+  （`probe_mac_config/`），连同日志和 GPU 监控。
+- `results/autodl_4090/`：实例环境（`environment/`：单测日志 `tests.log`、`pip_freeze.txt`，以及 Python、torch、CUDA 的版本）和 AutoDL
+  面板的监控数据库（`autopanel/autopanel.monitor.db`，SQLite）。
+- `results_smoke/`：Mac 上的冒烟记录（SFT、100 步 GRPO 探测、测吞吐的几次短跑，还有 10-03 的一次预训练冒烟），未脱敏；git 里的
+  `records/posttrain_mac_smoke/` 是其中后训练部分脱敏后的副本。
+
+没有保留：SFT 的 `epoch_1_checkpoint.pth`（1.19 GB，带优化器状态；SFT 只要十几秒，重训比续训简单）；试跑和 Mac 冒烟的权重（都被这一组取代）。

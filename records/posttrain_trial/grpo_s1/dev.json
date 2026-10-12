@@ -1,0 +1,65 @@
+{
+  "checkpoint": "/root/autodl-tmp/results/posttrain_trial/grpo_s1/grpo_final.pth",
+  "eval_path": "/root/autodl-tmp/arith_v1/dev.jsonl",
+  "env": "arithmetic",
+  "max_new_tokens": 96,
+  "items": 500,
+  "reward_mean": 0.788,
+  "reward_std": 0.0,
+  "accuracy": 0.588,
+  "format_rate": 1.0,
+  "hack_rate": 0.412,
+  "completion_len": 35.952003479003906,
+  "truncated_frac": 0.0,
+  "by_group": {
+    "op=+ n_digits=1": {
+      "items": 30,
+      "accuracy": 0.4666666666666667
+    },
+    "op=+ n_digits=2": {
+      "items": 240,
+      "accuracy": 0.7041666666666667
+    },
+    "op=- n_digits=1": {
+      "items": 9,
+      "accuracy": 0.3333333333333333
+    },
+    "op=- n_digits=2": {
+      "items": 221,
+      "accuracy": 0.48868778280542985
+    }
+  },
+  "examples": [
+    {
+      "question": "26 + 94",
+      "answer": "120",
+      "completion": "<think>把 94 拆成 90 和 4：26 + 90 = 116；116 + 4 = 121。</think><answer>121</answer>",
+      "correct": false
+    },
+    {
+      "question": "90 + 71",
+      "answer": "161",
+      "completion": "<think>把 71 拆成 70 和 1：90 + 70 = 170；170 + 1 = 171。</think><answer>171</answer>",
+      "correct": false
+    },
+    {
+      "question": "78 + 2",
+      "answer": "80",
+      "completion": "<think>78 + 2 = 76。</think><answer>76</answer>",
+      "correct": false
+    },
+    {
+      "question": "89 + 76",
+      "answer": "165",
+      "completion": "<think>把 76 拆成 70 和 6：89 + 70 = 159；159 + 6 = 165。</think><answer>165</answer>",
+      "correct": true
+    },
+    {
+      "question": "5 + 3",
+      "answer": "8",
+      "completion": "<think>5 + 3 = 8。</think><answer>8</answer>",
+      "correct": true
+    }
+  ],
+  "seconds": 4.9
+}

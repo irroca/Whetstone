@@ -4,8 +4,10 @@
 # the training scripts and docs expect them. docs/artifacts.md says what every file is.
 #
 # usage: scripts/fetch_artifacts.sh [--source modelscope|github] [--with-optimizer] GROUP...
-#   GROUP             pretrain-v2, mixture-v2, ablation-v1, or mixture-v2-eval: mixture-v2 without
-#                     the 12.3GB training split, i.e. what evaluating a post-trained model needs
+#   GROUP             pretrain-v2, mixture-v2, ablation-v1, posttrain-v1, or one of two subsets:
+#                     mixture-v2-eval, mixture-v2 without the 12.3GB training split (what evaluating
+#                     a post-trained model needs), and posttrain-v1-sft, posttrain-v1 without the 12
+#                     GRPO policies (what continuing post-training from the SFT policy needs)
 #   --source          modelscope (default; fast in China, needs `pip install modelscope` and
 #                     `modelscope login`) or github (needs `gh auth login`)
 #   --with-optimizer  also fetch pretrain-v2's epoch_1_checkpoint.pth (1.2GB), which only
@@ -105,7 +107,7 @@ while [ $# -gt 0 ]; do
   case $1 in
     --source) source=${2:-}; shift ;;
     --with-optimizer) with_optimizer=1 ;;
-    pretrain-v2|mixture-v2|mixture-v2-eval|ablation-v1) groups="$groups $1" ;;
+    pretrain-v2|mixture-v2|mixture-v2-eval|ablation-v1|posttrain-v1|posttrain-v1-sft) groups="$groups $1" ;;
     *) echo "unknown argument: $1"; exit 2 ;;
   esac
   shift
@@ -115,7 +117,7 @@ case $source in
   github) command -v gh >/dev/null || { echo "needs the GitHub CLI (https://cli.github.com), then gh auth login"; exit 1; } ;;
   *) echo "--source must be modelscope or github"; exit 2 ;;
 esac
-[ -n "$groups" ] || { sed -n '2,12p' "$0"; exit 2; }
+[ -n "$groups" ] || { sed -n '2,14p' "$0"; exit 2; }
 
 for group in $groups; do
   case $group in
@@ -138,6 +140,19 @@ for group in $groups; do
       done
       tar -xzf "$STAGE/ablation-v1/ablation_v1-support.tar.gz"
       tar -xzf "$STAGE/ablation-v1/ablation_v1-records.tar.gz"
+      ;;
+    posttrain-v1|posttrain-v1-sft)
+      if [ $group = posttrain-v1 ]; then
+        fetch posttrain-v1 '*'
+      else
+        fetch posttrain-v1 'sft.*' '*.tar.gz'
+      fi
+      for f in "$STAGE"/posttrain-v1/*_final.*; do
+        name=$(basename "$f")
+        place "$f" "results/posttrain_v1/${name%%.*}/${name#*.}"
+      done
+      tar -xzf "$STAGE/posttrain-v1/posttrain_v1-records.tar.gz"
+      tar -xzf "$STAGE/posttrain-v1/posttrain_v1-data.tar.gz"
       ;;
     mixture-v2|mixture-v2-eval)
       if [ $group = mixture-v2 ]; then

@@ -1,0 +1,2070 @@
+=== start 10-12 15:55:35 at 58c7bb0: variants 'grpo grpo_kl dr_grpo dapo_lite', seeds '1 2 3'
+NVIDIA GeForce RTX 4090, 24564 MiB
+wrote 500 eval rows -> /root/autodl-tmp/arith_v1/test.jsonl
+wrote 500 eval rows -> /root/autodl-tmp/arith_v1/dev.jsonl
+wrote 4000 sft rows -> /root/autodl-tmp/arith_v1/sft.jsonl
+wrote 2000 preference rows -> /root/autodl-tmp/arith_v1/preference.jsonl
+wrote 20000 eval rows -> /root/autodl-tmp/arith_v1/grpo_prompts.jsonl
+e855599f44e9d96553ba09a86bf180960eb121bc06121aaaa3ccbb066daa8675  /root/autodl-tmp/arith_v1/dev.jsonl
+59134139878d71a2e6ec4a159a34cea9a319d72043f271fd7d716525e40a5024  /root/autodl-tmp/arith_v1/grpo_prompts.jsonl
+234dedcdc995007a3463c6bca47383a77c8cb7bcc79b4e54ecb38cfa9321b298  /root/autodl-tmp/arith_v1/preference.jsonl
+daebf99e1448c8e3817613d60ffb5e1f4bf2e2236daa0e333f6296d7d01644f0  /root/autodl-tmp/arith_v1/sft.jsonl
+174cc7c11019914cfae2f1e3c7c896a9871c744060921c92ab67e757b67a6257  /root/autodl-tmp/arith_v1/test.jsonl
+Loading pretrained weights from results/pretrain_v2/pretrain_final.pth
+sft: dim=768 layers=12 heads=12 kv_heads=3 hidden=2048 vocab=32768 seq=128 -> 99.503M params
+run: /root/autodl-tmp/results/posttrain_v1/sft/runs/sft_20261012-155541_036c1d
+Epoch[1/1] (1/125) loss=2.9979 lr=0.0000083 global_step=1
+Epoch[1/1] (10/125) loss=0.8567 lr=0.0000833 global_step=10
+Epoch[1/1] (20/125) loss=0.1946 lr=0.0000989 global_step=20
+Epoch[1/1] (30/125) loss=0.1282 lr=0.0000945 global_step=30
+Epoch[1/1] (40/125) loss=0.1021 lr=0.0000870 global_step=40
+Epoch[1/1] (50/125) loss=0.0757 lr=0.0000771 global_step=50
+Epoch[1/1] (60/125) loss=0.0651 lr=0.0000655 global_step=60
+Epoch[1/1] (70/125) loss=0.0603 lr=0.0000531 global_step=70
+Epoch[1/1] (80/125) loss=0.0513 lr=0.0000409 global_step=80
+Epoch[1/1] (90/125) loss=0.0380 lr=0.0000297 global_step=90
+Epoch[1/1] (100/125) loss=0.0349 lr=0.0000204 global_step=100
+Epoch[1/1] (110/125) loss=0.0292 lr=0.0000139 global_step=110
+Epoch[1/1] (120/125) loss=0.0246 lr=0.0000104 global_step=120
+Epoch[1/1] (125/125) loss=0.0237 lr=0.0000100 global_step=125
+SFT Training completed!
+500 tasks: accuracy 0.636, format 1.000, hack 0.364, length 36.0 (4.9s)
+   op=+ n_digits=1: 0.600 of 30
+   op=+ n_digits=2: 0.742 of 240
+   op=- n_digits=1: 0.333 of 9
+   op=- n_digits=2: 0.538 of 221
+wrote /root/autodl-tmp/results/posttrain_v1/sft/dev.json
+500 tasks: accuracy 0.628, format 1.000, hack 0.372, length 32.3 (4.9s)
+   op=+ n_digits=1: 0.608 of 51
+   op=+ n_digits=2: 0.763 of 211
+   op=- n_digits=1: 0.455 of 44
+   op=- n_digits=2: 0.526 of 194
+wrote /root/autodl-tmp/results/posttrain_v1/sft/test.json
+=== grpo seed 1 10-12 15:56:14 
+policy: dim=768 layers=12 heads=12 kv_heads=3 hidden=2048 vocab=32768 seq=192 -> 99.503M params
+GRPO: env=arithmetic G=8 prompts/step=32 steps=500 agg=seq_mean kl=0.0 std_norm=True filter_zero_var=False
+run: /root/autodl-tmp/results/posttrain_v1/grpo_s1/runs/grpo_20261012-155620_243932
+step 0 (init) eval: acc=0.636 fmt=1.000
+step 10/500 reward=0.762 acc=0.56 fmt=1.00 hack=0.44 silent=0.34 len=39.5 kl=0.0000 ent=0.030 |adv|=0.531 gnorm=0.4674 lr=2.00e-06 (1.89s)
+  sample[60 - 56=4]: '<think>把 56 拆成 50 和 6：60 - 50 = 10；10 - 6 = 2。</think><answer>2</answer>'
+step 20/500 reward=0.712 acc=0.51 fmt=1.00 hack=0.49 silent=0.34 len=36.5 kl=0.0000 ent=0.036 |adv|=0.576 gnorm=0.4238 lr=4.00e-06 (2.4s)
+  sample[8 + 18=26]: '<think>把 18 拆成 10 和 8：8 + 10 = 18；18 + 8 = 27。</think><answer>27</answer>'
+step 30/500 reward=0.794 acc=0.59 fmt=1.00 hack=0.41 silent=0.25 len=33.4 kl=0.0000 ent=0.032 |adv|=0.648 gnorm=0.5229 lr=6.00e-06 (2.05s)
+  sample[80 + 54=134]: '<think>把 54 拆成 50 和 4：80 + 50 = 140；140 + 4 = 144。</think><answer>144</answer>'
+step 40/500 reward=0.829 acc=0.63 fmt=1.00 hack=0.37 silent=0.41 len=37.9 kl=0.0000 ent=0.022 |adv|=0.511 gnorm=0.4516 lr=8.00e-06 (1.82s)
+  sample[4 + 86=90]: '<think>把 86 拆成 80 和 6：4 + 80 = 84；84 + 6 = 90。</think><answer>90</answer>'
+step 50/500 reward=0.966 acc=0.77 fmt=1.00 hack=0.23 silent=0.41 len=34.7 kl=0.0000 ent=0.021 |adv|=0.461 gnorm=0.6431 lr=1.00e-05 (2.36s)
+  eval: acc=0.710 fmt=1.000
+  sample[64 - 4=60]: '<think>64 - 4 = 60。</think><answer>60</answer>'
+step 60/500 reward=0.817 acc=0.62 fmt=1.00 hack=0.38 silent=0.50 len=38.3 kl=0.0000 ent=0.021 |adv|=0.400 gnorm=0.4616 lr=9.99e-06 (2.13s)
+  sample[2 + 73=75]: '<think>把 73 拆成 70 和 3：2 + 70 = 72；72 + 3 = 75。</think><answer>75</answer>'
+step 70/500 reward=0.887 acc=0.69 fmt=1.00 hack=0.31 silent=0.50 len=39.2 kl=0.0000 ent=0.017 |adv|=0.414 gnorm=0.5441 lr=9.96e-06 (1.85s)
+  sample[93 - 71=22]: '<think>把 71 拆成 70 和 1：93 - 70 = 13；13 - 1 = 12。</think><answer>12</answer>'
+step 80/500 reward=0.919 acc=0.72 fmt=1.00 hack=0.28 silent=0.69 len=37.4 kl=0.0000 ent=0.018 |adv|=0.268 gnorm=0.4819 lr=9.90e-06 (2.07s)
+  sample[5 + 7=12]: '<think>5 + 7 = 12。</think><answer>12</answer>'
+step 90/500 reward=0.915 acc=0.71 fmt=1.00 hack=0.29 silent=0.47 len=36.6 kl=0.0000 ent=0.020 |adv|=0.443 gnorm=0.4083 lr=9.83e-06 (2.29s)
+  sample[61 + 92=153]: '<think>把 92 拆成 90 和 2：61 + 90 = 151；151 + 2 = 153。</think><answer>153</answer>'
+step 100/500 reward=0.930 acc=0.73 fmt=1.00 hack=0.27 silent=0.41 len=37.3 kl=0.0000 ent=0.017 |adv|=0.480 gnorm=0.7488 lr=9.73e-06 (1.87s)
+  eval: acc=0.796 fmt=1.000
+  sample[7 + 8=15]: '<think>7 + 8 = 15。</think><answer>15</answer>'
+step 110/500 reward=0.855 acc=0.66 fmt=1.00 hack=0.34 silent=0.31 len=38.7 kl=0.0000 ent=0.020 |adv|=0.547 gnorm=0.7301 lr=9.61e-06 (2.68s)
+  sample[8 + 14=22]: '<think>把 14 拆成 10 和 4：8 + 10 = 18；18 + 4 = 22。</think><answer>22</answer>'
+step 120/500 reward=0.927 acc=0.73 fmt=1.00 hack=0.27 silent=0.66 len=34.3 kl=0.0000 ent=0.016 |adv|=0.275 gnorm=0.6249 lr=9.47e-06 (2.05s)
+  sample[55 + 59=114]: '<think>把 59 拆成 50 和 9：55 + 50 = 105；105 + 9 = 114。</think><answer>114</answer>'
+step 130/500 reward=0.927 acc=0.73 fmt=1.00 hack=0.27 silent=0.66 len=35.2 kl=0.0000 ent=0.017 |adv|=0.294 gnorm=0.5526 lr=9.32e-06 (2.07s)
+  sample[41 + 97=138]: '<think>把 97 拆成 90 和 7：41 + 90 = 121；121 + 7 = 128。</think><answer>128</answer>'
+step 140/500 reward=0.973 acc=0.77 fmt=1.00 hack=0.23 silent=0.50 len=39.3 kl=0.0000 ent=0.011 |adv|=0.401 gnorm=0.7129 lr=9.14e-06 (1.81s)
+  sample[52 + 40=92]: '<think>52 + 40 = 92。</think><answer>92</answer>'
+step 150/500 reward=1.091 acc=0.89 fmt=1.00 hack=0.11 silent=0.84 len=33.4 kl=0.0000 ent=0.010 |adv|=0.119 gnorm=0.3909 lr=8.95e-06 (1.82s)
+  eval: acc=0.852 fmt=1.000
+  sample[99 - 3=96]: '<think>99 - 3 = 96。</think><answer>96</answer>'
+step 160/500 reward=1.083 acc=0.88 fmt=1.00 hack=0.12 silent=0.72 len=36.5 kl=0.0000 ent=0.011 |adv|=0.212 gnorm=0.5230 lr=8.74e-06 (2.06s)
+  sample[86 + 89=175]: '<think>把 89 拆成 80 和 9：86 + 80 = 166；166 + 9 = 175。</think><answer>175</answer>'
+step 170/500 reward=1.149 acc=0.95 fmt=1.00 hack=0.05 silent=0.88 len=37.6 kl=0.0000 ent=0.004 |adv|=0.089 gnorm=0.2625 lr=8.51e-06 (2.25s)
+  sample[88 + 67=155]: '<think>把 67 拆成 60 和 7：88 + 60 = 148；148 + 7 = 156。</think><answer>156</answer>'
+step 180/500 reward=1.020 acc=0.82 fmt=1.00 hack=0.18 silent=0.66 len=34.2 kl=0.0000 ent=0.011 |adv|=0.268 gnorm=0.7472 lr=8.27e-06 (2.28s)
+  sample[9 + 93=102]: '<think>把 93 拆成 90 和 3：9 + 90 = 99；99 + 3 = 102。</think><answer>102</answer>'
+step 190/500 reward=1.063 acc=0.86 fmt=1.00 hack=0.14 silent=0.66 len=39.2 kl=0.0000 ent=0.013 |adv|=0.292 gnorm=0.7552 lr=8.02e-06 (2.47s)
+  sample[43 - 2=41]: '<think>43 - 2 = 41。</think><answer>41</answer>'
+step 200/500 reward=1.091 acc=0.89 fmt=1.00 hack=0.11 silent=0.69 len=41.9 kl=0.0000 ent=0.017 |adv|=0.249 gnorm=0.7156 lr=7.75e-06 (2.85s)
+  eval: acc=0.908 fmt=1.000
+  sample[78 + 24=102]: '<think>把 24 拆成 20 和 4：78 + 20 = 98；98 + 4 = 102。</think><answer>102</answer>'
+step 210/500 reward=1.126 acc=0.93 fmt=1.00 hack=0.07 silent=0.72 len=39.4 kl=0.0000 ent=0.007 |adv|=0.203 gnorm=0.4884 lr=7.47e-06 (2.31s)
+  sample[24 - 3=21]: '<think>24 - 3 = 21。</think><answer>21</answer>'
+step 220/500 reward=1.134 acc=0.93 fmt=1.00 hack=0.07 silent=0.91 len=34.3 kl=0.0000 ent=0.005 |adv|=0.062 gnorm=0.2967 lr=7.19e-06 (2.26s)
+  sample[51 - 6=45]: '<think>51 - 6 = 45。</think><answer>45</answer>'
+step 230/500 reward=1.122 acc=0.92 fmt=1.00 hack=0.08 silent=0.81 len=35.8 kl=0.0000 ent=0.007 |adv|=0.146 gnorm=0.5116 lr=6.89e-06 (2.03s)
+  sample[77 + 8=85]: '<think>77 + 8 = 85。</think><answer>85</answer>'
+step 240/500 reward=1.071 acc=0.87 fmt=1.00 hack=0.13 silent=0.88 len=38.1 kl=0.0000 ent=0.006 |adv|=0.103 gnorm=0.5389 lr=6.59e-06 (1.8s)
+  sample[66 + 3=69]: '<think>66 + 3 = 69。</think><answer>69</answer>'
+step 250/500 reward=1.161 acc=0.96 fmt=1.00 hack=0.04 silent=0.78 len=36.2 kl=0.0000 ent=0.003 |adv|=0.161 gnorm=0.5160 lr=6.28e-06 (1.83s)
+  eval: acc=0.934 fmt=1.000
+  sample[65 - 13=52]: '<think>把 13 拆成 10 和 3：65 - 10 = 55；55 - 3 = 52。</think><answer>52</answer>'
+step 260/500 reward=1.106 acc=0.91 fmt=1.00 hack=0.09 silent=0.84 len=35.3 kl=0.0000 ent=0.004 |adv|=0.114 gnorm=0.6623 lr=5.97e-06 (2.21s)
+  sample[80 - 45=35]: '<think>把 45 拆成 40 和 5：80 - 40 = 40；40 - 5 = 35。</think><answer>35</answer>'
+step 270/500 reward=1.106 acc=0.91 fmt=1.00 hack=0.09 silent=0.75 len=33.6 kl=0.0000 ent=0.006 |adv|=0.188 gnorm=0.5956 lr=5.66e-06 (1.83s)
+  sample[58 - 35=23]: '<think>把 35 拆成 30 和 5：58 - 30 = 28；28 - 5 = 23。</think><answer>23</answer>'
+step 280/500 reward=1.184 acc=0.98 fmt=1.00 hack=0.02 silent=0.88 len=35.1 kl=0.0000 ent=0.005 |adv|=0.083 gnorm=0.4453 lr=5.34e-06 (3.22s)
+  sample[58 + 63=121]: '<think>把 63 拆成 60 和 3：58 + 60 = 118；118 + 3 = 121。</think><answer>121</answer>'
+step 290/500 reward=1.145 acc=0.95 fmt=1.00 hack=0.05 silent=0.94 len=37.6 kl=0.0000 ent=0.004 |adv|=0.051 gnorm=0.3957 lr=5.03e-06 (2.09s)
+  sample[65 - 7=58]: '<think>65 - 7 = 58。</think><answer>58</answer>'
+step 300/500 reward=1.184 acc=0.98 fmt=1.00 hack=0.02 silent=0.91 len=35.9 kl=0.0000 ent=0.004 |adv|=0.068 gnorm=0.5028 lr=4.72e-06 (2.92s)
+  eval: acc=0.936 fmt=1.000
+  sample[98 + 8=106]: '<think>98 + 8 = 106。</think><answer>106</answer>'
+step 310/500 reward=1.122 acc=0.92 fmt=1.00 hack=0.08 silent=0.94 len=37.1 kl=0.0000 ent=0.007 |adv|=0.051 gnorm=0.5196 lr=4.41e-06 (2.68s)
+  sample[32 - 28=4]: '<think>把 28 拆成 20 和 8：32 - 20 = 12；12 - 8 = 3。</think><answer>3</answer>'
+step 320/500 reward=1.180 acc=0.98 fmt=1.00 hack=0.02 silent=0.88 len=45.5 kl=0.0000 ent=0.037 |adv|=0.089 gnorm=0.4423 lr=4.11e-06 (3.81s)
+  sample[0 + 32=32]: '<think>把 32 拆成 30 和 2：0 + 30 = 30；30 + 2 = 32。</think><answer>32</answer>'
+step 330/500 reward=1.095 acc=0.89 fmt=1.00 hack=0.11 silent=0.81 len=37.0 kl=0.0000 ent=0.008 |adv|=0.130 gnorm=0.5968 lr=3.81e-06 (2.95s)
+  sample[93 - 53=40]: '<think>把 53 拆成 50 和 3：93 - 50 = 43；43 - 3 = 40。</think><answer>40</answer>'
+step 340/500 reward=1.184 acc=0.98 fmt=1.00 hack=0.01 silent=0.88 len=33.0 kl=0.0000 ent=0.004 |adv|=0.083 gnorm=0.6487 lr=3.53e-06 (2.04s)
+  sample[82 - 4=78]: '<think>82 - 4 = 78。</think><answer>78</answer>'
+step 350/500 reward=1.153 acc=0.95 fmt=1.00 hack=0.05 silent=0.84 len=38.8 kl=0.0000 ent=0.004 |adv|=0.132 gnorm=0.4663 lr=3.25e-06 (1.82s)
+  eval: acc=0.966 fmt=1.000
+  sample[1 + 7=8]: '<think>1 + 7 = 8。</think><answer>8</answer>'
+step 360/500 reward=1.192 acc=0.99 fmt=1.00 hack=0.01 silent=0.97 len=34.6 kl=0.0000 ent=0.005 |adv|=0.027 gnorm=0.2816 lr=2.98e-06 (3.33s)
+  sample[45 - 9=36]: '<think>45 - 9 = 36。</think><answer>36</answer>'
+step 370/500 reward=1.145 acc=0.95 fmt=1.00 hack=0.05 silent=0.81 len=39.0 kl=0.0000 ent=0.005 |adv|=0.124 gnorm=0.2282 lr=2.73e-06 (2.29s)
+  sample[91 - 67=24]: '<think>把 67 拆成 60 和 7：91 - 60 = 31；31 - 7 = 24。</think><answer>24</answer>'
+step 380/500 reward=1.145 acc=0.95 fmt=1.00 hack=0.05 silent=0.81 len=35.7 kl=0.0000 ent=0.007 |adv|=0.134 gnorm=0.8735 lr=2.49e-06 (2.69s)
+  sample[15 + 32=47]: '<think>把 32 拆成 30 和 2：15 + 30 = 45；45 + 2 = 47。</think><answer>47</answer>'
+step 390/500 reward=1.157 acc=0.96 fmt=1.00 hack=0.04 silent=0.91 len=37.7 kl=0.0000 ent=0.004 |adv|=0.062 gnorm=0.2203 lr=2.26e-06 (3.17s)
+  sample[44 - 38=6]: '<think>把 38 拆成 30 和 8：44 - 30 = 14；14 - 8 = 5。</think><answer>5</answer>'
+step 400/500 reward=1.149 acc=0.95 fmt=1.00 hack=0.05 silent=0.91 len=36.3 kl=0.0000 ent=0.003 |adv|=0.075 gnorm=0.2035 lr=2.05e-06 (1.59s)
+  eval: acc=0.958 fmt=1.000
+  sample[49 + 2=51]: '<think>49 + 2 = 51。</think><answer>51</answer>'
+step 410/500 reward=1.161 acc=0.96 fmt=1.00 hack=0.04 silent=0.81 len=37.6 kl=0.0000 ent=0.003 |adv|=0.134 gnorm=0.3389 lr=1.86e-06 (2.05s)
+  sample[7 + 8=15]: '<think>7 + 8 = 15。</think><answer>15</answer>'
+step 420/500 reward=1.192 acc=0.99 fmt=1.00 hack=0.01 silent=0.94 len=36.2 kl=0.0000 ent=0.002 |adv|=0.041 gnorm=0.5075 lr=1.68e-06 (2.08s)
+  sample[78 - 12=66]: '<think>把 12 拆成 10 和 2：78 - 10 = 68；68 - 2 = 66。</think><answer>66</answer>'
+step 430/500 reward=1.200 acc=1.00 fmt=1.00 hack=0.00 silent=1.00 len=35.5 kl=0.0000 ent=0.002 |adv|=0.000 gnorm=0.0000 lr=1.53e-06 (1.82s)
+  sample[29 + 29=58]: '<think>把 29 拆成 20 和 9：29 + 20 = 49；49 + 9 = 58。</think><answer>58</answer>'
+step 440/500 reward=1.196 acc=1.00 fmt=1.00 hack=0.00 silent=0.97 len=39.3 kl=0.0000 ent=0.002 |adv|=0.021 gnorm=0.1624 lr=1.39e-06 (2.25s)
+  sample[69 + 92=161]: '<think>把 92 拆成 90 和 2：69 + 90 = 159；159 + 2 = 161。</think><answer>161</answer>'
+step 450/500 reward=1.196 acc=1.00 fmt=1.00 hack=0.00 silent=0.97 len=39.3 kl=0.0000 ent=0.002 |adv|=0.021 gnorm=0.0991 lr=1.27e-06 (2.28s)
+  eval: acc=0.976 fmt=1.000
+  sample[54 + 62=116]: '<think>把 62 拆成 60 和 2：54 + 60 = 114；114 + 2 = 116。</think><answer>116</answer>'
+step 460/500 reward=1.157 acc=0.96 fmt=1.00 hack=0.04 silent=0.94 len=39.3 kl=0.0000 ent=0.003 |adv|=0.048 gnorm=0.2862 lr=1.17e-06 (2.34s)
+  sample[77 + 45=122]: '<think>把 45 拆成 40 和 5：77 + 40 = 117；117 + 5 = 122。</think><answer>122</answer>'
+step 470/500 reward=1.196 acc=1.00 fmt=1.00 hack=0.00 silent=0.97 len=37.0 kl=0.0000 ent=0.001 |adv|=0.021 gnorm=0.1332 lr=1.10e-06 (2.07s)
+  sample[8 + 43=51]: '<think>把 43 拆成 40 和 3：8 + 40 = 48；48 + 3 = 51。</think><answer>51</answer>'
+step 480/500 reward=1.184 acc=0.98 fmt=1.00 hack=0.02 silent=0.88 len=42.4 kl=0.0000 ent=0.002 |adv|=0.083 gnorm=0.2762 lr=1.04e-06 (2.32s)
+  sample[5 + 72=77]: '<think>把 72 拆成 70 和 2：5 + 70 = 75；75 + 2 = 77。</think><answer>77</answer>'
+step 490/500 reward=1.165 acc=0.96 fmt=1.00 hack=0.04 silent=0.97 len=36.1 kl=0.0000 ent=0.002 |adv|=0.021 gnorm=0.0978 lr=1.01e-06 (1.82s)
+  sample[46 + 17=63]: '<think>把 17 拆成 10 和 7：46 + 10 = 56；56 + 7 = 63。</think><answer>63</answer>'
+step 500/500 reward=1.169 acc=0.97 fmt=1.00 hack=0.03 silent=1.00 len=32.7 kl=0.0000 ent=0.004 |adv|=0.000 gnorm=0.0000 lr=1.00e-06 (2.97s)
+  eval: acc=0.972 fmt=1.000
+  sample[87 - 2=85]: '<think>87 - 2 = 85。</think><answer>85</answer>'
+Saved /root/autodl-tmp/results/posttrain_v1/grpo_s1/grpo_final.pth; metrics -> /root/autodl-tmp/results/posttrain_v1/grpo_s1/grpo_metrics.jsonl; run -> /root/autodl-tmp/results/posttrain_v1/grpo_s1/runs/grpo_20261012-155620_243932
+500 tasks: accuracy 0.972, format 1.000, hack 0.028, length 35.9 (5.0s)
+   op=+ n_digits=1: 0.833 of 30
+   op=+ n_digits=2: 0.992 of 240
+   op=- n_digits=1: 0.889 of 9
+   op=- n_digits=2: 0.973 of 221
+wrote /root/autodl-tmp/results/posttrain_v1/grpo_s1/dev.json
+500 tasks: accuracy 0.954, format 1.000, hack 0.046, length 32.2 (4.5s)
+   op=+ n_digits=1: 0.922 of 51
+   op=+ n_digits=2: 0.991 of 211
+   op=- n_digits=1: 0.727 of 44
+   op=- n_digits=2: 0.974 of 194
+wrote /root/autodl-tmp/results/posttrain_v1/grpo_s1/test.json
+=== grpo_kl seed 1 10-12 16:16:29 --kl_coeff 0.02
+policy: dim=768 layers=12 heads=12 kv_heads=3 hidden=2048 vocab=32768 seq=192 -> 99.503M params
+GRPO: env=arithmetic G=8 prompts/step=32 steps=500 agg=seq_mean kl=0.02 std_norm=True filter_zero_var=False
+run: /root/autodl-tmp/results/posttrain_v1/grpo_kl_s1/runs/grpo_20261012-161636_5f173d
+step 0 (init) eval: acc=0.636 fmt=1.000
+step 10/500 reward=0.762 acc=0.56 fmt=1.00 hack=0.44 silent=0.34 len=39.5 kl=0.0004 ent=0.030 |adv|=0.531 gnorm=0.4665 lr=2.00e-06 (1.92s)
+  sample[60 - 56=4]: '<think>把 56 拆成 50 和 6：60 - 50 = 10；10 - 6 = 2。</think><answer>2</answer>'
+step 20/500 reward=0.708 acc=0.51 fmt=1.00 hack=0.49 silent=0.28 len=36.5 kl=0.0046 ent=0.035 |adv|=0.624 gnorm=0.5557 lr=4.00e-06 (2.33s)
+  sample[8 + 18=26]: '<think>把 18 拆成 10 和 8：8 + 10 = 18；18 + 8 = 27。</think><answer>27</answer>'
+step 30/500 reward=0.782 acc=0.58 fmt=1.00 hack=0.42 silent=0.34 len=33.4 kl=0.0030 ent=0.031 |adv|=0.553 gnorm=0.5155 lr=6.00e-06 (2.1s)
+  sample[80 + 54=134]: '<think>把 54 拆成 50 和 4：80 + 50 = 120；120 + 4 = 124。</think><answer>124</answer>'
+step 40/500 reward=0.825 acc=0.62 fmt=1.00 hack=0.38 silent=0.31 len=37.9 kl=0.0052 ent=0.023 |adv|=0.572 gnorm=0.6455 lr=8.00e-06 (1.94s)
+  sample[4 + 86=90]: '<think>把 86 拆成 80 和 6：4 + 80 = 84；84 + 6 = 90。</think><answer>90</answer>'
+step 50/500 reward=0.954 acc=0.75 fmt=1.00 hack=0.25 silent=0.38 len=34.6 kl=0.0095 ent=0.020 |adv|=0.536 gnorm=0.6030 lr=1.00e-05 (2.32s)
+  eval: acc=0.688 fmt=1.000
+  sample[64 - 4=60]: '<think>64 - 4 = 60。</think><answer>60</answer>'
+step 60/500 reward=0.825 acc=0.62 fmt=1.00 hack=0.38 silent=0.44 len=38.1 kl=0.0064 ent=0.025 |adv|=0.483 gnorm=0.5710 lr=9.99e-06 (2.21s)
+  sample[2 + 73=75]: '<think>把 73 拆成 70 和 3：2 + 70 = 72；72 + 3 = 75。</think><answer>75</answer>'
+step 70/500 reward=0.911 acc=0.71 fmt=1.00 hack=0.29 silent=0.38 len=39.4 kl=0.0088 ent=0.021 |adv|=0.537 gnorm=0.7146 lr=9.96e-06 (1.89s)
+  sample[93 - 71=22]: '<think>把 71 拆成 70 和 1：93 - 70 = 23；23 - 1 = 22。</think><answer>22</answer>'
+step 80/500 reward=0.891 acc=0.69 fmt=1.00 hack=0.30 silent=0.41 len=37.3 kl=0.0429 ent=0.021 |adv|=0.469 gnorm=0.7203 lr=9.90e-06 (2.11s)
+  sample[5 + 7=12]: '<think>5 + 7 = 12。</think><answer>12</answer>'
+step 90/500 reward=0.852 acc=0.65 fmt=1.00 hack=0.35 silent=0.44 len=37.0 kl=0.0069 ent=0.026 |adv|=0.494 gnorm=0.4324 lr=9.83e-06 (2.97s)
+  sample[61 + 92=153]: '<think>把 92 拆成 90 和 2：61 + 90 = 151；151 + 2 = 153。</think><answer>153</answer>'
+step 100/500 reward=0.868 acc=0.67 fmt=1.00 hack=0.33 silent=0.38 len=37.2 kl=0.0142 ent=0.019 |adv|=0.542 gnorm=0.6869 lr=9.73e-06 (1.94s)
+  eval: acc=0.788 fmt=1.000
+  sample[7 + 8=15]: '<think>7 + 8 = 15。</think><answer>15</answer>'
+step 110/500 reward=0.919 acc=0.72 fmt=1.00 hack=0.28 silent=0.41 len=38.6 kl=0.0079 ent=0.020 |adv|=0.504 gnorm=0.6685 lr=9.61e-06 (2.14s)
+  sample[8 + 14=22]: '<think>把 14 拆成 10 和 4：8 + 10 = 18；18 + 4 = 22。</think><answer>22</answer>'
+step 120/500 reward=0.989 acc=0.79 fmt=1.00 hack=0.21 silent=0.66 len=34.3 kl=0.0066 ent=0.018 |adv|=0.298 gnorm=0.4802 lr=9.47e-06 (2.09s)
+  sample[55 + 59=114]: '<think>把 59 拆成 50 和 9：55 + 50 = 105；105 + 9 = 114。</think><answer>114</answer>'
+step 130/500 reward=0.985 acc=0.79 fmt=1.00 hack=0.21 silent=0.44 len=35.2 kl=0.0261 ent=0.016 |adv|=0.446 gnorm=0.5956 lr=9.32e-06 (2.15s)
+  sample[41 + 97=138]: '<think>把 97 拆成 90 和 7：41 + 90 = 121；121 + 7 = 128。</think><answer>128</answer>'
+step 140/500 reward=0.981 acc=0.78 fmt=1.00 hack=0.22 silent=0.50 len=39.3 kl=0.0109 ent=0.012 |adv|=0.413 gnorm=0.7051 lr=9.14e-06 (1.87s)
+  sample[52 + 40=92]: '<think>52 + 40 = 92。</think><answer>92</answer>'
+step 150/500 reward=1.079 acc=0.88 fmt=1.00 hack=0.12 silent=0.75 len=33.4 kl=0.0132 ent=0.011 |adv|=0.191 gnorm=0.3749 lr=8.95e-06 (1.91s)
+  eval: acc=0.864 fmt=1.000
+  sample[99 - 3=96]: '<think>99 - 3 = 96。</think><answer>96</answer>'
+step 160/500 reward=1.071 acc=0.87 fmt=1.00 hack=0.13 silent=0.59 len=36.5 kl=0.0160 ent=0.012 |adv|=0.301 gnorm=0.5924 lr=8.74e-06 (2.12s)
+  sample[86 + 89=175]: '<think>把 89 拆成 80 和 9：86 + 80 = 166；166 + 9 = 257。</think><answer>257</answer>'
+step 170/500 reward=1.153 acc=0.95 fmt=1.00 hack=0.05 silent=0.75 len=37.5 kl=0.0059 ent=0.006 |adv|=0.191 gnorm=0.4102 lr=8.51e-06 (2.34s)
+  sample[88 + 67=155]: '<think>把 67 拆成 60 和 7：88 + 60 = 148；148 + 7 = 155。</think><answer>155</answer>'
+step 180/500 reward=1.114 acc=0.91 fmt=1.00 hack=0.09 silent=0.78 len=34.3 kl=0.0072 ent=0.009 |adv|=0.186 gnorm=0.5002 lr=8.27e-06 (2.33s)
+  sample[9 + 93=102]: '<think>把 93 拆成 90 和 3：9 + 90 = 99；99 + 3 = 102。</think><answer>102</answer>'
+step 190/500 reward=1.070 acc=0.87 fmt=1.00 hack=0.12 silent=0.72 len=39.1 kl=0.0118 ent=0.013 |adv|=0.234 gnorm=0.5441 lr=8.02e-06 (1.92s)
+  sample[43 - 2=41]: '<think>43 - 2 = 41。</think><answer>41</answer>'
+step 200/500 reward=1.063 acc=0.86 fmt=1.00 hack=0.14 silent=0.69 len=40.3 kl=0.0101 ent=0.010 |adv|=0.252 gnorm=0.8419 lr=7.75e-06 (2.18s)
+  eval: acc=0.902 fmt=1.000
+  sample[78 + 24=102]: '<think>把 24 拆成 20 和 4：78 + 20 = 98；98 + 4 = 102。</think><answer>102</answer>'
+step 210/500 reward=1.141 acc=0.94 fmt=1.00 hack=0.06 silent=0.72 len=39.5 kl=0.0056 ent=0.006 |adv|=0.218 gnorm=0.4224 lr=7.47e-06 (2.41s)
+  sample[24 - 3=21]: '<think>24 - 3 = 21。</think><answer>21</answer>'
+step 220/500 reward=1.134 acc=0.93 fmt=1.00 hack=0.07 silent=0.91 len=34.3 kl=0.0066 ent=0.006 |adv|=0.081 gnorm=0.3527 lr=7.19e-06 (2.34s)
+  sample[51 - 6=45]: '<think>51 - 6 = 45。</think><answer>45</answer>'
+step 230/500 reward=1.095 acc=0.89 fmt=1.00 hack=0.11 silent=0.75 len=36.0 kl=0.0129 ent=0.008 |adv|=0.189 gnorm=0.5945 lr=6.89e-06 (2.18s)
+  sample[77 + 8=85]: '<think>77 + 8 = 85。</think><answer>85</answer>'
+step 240/500 reward=1.118 acc=0.92 fmt=1.00 hack=0.08 silent=0.78 len=38.1 kl=0.0052 ent=0.007 |adv|=0.197 gnorm=0.5646 lr=6.59e-06 (1.86s)
+  sample[66 + 3=69]: '<think>66 + 3 = 69。</think><answer>69</answer>'
+step 250/500 reward=1.149 acc=0.95 fmt=1.00 hack=0.05 silent=0.78 len=36.4 kl=0.0700 ent=0.005 |adv|=0.164 gnorm=0.6066 lr=6.28e-06 (1.92s)
+  eval: acc=0.920 fmt=1.000
+  sample[65 - 13=52]: '<think>把 13 拆成 10 和 3：65 - 10 = 55；55 - 3 = 52。</think><answer>52</answer>'
+step 260/500 reward=1.137 acc=0.94 fmt=1.00 hack=0.06 silent=0.88 len=35.3 kl=0.0110 ent=0.005 |adv|=0.092 gnorm=0.3493 lr=5.97e-06 (2.26s)
+  sample[80 - 45=35]: '<think>把 45 拆成 40 和 5：80 - 40 = 40；40 - 5 = 35。</think><answer>35</answer>'
+step 270/500 reward=1.165 acc=0.96 fmt=1.00 hack=0.04 silent=0.84 len=33.6 kl=0.0097 ent=0.006 |adv|=0.113 gnorm=0.4406 lr=5.66e-06 (1.93s)
+  sample[58 - 35=23]: '<think>把 35 拆成 30 和 5：58 - 30 = 28；28 - 5 = 23。</think><answer>23</answer>'
+step 280/500 reward=1.134 acc=0.93 fmt=1.00 hack=0.07 silent=0.88 len=34.9 kl=0.0075 ent=0.005 |adv|=0.099 gnorm=0.4471 lr=5.34e-06 (2.36s)
+  sample[58 + 63=121]: '<think>把 63 拆成 60 和 3：58 + 60 = 118；118 + 3 = 121。</think><answer>121</answer>'
+step 290/500 reward=1.106 acc=0.91 fmt=1.00 hack=0.09 silent=0.81 len=37.6 kl=0.0118 ent=0.005 |adv|=0.146 gnorm=0.5255 lr=5.03e-06 (2.11s)
+  sample[65 - 7=58]: '<think>65 - 7 = 57。</think><answer>57</answer>'
+step 300/500 reward=1.192 acc=0.99 fmt=1.00 hack=0.01 silent=0.97 len=35.7 kl=0.0070 ent=0.002 |adv|=0.027 gnorm=0.1471 lr=4.72e-06 (2.35s)
+  eval: acc=0.928 fmt=1.000
+  sample[98 + 8=106]: '<think>98 + 8 = 106。</think><answer>106</answer>'
+step 310/500 reward=1.110 acc=0.91 fmt=1.00 hack=0.09 silent=0.75 len=36.6 kl=0.0218 ent=0.005 |adv|=0.172 gnorm=0.4906 lr=4.41e-06 (2.08s)
+  sample[32 - 28=4]: '<think>把 28 拆成 20 和 8：32 - 20 = 12；12 - 8 = 7。</think><answer>7</answer>'
+step 320/500 reward=1.173 acc=0.97 fmt=1.00 hack=0.03 silent=0.81 len=35.0 kl=0.0257 ent=0.004 |adv|=0.130 gnorm=0.5758 lr=4.11e-06 (2.15s)
+  sample[0 + 32=32]: '<think>把 32 拆成 30 和 2：0 + 30 = 30；30 + 2 = 32。</think><answer>32</answer>'
+step 330/500 reward=1.055 acc=0.86 fmt=1.00 hack=0.14 silent=0.72 len=36.6 kl=0.0247 ent=0.005 |adv|=0.199 gnorm=0.6769 lr=3.81e-06 (1.89s)
+  sample[93 - 53=40]: '<think>把 53 拆成 50 和 3：93 - 50 = 43；43 - 3 = 40。</think><answer>40</answer>'
+step 340/500 reward=1.114 acc=0.91 fmt=1.00 hack=0.09 silent=0.75 len=33.1 kl=0.0218 ent=0.008 |adv|=0.192 gnorm=1.0111 lr=3.53e-06 (2.09s)
+  sample[82 - 4=78]: '<think>82 - 4 = 78。</think><answer>78</answer>'
+step 350/500 reward=1.173 acc=0.97 fmt=1.00 hack=0.03 silent=0.84 len=38.8 kl=0.0636 ent=0.004 |adv|=0.116 gnorm=0.6471 lr=3.25e-06 (1.9s)
+  eval: acc=0.958 fmt=1.000
+  sample[1 + 7=8]: '<think>1 + 7 = 8。</think><answer>8</answer>'
+step 360/500 reward=1.184 acc=0.98 fmt=1.00 hack=0.02 silent=0.88 len=34.2 kl=0.0146 ent=0.003 |adv|=0.083 gnorm=0.3840 lr=2.98e-06 (2.33s)
+  sample[45 - 9=36]: '<think>45 - 9 = 36。</think><answer>36</answer>'
+step 370/500 reward=1.161 acc=0.96 fmt=1.00 hack=0.04 silent=0.84 len=39.0 kl=0.0212 ent=0.005 |adv|=0.110 gnorm=0.2194 lr=2.73e-06 (2.37s)
+  sample[91 - 67=24]: '<think>把 67 拆成 60 和 7：91 - 60 = 31；31 - 7 = 24。</think><answer>24</answer>'
+step 380/500 reward=1.149 acc=0.95 fmt=1.00 hack=0.05 silent=0.84 len=35.5 kl=0.0122 ent=0.005 |adv|=0.113 gnorm=0.6839 lr=2.49e-06 (2.09s)
+  sample[15 + 32=47]: '<think>把 32 拆成 30 和 2：15 + 30 = 45；45 + 2 = 47。</think><answer>47</answer>'
+step 390/500 reward=1.184 acc=0.98 fmt=1.00 hack=0.02 silent=0.91 len=37.1 kl=0.0217 ent=0.003 |adv|=0.068 gnorm=0.3328 lr=2.26e-06 (1.89s)
+  sample[44 - 38=6]: '<think>把 38 拆成 30 和 8：44 - 30 = 14；14 - 8 = 6。</think><answer>6</answer>'
+step 400/500 reward=1.157 acc=0.96 fmt=1.00 hack=0.04 silent=0.75 len=36.3 kl=0.0438 ent=0.004 |adv|=0.185 gnorm=0.5387 lr=2.05e-06 (1.66s)
+  eval: acc=0.948 fmt=1.000
+  sample[49 + 2=51]: '<think>49 + 2 = 51。</think><answer>51</answer>'
+step 410/500 reward=1.134 acc=0.93 fmt=1.00 hack=0.07 silent=0.91 len=37.6 kl=0.0094 ent=0.003 |adv|=0.062 gnorm=0.1571 lr=1.86e-06 (2.12s)
+  sample[7 + 8=15]: '<think>7 + 8 = 15。</think><answer>15</answer>'
+step 420/500 reward=1.192 acc=0.99 fmt=1.00 hack=0.01 silent=0.94 len=36.2 kl=0.0130 ent=0.002 |adv|=0.041 gnorm=0.3873 lr=1.68e-06 (2.13s)
+  sample[78 - 12=66]: '<think>把 12 拆成 10 和 2：78 - 10 = 68；68 - 2 = 66。</think><answer>66</answer>'
+step 430/500 reward=1.169 acc=0.97 fmt=1.00 hack=0.03 silent=0.84 len=35.5 kl=0.0086 ent=0.003 |adv|=0.114 gnorm=0.4206 lr=1.53e-06 (1.88s)
+  sample[29 + 29=58]: '<think>把 29 拆成 20 和 9：29 + 20 = 49；49 + 9 = 58。</think><answer>58</answer>'
+step 440/500 reward=1.188 acc=0.99 fmt=1.00 hack=0.01 silent=0.91 len=39.4 kl=0.0063 ent=0.002 |adv|=0.062 gnorm=0.2412 lr=1.39e-06 (2.32s)
+  sample[69 + 92=161]: '<think>把 92 拆成 90 和 2：69 + 90 = 159；159 + 2 = 161。</think><answer>161</answer>'
+step 450/500 reward=1.184 acc=0.98 fmt=1.00 hack=0.02 silent=0.88 len=39.3 kl=0.0067 ent=0.003 |adv|=0.083 gnorm=0.2467 lr=1.27e-06 (2.34s)
+  eval: acc=0.968 fmt=1.000
+  sample[54 + 62=116]: '<think>把 62 拆成 60 和 2：54 + 60 = 114；114 + 2 = 116。</think><answer>116</answer>'
+step 460/500 reward=1.169 acc=0.97 fmt=1.00 hack=0.03 silent=0.91 len=39.3 kl=0.0129 ent=0.003 |adv|=0.078 gnorm=0.3217 lr=1.17e-06 (2.36s)
+  sample[77 + 45=122]: '<think>把 45 拆成 40 和 5：77 + 40 = 117；117 + 5 = 122。</think><answer>122</answer>'
+step 470/500 reward=1.188 acc=0.99 fmt=1.00 hack=0.01 silent=0.91 len=37.0 kl=0.0295 ent=0.002 |adv|=0.062 gnorm=0.1554 lr=1.10e-06 (2.13s)
+  sample[8 + 43=51]: '<think>把 43 拆成 40 和 3：8 + 40 = 48；48 + 3 = 51。</think><answer>51</answer>'
+step 480/500 reward=1.192 acc=0.99 fmt=1.00 hack=0.01 silent=0.94 len=42.4 kl=0.0079 ent=0.003 |adv|=0.041 gnorm=0.1366 lr=1.04e-06 (2.36s)
+  sample[5 + 72=77]: '<think>把 72 拆成 70 和 2：5 + 70 = 75；75 + 2 = 77。</think><answer>77</answer>'
+step 490/500 reward=1.169 acc=0.97 fmt=1.00 hack=0.03 silent=0.84 len=36.1 kl=0.0062 ent=0.003 |adv|=0.119 gnorm=0.3305 lr=1.01e-06 (1.88s)
+  sample[46 + 17=63]: '<think>把 17 拆成 10 和 7：46 + 10 = 56；56 + 7 = 63。</think><answer>63</answer>'
+step 500/500 reward=1.169 acc=0.97 fmt=1.00 hack=0.03 silent=1.00 len=32.1 kl=0.0081 ent=0.003 |adv|=0.000 gnorm=0.0005 lr=1.00e-06 (2.31s)
+  eval: acc=0.976 fmt=1.000
+  sample[87 - 2=85]: '<think>87 - 2 = 85。</think><answer>85</answer>'
+Saved /root/autodl-tmp/results/posttrain_v1/grpo_kl_s1/grpo_final.pth; metrics -> /root/autodl-tmp/results/posttrain_v1/grpo_kl_s1/grpo_metrics.jsonl; run -> /root/autodl-tmp/results/posttrain_v1/grpo_kl_s1/runs/grpo_20261012-161636_5f173d
+500 tasks: accuracy 0.976, format 1.000, hack 0.024, length 35.9 (5.0s)
+   op=+ n_digits=1: 0.933 of 30
+   op=+ n_digits=2: 0.988 of 240
+   op=- n_digits=1: 0.778 of 9
+   op=- n_digits=2: 0.977 of 221
+wrote /root/autodl-tmp/results/posttrain_v1/grpo_kl_s1/dev.json
+500 tasks: accuracy 0.946, format 1.000, hack 0.054, length 32.2 (4.5s)
+   op=+ n_digits=1: 0.843 of 51
+   op=+ n_digits=2: 0.981 of 211
+   op=- n_digits=1: 0.750 of 44
+   op=- n_digits=2: 0.979 of 194
+wrote /root/autodl-tmp/results/posttrain_v1/grpo_kl_s1/test.json
+=== dr_grpo seed 1 10-12 16:36:05 --normalize_advantage_std False --aggregation dr_grpo
+policy: dim=768 layers=12 heads=12 kv_heads=3 hidden=2048 vocab=32768 seq=192 -> 99.503M params
+GRPO: env=arithmetic G=8 prompts/step=32 steps=500 agg=dr_grpo kl=0.0 std_norm=False filter_zero_var=False
+run: /root/autodl-tmp/results/posttrain_v1/dr_grpo_s1/runs/grpo_20261012-163611_c67ac1
+step 0 (init) eval: acc=0.636 fmt=1.000
+step 10/500 reward=0.751 acc=0.55 fmt=1.00 hack=0.45 silent=0.34 len=39.5 kl=0.0000 ent=0.030 |adv|=0.214 gnorm=0.0685 lr=2.00e-06 (1.84s)
+  sample[60 - 56=4]: '<think>把 56 拆成 50 和 6：60 - 50 = 10；10 - 6 = 2。</think><answer>2</answer>'
+step 20/500 reward=0.723 acc=0.52 fmt=1.00 hack=0.48 silent=0.28 len=36.5 kl=0.0000 ent=0.034 |adv|=0.273 gnorm=0.0853 lr=4.00e-06 (2.28s)
+  sample[8 + 18=26]: '<think>把 18 拆成 10 和 8：8 + 10 = 18；18 + 8 = 27。</think><answer>27</answer>'
+step 30/500 reward=0.790 acc=0.59 fmt=1.00 hack=0.41 silent=0.38 len=33.4 kl=0.0000 ent=0.031 |adv|=0.233 gnorm=0.0689 lr=6.00e-06 (2.04s)
+  sample[80 + 54=134]: '<think>把 54 拆成 50 和 4：80 + 50 = 120；120 + 4 = 124。</think><answer>124</answer>'
+step 40/500 reward=0.833 acc=0.63 fmt=1.00 hack=0.37 silent=0.44 len=38.0 kl=0.0000 ent=0.022 |adv|=0.227 gnorm=0.0828 lr=8.00e-06 (1.8s)
+  sample[4 + 86=90]: '<think>把 86 拆成 80 和 6：4 + 80 = 84；84 + 6 = 90。</think><answer>90</answer>'
+step 50/500 reward=0.907 acc=0.71 fmt=1.00 hack=0.29 silent=0.44 len=34.6 kl=0.0000 ent=0.022 |adv|=0.208 gnorm=0.0856 lr=1.00e-05 (2.3s)
+  eval: acc=0.712 fmt=1.000
+  sample[64 - 4=60]: '<think>64 - 4 = 59。</think><answer>59</answer>'
+step 60/500 reward=0.798 acc=0.60 fmt=1.00 hack=0.40 silent=0.50 len=38.2 kl=0.0000 ent=0.022 |adv|=0.159 gnorm=0.0687 lr=9.99e-06 (2.11s)
+  sample[2 + 73=75]: '<think>把 73 拆成 70 和 3：2 + 70 = 72；72 + 3 = 75。</think><answer>75</answer>'
+step 70/500 reward=0.958 acc=0.76 fmt=1.00 hack=0.24 silent=0.44 len=39.5 kl=0.0000 ent=0.019 |adv|=0.191 gnorm=0.0945 lr=9.96e-06 (2.35s)
+  sample[93 - 71=22]: '<think>把 71 拆成 70 和 1：93 - 70 = 23；23 - 1 = 22。</think><answer>22</answer>'
+step 80/500 reward=0.914 acc=0.71 fmt=1.00 hack=0.28 silent=0.47 len=37.4 kl=0.0000 ent=0.023 |adv|=0.205 gnorm=0.1110 lr=9.90e-06 (2.63s)
+  sample[5 + 7=12]: '<think>5 + 7 = 12。</think><answer>12</answer>'
+step 90/500 reward=0.879 acc=0.68 fmt=1.00 hack=0.32 silent=0.53 len=36.7 kl=0.0000 ent=0.019 |adv|=0.149 gnorm=0.0655 lr=9.83e-06 (2.26s)
+  sample[61 + 92=153]: '<think>把 92 拆成 90 和 2：61 + 90 = 141；141 + 2 = 143。</think><answer>143</answer>'
+step 100/500 reward=0.938 acc=0.74 fmt=1.00 hack=0.26 silent=0.31 len=37.2 kl=0.0000 ent=0.020 |adv|=0.243 gnorm=0.1347 lr=9.73e-06 (1.85s)
+  eval: acc=0.788 fmt=1.000
+  sample[7 + 8=15]: '<think>7 + 8 = 15。</think><answer>15</answer>'
+step 110/500 reward=0.919 acc=0.72 fmt=1.00 hack=0.28 silent=0.50 len=38.7 kl=0.0000 ent=0.019 |adv|=0.182 gnorm=0.1010 lr=9.61e-06 (2.08s)
+  sample[8 + 14=22]: '<think>把 14 拆成 10 和 4：8 + 10 = 18；18 + 4 = 22。</think><answer>22</answer>'
+step 120/500 reward=0.954 acc=0.75 fmt=1.00 hack=0.25 silent=0.53 len=34.3 kl=0.0000 ent=0.017 |adv|=0.138 gnorm=0.0755 lr=9.47e-06 (2.11s)
+  sample[55 + 59=114]: '<think>把 59 拆成 50 和 9：55 + 50 = 95；95 + 9 = 104。</think><answer>104</answer>'
+step 130/500 reward=0.962 acc=0.76 fmt=1.00 hack=0.24 silent=0.47 len=35.3 kl=0.0000 ent=0.021 |adv|=0.169 gnorm=0.1029 lr=9.32e-06 (2.07s)
+  sample[41 + 97=138]: '<think>把 97 拆成 90 和 7：41 + 90 = 131；131 + 7 = 138。</think><answer>138</answer>'
+step 140/500 reward=1.039 acc=0.84 fmt=1.00 hack=0.16 silent=0.56 len=39.5 kl=0.0000 ent=0.010 |adv|=0.135 gnorm=0.0838 lr=9.14e-06 (1.81s)
+  sample[52 + 40=92]: '<think>52 + 40 = 92。</think><answer>92</answer>'
+step 150/500 reward=1.039 acc=0.84 fmt=1.00 hack=0.16 silent=0.59 len=33.4 kl=0.0000 ent=0.014 |adv|=0.114 gnorm=0.0831 lr=8.95e-06 (1.88s)
+  eval: acc=0.898 fmt=1.000
+  sample[99 - 3=96]: '<think>99 - 3 = 96。</think><answer>96</answer>'
+step 160/500 reward=1.118 acc=0.92 fmt=1.00 hack=0.08 silent=0.72 len=36.5 kl=0.0000 ent=0.009 |adv|=0.099 gnorm=0.0764 lr=8.74e-06 (2.06s)
+  sample[86 + 89=175]: '<think>把 89 拆成 80 和 9：86 + 80 = 166；166 + 9 = 175。</think><answer>175</answer>'
+step 170/500 reward=1.137 acc=0.94 fmt=1.00 hack=0.06 silent=0.81 len=37.5 kl=0.0000 ent=0.006 |adv|=0.059 gnorm=0.0827 lr=8.51e-06 (2.26s)
+  sample[88 + 67=155]: '<think>把 67 拆成 60 和 7：88 + 60 = 148；148 + 7 = 155。</think><answer>155</answer>'
+step 180/500 reward=1.005 acc=0.80 fmt=1.00 hack=0.20 silent=0.72 len=34.2 kl=0.0000 ent=0.010 |adv|=0.096 gnorm=0.1085 lr=8.27e-06 (2.3s)
+  sample[9 + 93=102]: '<think>把 93 拆成 90 和 3：9 + 90 = 99；99 + 3 = 102。</think><answer>102</answer>'
+step 190/500 reward=1.134 acc=0.93 fmt=1.00 hack=0.07 silent=0.81 len=39.0 kl=0.0000 ent=0.009 |adv|=0.062 gnorm=0.0666 lr=8.02e-06 (1.82s)
+  sample[43 - 2=41]: '<think>43 - 2 = 41。</think><answer>41</answer>'
+step 200/500 reward=1.055 acc=0.86 fmt=1.00 hack=0.14 silent=0.59 len=40.3 kl=0.0000 ent=0.008 |adv|=0.120 gnorm=0.1246 lr=7.75e-06 (2.08s)
+  eval: acc=0.906 fmt=1.000
+  sample[78 + 24=102]: '<think>把 24 拆成 20 和 4：78 + 20 = 98；98 + 4 = 102。</think><answer>102</answer>'
+step 210/500 reward=1.145 acc=0.95 fmt=1.00 hack=0.05 silent=0.84 len=39.4 kl=0.0000 ent=0.005 |adv|=0.043 gnorm=0.0598 lr=7.47e-06 (2.32s)
+  sample[24 - 3=21]: '<think>24 - 3 = 21。</think><answer>21</answer>'
+step 220/500 reward=1.109 acc=0.91 fmt=1.00 hack=0.09 silent=0.84 len=34.3 kl=0.0000 ent=0.006 |adv|=0.045 gnorm=0.0546 lr=7.19e-06 (2.27s)
+  sample[51 - 6=45]: '<think>51 - 6 = 45。</think><answer>45</answer>'
+step 230/500 reward=1.148 acc=0.95 fmt=1.00 hack=0.05 silent=0.88 len=35.9 kl=0.0000 ent=0.005 |adv|=0.034 gnorm=0.0501 lr=6.89e-06 (2.04s)
+  sample[77 + 8=85]: '<think>77 + 8 = 85。</think><answer>85</answer>'
+step 240/500 reward=1.040 acc=0.84 fmt=1.00 hack=0.16 silent=0.81 len=38.1 kl=0.0000 ent=0.005 |adv|=0.058 gnorm=0.1071 lr=6.59e-06 (1.8s)
+  sample[66 + 3=69]: '<think>66 + 3 = 69。</think><answer>69</answer>'
+step 250/500 reward=1.141 acc=0.94 fmt=1.00 hack=0.06 silent=0.81 len=36.3 kl=0.0000 ent=0.005 |adv|=0.062 gnorm=0.0723 lr=6.28e-06 (1.84s)
+  eval: acc=0.930 fmt=1.000
+  sample[65 - 13=52]: '<think>把 13 拆成 10 和 3：65 - 10 = 55；55 - 3 = 52。</think><answer>52</answer>'
+step 260/500 reward=1.156 acc=0.96 fmt=1.00 hack=0.04 silent=0.94 len=35.3 kl=0.0000 ent=0.004 |adv|=0.020 gnorm=0.0295 lr=5.97e-06 (2.21s)
+  sample[80 - 45=35]: '<think>把 45 拆成 40 和 5：80 - 40 = 40；40 - 5 = 35。</think><answer>35</answer>'
+step 270/500 reward=1.157 acc=0.96 fmt=1.00 hack=0.04 silent=0.78 len=33.6 kl=0.0000 ent=0.006 |adv|=0.056 gnorm=0.0793 lr=5.66e-06 (1.99s)
+  sample[58 - 35=23]: '<think>把 35 拆成 30 和 5：58 - 30 = 28；28 - 5 = 23。</think><answer>23</answer>'
+step 280/500 reward=1.122 acc=0.92 fmt=1.00 hack=0.08 silent=0.69 len=34.8 kl=0.0000 ent=0.003 |adv|=0.086 gnorm=0.0990 lr=5.34e-06 (2.27s)
+  sample[58 + 63=121]: '<think>把 63 拆成 60 和 3：58 + 60 = 118；118 + 3 = 121。</think><answer>121</answer>'
+step 290/500 reward=1.122 acc=0.92 fmt=1.00 hack=0.08 silent=0.75 len=37.6 kl=0.0000 ent=0.005 |adv|=0.072 gnorm=0.1138 lr=5.03e-06 (2.07s)
+  sample[65 - 7=58]: '<think>65 - 7 = 58。</think><answer>58</answer>'
+step 300/500 reward=1.180 acc=0.98 fmt=1.00 hack=0.02 silent=0.84 len=35.7 kl=0.0000 ent=0.002 |adv|=0.034 gnorm=0.0440 lr=4.72e-06 (2.28s)
+  eval: acc=0.944 fmt=1.000
+  sample[98 + 8=106]: '<think>98 + 8 = 106。</think><answer>106</answer>'
+step 310/500 reward=1.114 acc=0.91 fmt=1.00 hack=0.09 silent=0.81 len=36.7 kl=0.0000 ent=0.005 |adv|=0.041 gnorm=0.0627 lr=4.41e-06 (2.02s)
+  sample[32 - 28=4]: '<think>把 28 拆成 20 和 8：32 - 20 = 12；12 - 8 = 3。</think><answer>3</answer>'
+step 320/500 reward=1.180 acc=0.98 fmt=1.00 hack=0.02 silent=0.88 len=35.0 kl=0.0000 ent=0.004 |adv|=0.032 gnorm=0.0463 lr=4.11e-06 (2.06s)
+  sample[0 + 32=32]: '<think>把 32 拆成 30 和 2：0 + 30 = 30；30 + 2 = 32。</think><answer>32</answer>'
+step 330/500 reward=1.098 acc=0.90 fmt=1.00 hack=0.10 silent=0.91 len=36.6 kl=0.0000 ent=0.006 |adv|=0.033 gnorm=0.0768 lr=3.81e-06 (1.86s)
+  sample[93 - 53=40]: '<think>把 53 拆成 50 和 3：93 - 50 = 43；43 - 3 = 40。</think><answer>40</answer>'
+step 340/500 reward=1.161 acc=0.96 fmt=1.00 hack=0.04 silent=0.81 len=33.1 kl=0.0000 ent=0.006 |adv|=0.049 gnorm=0.0712 lr=3.53e-06 (2.04s)
+  sample[82 - 4=78]: '<think>82 - 4 = 68。</think><answer>68</answer>'
+step 350/500 reward=1.165 acc=0.96 fmt=1.00 hack=0.04 silent=0.88 len=38.7 kl=0.0000 ent=0.003 |adv|=0.032 gnorm=0.0612 lr=3.25e-06 (1.81s)
+  eval: acc=0.948 fmt=1.000
+  sample[1 + 7=8]: '<think>1 + 7 = 8。</think><answer>8</answer>'
+step 360/500 reward=1.192 acc=0.99 fmt=1.00 hack=0.01 silent=0.94 len=34.2 kl=0.0000 ent=0.003 |adv|=0.014 gnorm=0.0439 lr=2.98e-06 (2.26s)
+  sample[45 - 9=36]: '<think>45 - 9 = 36。</think><answer>36</answer>'
+step 370/500 reward=1.165 acc=0.96 fmt=1.00 hack=0.04 silent=0.88 len=39.0 kl=0.0000 ent=0.004 |adv|=0.044 gnorm=0.0826 lr=2.73e-06 (2.28s)
+  sample[91 - 67=24]: '<think>把 67 拆成 60 和 7：91 - 60 = 31；31 - 7 = 24。</think><answer>24</answer>'
+step 380/500 reward=1.156 acc=0.96 fmt=1.00 hack=0.04 silent=0.94 len=35.6 kl=0.0000 ent=0.004 |adv|=0.020 gnorm=0.0772 lr=2.49e-06 (2.61s)
+  sample[15 + 32=47]: '<think>把 32 拆成 30 和 2：15 + 30 = 45；45 + 2 = 47。</think><answer>47</answer>'
+step 390/500 reward=1.165 acc=0.96 fmt=1.00 hack=0.04 silent=0.97 len=37.1 kl=0.0000 ent=0.002 |adv|=0.007 gnorm=0.0163 lr=2.26e-06 (1.85s)
+  sample[44 - 38=6]: '<think>把 38 拆成 30 和 8：44 - 30 = 14；14 - 8 = 7。</think><answer>7</answer>'
+step 400/500 reward=1.173 acc=0.97 fmt=1.00 hack=0.03 silent=0.84 len=36.3 kl=0.0000 ent=0.003 |adv|=0.042 gnorm=0.0640 lr=2.05e-06 (1.6s)
+  eval: acc=0.948 fmt=1.000
+  sample[49 + 2=51]: '<think>49 + 2 = 51。</think><answer>51</answer>'
+step 410/500 reward=1.180 acc=0.98 fmt=1.00 hack=0.02 silent=0.88 len=37.6 kl=0.0000 ent=0.002 |adv|=0.032 gnorm=0.0625 lr=1.86e-06 (2.05s)
+  sample[7 + 8=15]: '<think>7 + 8 = 15。</think><answer>15</answer>'
+step 420/500 reward=1.196 acc=1.00 fmt=1.00 hack=0.00 silent=0.97 len=36.2 kl=0.0000 ent=0.001 |adv|=0.007 gnorm=0.0120 lr=1.68e-06 (2.1s)
+  sample[78 - 12=66]: '<think>把 12 拆成 10 和 2：78 - 10 = 68；68 - 2 = 66。</think><answer>66</answer>'
+step 430/500 reward=1.192 acc=0.99 fmt=1.00 hack=0.01 silent=0.94 len=35.5 kl=0.0000 ent=0.002 |adv|=0.014 gnorm=0.0242 lr=1.53e-06 (1.84s)
+  sample[29 + 29=58]: '<think>把 29 拆成 20 和 9：29 + 20 = 49；49 + 9 = 58。</think><answer>58</answer>'
+step 440/500 reward=1.192 acc=0.99 fmt=1.00 hack=0.01 silent=0.94 len=39.2 kl=0.0000 ent=0.001 |adv|=0.014 gnorm=0.0327 lr=1.39e-06 (2.31s)
+  sample[69 + 92=161]: '<think>把 92 拆成 90 和 2：69 + 90 = 159；159 + 2 = 161。</think><answer>161</answer>'
+step 450/500 reward=1.200 acc=1.00 fmt=1.00 hack=0.00 silent=1.00 len=39.3 kl=0.0000 ent=0.001 |adv|=0.000 gnorm=0.0000 lr=1.27e-06 (2.3s)
+  eval: acc=0.962 fmt=1.000
+  sample[54 + 62=116]: '<think>把 62 拆成 60 和 2：54 + 60 = 114；114 + 2 = 116。</think><answer>116</answer>'
+step 460/500 reward=1.161 acc=0.96 fmt=1.00 hack=0.04 silent=0.94 len=39.3 kl=0.0000 ent=0.002 |adv|=0.014 gnorm=0.0298 lr=1.17e-06 (2.31s)
+  sample[77 + 45=122]: '<think>把 45 拆成 40 和 5：77 + 40 = 117；117 + 5 = 122。</think><answer>122</answer>'
+step 470/500 reward=1.188 acc=0.99 fmt=1.00 hack=0.01 silent=0.94 len=37.0 kl=0.0000 ent=0.001 |adv|=0.019 gnorm=0.0328 lr=1.10e-06 (2.07s)
+  sample[8 + 43=51]: '<think>把 43 拆成 40 和 3：8 + 40 = 48；48 + 3 = 51。</think><answer>51</answer>'
+step 480/500 reward=1.192 acc=0.99 fmt=1.00 hack=0.01 silent=0.94 len=42.3 kl=0.0000 ent=0.002 |adv|=0.014 gnorm=0.0315 lr=1.04e-06 (2.36s)
+  sample[5 + 72=77]: '<think>把 72 拆成 70 和 2：5 + 70 = 75；75 + 2 = 77。</think><answer>77</answer>'
+step 490/500 reward=1.188 acc=0.99 fmt=1.00 hack=0.01 silent=0.94 len=36.1 kl=0.0000 ent=0.002 |adv|=0.019 gnorm=0.0538 lr=1.01e-06 (1.87s)
+  sample[46 + 17=63]: '<think>把 17 拆成 10 和 7：46 + 10 = 56；56 + 7 = 63。</think><answer>63</answer>'
+step 500/500 reward=1.169 acc=0.97 fmt=1.00 hack=0.03 silent=1.00 len=32.1 kl=0.0000 ent=0.002 |adv|=0.000 gnorm=0.0000 lr=1.00e-06 (2.3s)
+  eval: acc=0.962 fmt=1.000
+  sample[87 - 2=85]: '<think>87 - 2 = 85。</think><answer>85</answer>'
+Saved /root/autodl-tmp/results/posttrain_v1/dr_grpo_s1/grpo_final.pth; metrics -> /root/autodl-tmp/results/posttrain_v1/dr_grpo_s1/grpo_metrics.jsonl; run -> /root/autodl-tmp/results/posttrain_v1/dr_grpo_s1/runs/grpo_20261012-163611_c67ac1
+500 tasks: accuracy 0.962, format 1.000, hack 0.038, length 35.9 (4.9s)
+   op=+ n_digits=1: 0.833 of 30
+   op=+ n_digits=2: 0.979 of 240
+   op=- n_digits=1: 0.778 of 9
+   op=- n_digits=2: 0.968 of 221
+wrote /root/autodl-tmp/results/posttrain_v1/dr_grpo_s1/dev.json
+500 tasks: accuracy 0.948, format 1.000, hack 0.052, length 32.2 (4.5s)
+   op=+ n_digits=1: 0.843 of 51
+   op=+ n_digits=2: 0.995 of 211
+   op=- n_digits=1: 0.705 of 44
+   op=- n_digits=2: 0.979 of 194
+wrote /root/autodl-tmp/results/posttrain_v1/dr_grpo_s1/test.json
+=== dapo_lite seed 1 10-12 16:55:10 --filter_zero_variance True --clip_eps_high 0.28 --aggregation token_mean
+policy: dim=768 layers=12 heads=12 kv_heads=3 hidden=2048 vocab=32768 seq=192 -> 99.503M params
+GRPO: env=arithmetic G=8 prompts/step=32 steps=500 agg=token_mean kl=0.0 std_norm=True filter_zero_var=True
+run: /root/autodl-tmp/results/posttrain_v1/dapo_lite_s1/runs/grpo_20261012-165516_75ba35
+step 0 (init) eval: acc=0.636 fmt=1.000
+step 10/500 reward=0.755 acc=0.55 fmt=1.00 hack=0.45 silent=0.38 len=39.5 kl=0.0000 ent=0.035 |adv|=0.803 gnorm=0.5930 lr=2.00e-06 (1.71s)
+  sample[60 - 56=4]: '<think>把 56 拆成 50 和 6：60 - 50 = 10；10 - 6 = 2。</think><answer>2</answer>'
+step 20/500 reward=0.727 acc=0.53 fmt=1.00 hack=0.47 silent=0.28 len=36.5 kl=0.0000 ent=0.037 |adv|=0.868 gnorm=0.6593 lr=4.00e-06 (2.18s)
+  sample[41 - 29=12]: '<think>把 29 拆成 20 和 9：41 - 20 = 11；11 - 9 = 2。</think><answer>2</answer>'
+step 30/500 reward=0.782 acc=0.58 fmt=1.00 hack=0.42 silent=0.34 len=33.4 kl=0.0000 ent=0.037 |adv|=0.825 gnorm=0.6218 lr=6.00e-06 (1.89s)
+  sample[80 + 54=134]: '<think>把 54 拆成 50 和 4：80 + 50 = 120；120 + 4 = 124。</think><answer>124</answer>'
+step 40/500 reward=0.852 acc=0.65 fmt=1.00 hack=0.35 silent=0.38 len=38.0 kl=0.0000 ent=0.027 |adv|=0.828 gnorm=0.8814 lr=8.00e-06 (1.64s)
+  sample[4 + 86=90]: '<think>把 86 拆成 80 和 6：4 + 80 = 84；84 + 6 = 90。</think><answer>90</answer>'
+step 50/500 reward=0.934 acc=0.73 fmt=1.00 hack=0.27 silent=0.53 len=34.7 kl=0.0000 ent=0.030 |adv|=0.900 gnorm=0.9177 lr=1.00e-05 (2.03s)
+  eval: acc=0.678 fmt=1.000
+  sample[64 - 4=60]: '<think>64 - 4 = 60。</think><answer>60</answer>'
+step 60/500 reward=0.802 acc=0.60 fmt=1.00 hack=0.40 silent=0.41 len=38.2 kl=0.0000 ent=0.025 |adv|=0.844 gnorm=0.7893 lr=9.99e-06 (1.95s)
+  sample[34 + 57=91]: '<think>把 57 拆成 50 和 7：34 + 50 = 84；84 + 7 = 91。</think><answer>91</answer>'
+step 70/500 reward=0.915 acc=0.71 fmt=1.00 hack=0.29 silent=0.50 len=39.2 kl=0.0000 ent=0.029 |adv|=0.872 gnorm=1.1077 lr=9.96e-06 (1.63s)
+  sample[71 - 20=51]: '<think>71 - 20 = 41。</think><answer>41</answer>'
+step 80/500 reward=0.946 acc=0.75 fmt=1.00 hack=0.25 silent=0.59 len=37.3 kl=0.0000 ent=0.022 |adv|=0.782 gnorm=1.0469 lr=9.90e-06 (1.83s)
+  sample[97 + 99=196]: '<think>把 99 拆成 90 和 9：97 + 90 = 187；187 + 9 = 195。</think><answer>195</answer>'
+step 90/500 reward=0.915 acc=0.71 fmt=1.00 hack=0.29 silent=0.53 len=36.6 kl=0.0000 ent=0.029 |adv|=0.798 gnorm=1.0518 lr=9.83e-06 (2.0s)
+  sample[64 - 6=58]: '<think>64 - 6 = 57。</think><answer>57</answer>'
+step 100/500 reward=0.942 acc=0.74 fmt=1.00 hack=0.26 silent=0.41 len=37.2 kl=0.0000 ent=0.022 |adv|=0.808 gnorm=0.8541 lr=9.73e-06 (1.68s)
+  eval: acc=0.790 fmt=1.000
+  sample[7 + 8=15]: '<think>7 + 8 = 15。</think><answer>15</answer>'
+step 110/500 reward=0.927 acc=0.73 fmt=1.00 hack=0.27 silent=0.28 len=38.5 kl=0.0000 ent=0.022 |adv|=0.818 gnorm=1.0801 lr=9.61e-06 (1.93s)
+  sample[16 + 4=20]: '<think>16 + 4 = 19。</think><answer>19</answer>'
+step 120/500 reward=0.941 acc=0.74 fmt=1.00 hack=0.25 silent=0.56 len=34.2 kl=0.0000 ent=0.029 |adv|=0.817 gnorm=1.5279 lr=9.47e-06 (1.78s)
+  sample[55 + 59=114]: '<think>把 59 拆成 50 和 9：55 + 50 = 105；105 + 9 = 114。</think><answer>114</answer>'
+step 130/500 reward=1.020 acc=0.82 fmt=1.00 hack=0.18 silent=0.44 len=35.2 kl=0.0000 ent=0.018 |adv|=0.731 gnorm=1.1416 lr=9.32e-06 (1.92s)
+  sample[33 - 26=7]: '<think>把 26 拆成 20 和 6：33 - 20 = 13；13 - 6 = 7。</think><answer>7</answer>'
+step 140/500 reward=1.020 acc=0.82 fmt=1.00 hack=0.18 silent=0.59 len=39.3 kl=0.0000 ent=0.018 |adv|=0.813 gnorm=1.3872 lr=9.14e-06 (1.54s)
+  sample[52 + 40=92]: '<think>52 + 40 = 92。</think><answer>92</answer>'
+step 150/500 reward=1.067 acc=0.87 fmt=1.00 hack=0.13 silent=0.66 len=33.4 kl=0.0000 ent=0.029 |adv|=0.757 gnorm=1.8691 lr=8.95e-06 (1.55s)
+  eval: acc=0.868 fmt=1.000
+  sample[80 - 3=77]: '<think>80 - 3 = 79。</think><answer>79</answer>'
+step 160/500 reward=1.055 acc=0.86 fmt=1.00 hack=0.14 silent=0.66 len=36.5 kl=0.0000 ent=0.016 |adv|=0.739 gnorm=1.3880 lr=8.74e-06 (1.77s)
+  sample[86 + 89=175]: '<think>把 89 拆成 80 和 9：86 + 80 = 166；166 + 9 = 175。</think><answer>175</answer>'
+step 170/500 reward=1.118 acc=0.92 fmt=1.00 hack=0.08 silent=0.84 len=37.5 kl=0.0000 ent=0.013 |adv|=0.858 gnorm=1.7804 lr=8.51e-06 (1.88s)
+  sample[55 - 33=22]: '<think>把 33 拆成 30 和 3：55 - 30 = 25；25 - 3 = 22。</think><answer>22</answer>'
+step 180/500 reward=1.067 acc=0.87 fmt=1.00 hack=0.13 silent=0.75 len=34.9 kl=0.0000 ent=0.030 |adv|=0.819 gnorm=2.1858 lr=8.27e-06 (1.95s)
+  sample[28 - 9=19]: '<think>28 - 9 = 19。</think><answer>19</answer>'
+step 190/500 reward=1.016 acc=0.82 fmt=1.00 hack=0.18 silent=0.69 len=39.6 kl=0.0000 ent=0.021 |adv|=0.787 gnorm=1.4100 lr=8.02e-06 (1.59s)
+  sample[87 - 29=58]: '<think>把 29 拆成 20 和 9：87 - 20 = 67；67 - 9 = 58。</think><answer>58</answer>'
+step 200/500 reward=1.113 acc=0.91 fmt=1.00 hack=0.08 silent=0.78 len=40.8 kl=0.0000 ent=0.029 |adv|=0.733 gnorm=2.9123 lr=7.75e-06 (1.87s)
+  eval: acc=0.920 fmt=1.000
+  sample[92 - 21=71]: '<think>把 21 拆成 20 和 1：92 - 20 = 82；82 - 1 = 81。</think><answer>81</answer>'
+step 210/500 reward=1.095 acc=0.89 fmt=1.00 hack=0.11 silent=0.69 len=41.8 kl=0.0000 ent=0.013 |adv|=0.723 gnorm=1.2876 lr=7.47e-06 (2.01s)
+  sample[96 + 43=139]: '<think>把 43 拆成 40 和 3：96 + 40 = 136；136 + 3 = 141。</think><answer>141</answer>'
+step 220/500 reward=1.145 acc=0.95 fmt=1.00 hack=0.05 silent=0.88 len=34.3 kl=0.0000 ent=0.024 |adv|=0.738 gnorm=2.6344 lr=7.19e-06 (2.06s)
+  sample[93 + 57=150]: '<think>把 57 拆成 50 和 7：93 + 50 = 143；143 + 7 = 150。</think><answer>150</answer>'
+step 230/500 reward=1.149 acc=0.95 fmt=1.00 hack=0.05 silent=0.84 len=36.2 kl=0.0000 ent=0.015 |adv|=0.661 gnorm=2.0463 lr=6.89e-06 (1.71s)
+  sample[4 + 7=11]: '<think>4 + 7 = 11。</think><answer>11</answer>'
+step 240/500 reward=1.059 acc=0.86 fmt=1.00 hack=0.14 silent=0.84 len=39.0 kl=0.0000 ent=0.023 |adv|=0.764 gnorm=2.6245 lr=6.59e-06 (1.46s)
+  sample[77 - 8=69]: '<think>77 - 8 = 69。</think><answer>69</answer>'
+step 250/500 reward=1.157 acc=0.96 fmt=1.00 hack=0.04 silent=0.84 len=38.4 kl=0.0000 ent=0.017 |adv|=0.743 gnorm=1.9549 lr=6.28e-06 (1.5s)
+  eval: acc=0.936 fmt=1.000
+  sample[38 + 72=110]: '<think>把 72 拆成 70 和 2：38 + 70 = 108；108 + 2 = 104。</think><answer>104</answer>'
+step 260/500 reward=1.169 acc=0.97 fmt=1.00 hack=0.03 silent=0.91 len=35.7 kl=0.0000 ent=0.011 |adv|=0.730 gnorm=7.7264 lr=5.97e-06 (1.87s)
+  sample[3 + 69=72]: '<think>把 69 拆成 60 和9：3 + 60 = 63；63 + 9 = 72。</think><answer>72</answer>'
+step 270/500 reward=1.130 acc=0.93 fmt=1.00 hack=0.07 silent=0.81 len=35.5 kl=0.0000 ent=0.017 |adv|=0.781 gnorm=1.8982 lr=5.66e-06 (1.68s)
+  sample[29 + 89=118]: '<think>把 89 拆成 80 和9：29 + 80 = 99；99 + 9 = 108。</think><answer>108</answer>'
+step 280/500 reward=1.145 acc=0.95 fmt=1.00 hack=0.05 silent=0.81 len=35.3 kl=0.0000 ent=0.011 |adv|=0.730 gnorm=2.1604 lr=5.34e-06 (1.87s)
+  sample[73 - 54=19]: '<think>把 54 拆成 50 和4：73 - 50 = 23；23 - 4 = 19。</think><answer>19</answer>'
+step 290/500 reward=1.184 acc=0.98 fmt=1.00 hack=0.02 silent=0.91 len=37.8 kl=0.0000 ent=0.009 |adv|=0.730 gnorm=5.4688 lr=5.03e-06 (1.66s)
+  sample[65 - 7=58]: '<think>65 - 7 = 59。</think><answer>59</answer>'
+step 300/500 reward=1.184 acc=0.98 fmt=1.00 hack=0.02 silent=0.88 len=36.1 kl=0.0000 ent=0.006 |adv|=0.661 gnorm=3.1543 lr=4.72e-06 (1.9s)
+  eval: acc=0.952 fmt=1.000
+  sample[98 + 8=106]: '<think>98 + 8 = 106。</think><answer>106</answer>'
+step 310/500 reward=1.134 acc=0.93 fmt=1.00 hack=0.07 silent=0.84 len=37.8 kl=0.0000 ent=0.015 |adv|=0.805 gnorm=3.5747 lr=4.41e-06 (1.69s)
+  sample[4 + 86=90]: '<think>把 86 拆成 80 和6：4 + 80 = 84；84 + 6 = 90。</think><answer>90</answer>'
+step 320/500 reward=1.177 acc=0.98 fmt=1.00 hack=0.02 silent=0.88 len=34.8 kl=0.0000 ent=0.017 |adv|=0.764 gnorm=2.8748 lr=4.11e-06 (1.68s)
+  sample[50 + 42=92]: '<think>把 42 拆成 40 和 2：50 + 40 = 90；90 + 2 = 92。</think><answer>92</answer>'
+step 330/500 reward=1.137 acc=0.94 fmt=1.00 hack=0.06 silent=1.00 len=37.0 kl=0.0000 ent=0.000 |adv|=0.000 gnorm=0.0000 lr=3.81e-06 (1.34s)
+step 340/500 reward=1.173 acc=0.97 fmt=1.00 hack=0.03 silent=0.91 len=33.7 kl=0.0000 ent=0.019 |adv|=0.842 gnorm=5.7669 lr=3.53e-06 (1.64s)
+  sample[12 + 8=20]: '<think>12 + 8 = 20。</think><answer>20</answer>'
+step 350/500 reward=1.184 acc=0.98 fmt=1.00 hack=0.02 silent=0.88 len=39.4 kl=0.0000 ent=0.007 |adv|=0.661 gnorm=2.4461 lr=3.25e-06 (1.44s)
+  eval: acc=0.974 fmt=1.000
+  sample[10 - 7=3]: '<think>10 - 7 = 3。</think><answer>3</answer>'
+step 360/500 reward=1.192 acc=0.99 fmt=1.00 hack=0.01 silent=0.94 len=35.6 kl=0.0000 ent=0.018 |adv|=0.661 gnorm=4.6457 lr=2.98e-06 (1.88s)
+  sample[72 - 6=66]: '<think>72 - 6 = 66。</think><answer>66</answer>'
+step 370/500 reward=1.177 acc=0.98 fmt=1.00 hack=0.02 silent=0.91 len=40.4 kl=0.0000 ent=0.032 |adv|=0.832 gnorm=4.1872 lr=2.73e-06 (1.9s)
+  sample[99 - 97=2]: '<think>把 97 拆成 90 和 7：99 - 90 = 9；9 - 7 = 2。</think><answer>2</answer>'
+step 380/500 reward=1.184 acc=0.98 fmt=1.00 hack=0.02 silent=0.91 len=36.6 kl=0.0000 ent=0.009 |adv|=0.730 gnorm=3.9951 lr=2.49e-06 (1.66s)
+  sample[85 - 56=29]: '<think>把 56 拆成 50 和6：85 - 50 = 35；35 - 6 = 29。</think><answer>29</answer>'
+step 390/500 reward=1.165 acc=0.96 fmt=1.00 hack=0.04 silent=0.97 len=36.9 kl=0.0000 ent=0.003 |adv|=0.661 gnorm=3.5289 lr=2.26e-06 (1.42s)
+  sample[59 + 55=114]: '<think>把 55 拆成 50 和 5：59 + 50 = 109；109 + 5 = 114。</think><answer>114</answer>'
+step 400/500 reward=1.192 acc=0.99 fmt=1.00 hack=0.01 silent=0.94 len=36.3 kl=0.0000 ent=0.005 |adv|=0.661 gnorm=4.5533 lr=2.05e-06 (1.21s)
+  eval: acc=0.966 fmt=1.000
+  sample[58 + 41=99]: '<think>把 41 拆成 40 和 1：58 + 40 = 198；198 + 1 = 199。</think><answer>199</answer>'
+step 410/500 reward=1.196 acc=1.00 fmt=1.00 hack=0.00 silent=0.97 len=38.3 kl=0.0000 ent=0.007 |adv|=0.661 gnorm=4.3331 lr=1.86e-06 (1.66s)
+  sample[84 + 55=139]: '<think>把 55 拆成 50 和 5：84 + 50 = 134；134 + 5 = 139。</think><answer>139</answer>'
+step 420/500 reward=1.184 acc=0.98 fmt=1.00 hack=0.02 silent=0.88 len=38.4 kl=0.0000 ent=0.010 |adv|=0.661 gnorm=2.2796 lr=1.68e-06 (1.72s)
+  sample[9 + 93=102]: '<think>把 93 拆成 90 和 3：9 + 90 = 99；99 + 3 = 102。</think><answer>102</answer>'
+step 430/500 reward=1.184 acc=0.98 fmt=1.00 hack=0.02 silent=0.88 len=36.1 kl=0.0000 ent=0.010 |adv|=0.661 gnorm=3.5669 lr=1.53e-06 (1.42s)
+  sample[89 - 8=81]: '<think>89 - 8 = 81。</think><answer>81</answer>'
+step 440/500 reward=1.188 acc=0.99 fmt=1.00 hack=0.01 silent=0.94 len=40.2 kl=0.0000 ent=0.009 |adv|=0.764 gnorm=4.7962 lr=1.39e-06 (2.28s)
+  sample[1 + 19=20]: '<think>把 19 拆成 10 和 9：1 + 10 = 11；11 + 9 = 10。</think><answer>10</answer>'
+step 450/500 reward=1.200 acc=1.00 fmt=1.00 hack=0.00 silent=1.00 len=40.7 kl=0.0000 ent=0.000 |adv|=0.000 gnorm=0.0000 lr=1.27e-06 (1.86s)
+  eval: acc=0.982 fmt=1.000
+step 460/500 reward=1.153 acc=0.95 fmt=1.00 hack=0.05 silent=0.91 len=40.6 kl=0.0000 ent=0.008 |adv|=0.730 gnorm=2.7915 lr=1.17e-06 (1.88s)
+  sample[83 + 69=152]: '<think>把 69 拆成 60 和9：83 + 60 = 143；143 + 9 = 152。</think><answer>152</answer>'
+step 470/500 reward=1.192 acc=0.99 fmt=1.00 hack=0.01 silent=0.94 len=38.5 kl=0.0000 ent=0.013 |adv|=0.661 gnorm=4.5308 lr=1.10e-06 (1.66s)
+  sample[82 + 79=161]: '<think>把 79 拆成 70 和 9：82 + 70 = 152；152 + 9 = 161。</think><answer>161</answer>'
+step 480/500 reward=1.184 acc=0.98 fmt=1.00 hack=0.02 silent=0.91 len=42.2 kl=0.0000 ent=0.010 |adv|=0.730 gnorm=3.2967 lr=1.04e-06 (1.97s)
+  sample[71 - 68=3]: '<think>把 68 拆成 60 和8：71 - 60 = 11；11 - 8 = 3。</think><answer>3</answer>'
+step 490/500 reward=1.188 acc=0.99 fmt=1.00 hack=0.01 silent=0.91 len=36.8 kl=0.0000 ent=0.012 |adv|=0.661 gnorm=3.8129 lr=1.01e-06 (1.45s)
+  sample[58 - 57=1]: '<think>把 57 拆成 50 和 7：58 - 50 = 8；8 - 7 = 1。</think><answer>1</answer>'
+step 500/500 reward=1.157 acc=0.96 fmt=1.00 hack=0.04 silent=0.97 len=34.4 kl=0.0000 ent=0.023 |adv|=0.968 gnorm=7.1971 lr=1.00e-06 (1.86s)
+  eval: acc=0.982 fmt=1.000
+  sample[77 + 62=139]: '<think>把 62 拆成 60 和 2：77 + 60 = 137；137 + 2 = 140。</think><answer>140</answer>'
+Saved /root/autodl-tmp/results/posttrain_v1/dapo_lite_s1/grpo_final.pth; metrics -> /root/autodl-tmp/results/posttrain_v1/dapo_lite_s1/grpo_metrics.jsonl; run -> /root/autodl-tmp/results/posttrain_v1/dapo_lite_s1/runs/grpo_20261012-165516_75ba35
+500 tasks: accuracy 0.982, format 1.000, hack 0.018, length 37.0 (5.0s)
+   op=+ n_digits=1: 0.933 of 30
+   op=+ n_digits=2: 0.992 of 240
+   op=- n_digits=1: 0.889 of 9
+   op=- n_digits=2: 0.982 of 221
+wrote /root/autodl-tmp/results/posttrain_v1/dapo_lite_s1/dev.json
+500 tasks: accuracy 0.950, format 1.000, hack 0.050, length 33.1 (4.5s)
+   op=+ n_digits=1: 0.902 of 51
+   op=+ n_digits=2: 0.986 of 211
+   op=- n_digits=1: 0.682 of 44
+   op=- n_digits=2: 0.985 of 194
+wrote /root/autodl-tmp/results/posttrain_v1/dapo_lite_s1/test.json
+=== grpo seed 2 10-12 17:11:26 
+policy: dim=768 layers=12 heads=12 kv_heads=3 hidden=2048 vocab=32768 seq=192 -> 99.503M params
+GRPO: env=arithmetic G=8 prompts/step=32 steps=500 agg=seq_mean kl=0.0 std_norm=True filter_zero_var=False
+run: /root/autodl-tmp/results/posttrain_v1/grpo_s2/runs/grpo_20261012-171131_ba96a4
+step 0 (init) eval: acc=0.636 fmt=1.000
+step 10/500 reward=0.817 acc=0.62 fmt=1.00 hack=0.38 silent=0.34 len=33.6 kl=0.0000 ent=0.031 |adv|=0.566 gnorm=0.4497 lr=2.00e-06 (2.08s)
+  sample[0 + 30=30]: '<think>0 + 30 = 30。</think><answer>30</answer>'
+step 20/500 reward=0.864 acc=0.66 fmt=1.00 hack=0.34 silent=0.31 len=35.1 kl=0.0000 ent=0.028 |adv|=0.544 gnorm=0.4360 lr=4.00e-06 (2.22s)
+  sample[3 + 47=50]: '<think>把 47 拆成 40 和 7：3 + 40 = 43；43 + 7 = 50。</think><answer>50</answer>'
+step 30/500 reward=0.962 acc=0.76 fmt=1.00 hack=0.24 silent=0.47 len=34.9 kl=0.0000 ent=0.019 |adv|=0.452 gnorm=0.4404 lr=6.00e-06 (2.06s)
+  sample[29 - 8=21]: '<think>29 - 8 = 22。</think><answer>22</answer>'
+step 40/500 reward=0.786 acc=0.59 fmt=1.00 hack=0.41 silent=0.31 len=35.4 kl=0.0000 ent=0.028 |adv|=0.579 gnorm=0.7173 lr=8.00e-06 (1.78s)
+  sample[4 + 38=42]: '<think>把 38 拆成 30 和 8：4 + 30 = 34；34 + 8 = 41。</think><answer>41</answer>'
+step 50/500 reward=0.922 acc=0.72 fmt=1.00 hack=0.27 silent=0.50 len=34.7 kl=0.0000 ent=0.021 |adv|=0.419 gnorm=0.4229 lr=1.00e-05 (2.59s)
+  eval: acc=0.654 fmt=1.000
+  sample[8 + 87=95]: '<think>把 87 拆成 80 和 7：8 + 80 = 88；88 + 7 = 95。</think><answer>95</answer>'
+step 60/500 reward=0.895 acc=0.70 fmt=1.00 hack=0.30 silent=0.38 len=36.3 kl=0.0000 ent=0.020 |adv|=0.517 gnorm=0.5097 lr=9.99e-06 (2.11s)
+  sample[67 - 40=27]: '<think>67 - 40 = 17。</think><answer>17</answer>'
+step 70/500 reward=0.864 acc=0.66 fmt=1.00 hack=0.34 silent=0.47 len=35.9 kl=0.0000 ent=0.022 |adv|=0.442 gnorm=0.4508 lr=9.96e-06 (2.23s)
+  sample[86 - 35=51]: '<think>把 35 拆成 30 和 5：86 - 30 = 66；66 - 5 = 61。</think><answer>61</answer>'
+step 80/500 reward=0.911 acc=0.71 fmt=1.00 hack=0.29 silent=0.38 len=40.1 kl=0.0000 ent=0.017 |adv|=0.542 gnorm=0.7070 lr=9.90e-06 (1.84s)
+  sample[92 + 3=95]: '<think>92 + 3 = 95。</think><answer>95</answer>'
+step 90/500 reward=0.966 acc=0.77 fmt=1.00 hack=0.23 silent=0.47 len=35.3 kl=0.0000 ent=0.019 |adv|=0.444 gnorm=0.5768 lr=9.83e-06 (2.08s)
+  sample[41 + 1=42]: '<think>41 + 1 = 42。</think><answer>42</answer>'
+step 100/500 reward=1.036 acc=0.84 fmt=1.00 hack=0.16 silent=0.50 len=40.2 kl=0.0000 ent=0.014 |adv|=0.386 gnorm=0.5997 lr=9.73e-06 (1.84s)
+  eval: acc=0.752 fmt=1.000
+  sample[82 - 2=80]: '<think>82 - 2 = 80。</think><answer>80</answer>'
+step 110/500 reward=1.034 acc=0.84 fmt=0.99 hack=0.16 silent=0.72 len=39.0 kl=0.0000 ent=0.021 |adv|=0.218 gnorm=0.4873 lr=9.61e-06 (2.45s)
+  sample[9 + 16=25]: '<think>把 16 拆成 10 和 6：9 + 10 = 19；19 + 6 = 25。</think><answer>25</answer>'
+step 120/500 reward=1.028 acc=0.83 fmt=1.00 hack=0.17 silent=0.69 len=35.6 kl=0.0000 ent=0.015 |adv|=0.276 gnorm=0.4657 lr=9.47e-06 (2.28s)
+  sample[65 - 2=63]: '<think>65 - 2 = 63。</think><answer>63</answer>'
+step 130/500 reward=0.966 acc=0.77 fmt=1.00 hack=0.23 silent=0.72 len=37.4 kl=0.0000 ent=0.026 |adv|=0.192 gnorm=0.7677 lr=9.32e-06 (1.59s)
+  sample[62 - 18=44]: ' <think>把 18 拆成 10 和 8：62 - 10 = 52；52 - 8 = 45。</think><answer>45</answer>'
+step 140/500 reward=1.036 acc=0.84 fmt=1.00 hack=0.16 silent=0.62 len=35.7 kl=0.0000 ent=0.012 |adv|=0.287 gnorm=0.8423 lr=9.14e-06 (2.25s)
+  sample[83 + 37=120]: ' <think>把 37 拆成 30 和 7：83 + 30 = 113；113 + 7 = 120。</think><answer>120</answer>'
+step 150/500 reward=1.153 acc=0.95 fmt=1.00 hack=0.05 silent=0.81 len=30.8 kl=0.0000 ent=0.007 |adv|=0.145 gnorm=0.5879 lr=8.95e-06 (2.23s)
+  eval: acc=0.862 fmt=1.000
+  sample[82 + 86=168]: ' <think>把 86 拆成 80 和 6：82 + 80 = 162；162 + 6 = 168。</think><answer>168</answer>'
+step 160/500 reward=1.055 acc=0.86 fmt=1.00 hack=0.14 silent=0.75 len=37.9 kl=0.0000 ent=0.010 |adv|=0.213 gnorm=0.6474 lr=8.74e-06 (2.07s)
+  sample[14 - 8=6]: ' <think>14 - 8 = 4。</think><answer>4</answer>'
+step 170/500 reward=1.141 acc=0.94 fmt=1.00 hack=0.06 silent=0.69 len=34.0 kl=0.0000 ent=0.006 |adv|=0.232 gnorm=0.4532 lr=8.51e-06 (2.01s)
+  sample[2 + 31=33]: ' <think>把 31 拆成 30 和 1：2 + 30 = 32；32 + 1 = 33。</think><answer>33</answer>'
+step 180/500 reward=1.055 acc=0.86 fmt=1.00 hack=0.14 silent=0.75 len=38.0 kl=0.0000 ent=0.007 |adv|=0.186 gnorm=0.8961 lr=8.27e-06 (1.8s)
+  sample[44 - 8=36]: ' <think>44 - 8 = 36。</think><answer>36</answer>'
+step 190/500 reward=1.110 acc=0.91 fmt=1.00 hack=0.09 silent=0.75 len=38.2 kl=0.0000 ent=0.008 |adv|=0.217 gnorm=0.4696 lr=8.02e-06 (2.24s)
+  sample[32 + 92=124]: ' <think>把 92 拆成 90 和 2：32 + 90 = 122；122 + 2 = 124。</think><answer>124</answer>'
+step 200/500 reward=1.102 acc=0.90 fmt=1.00 hack=0.10 silent=0.66 len=38.1 kl=0.0000 ent=0.008 |adv|=0.259 gnorm=0.5491 lr=7.75e-06 (2.9s)
+  eval: acc=0.894 fmt=1.000
+  sample[21 + 75=96]: ' <think>把 75 拆成 70 和 5：21 + 70 = 91；91 + 5 = 96。</think><answer>96</answer>'
+step 210/500 reward=1.079 acc=0.88 fmt=1.00 hack=0.12 silent=0.66 len=35.0 kl=0.0000 ent=0.010 |adv|=0.286 gnorm=0.8842 lr=7.47e-06 (2.06s)
+  sample[41 + 23=64]: ' <think>把 23 拆成 20 和 3：41 + 20 = 61；61 + 3 = 64。</think><answer>64</answer>'
+step 220/500 reward=1.134 acc=0.93 fmt=1.00 hack=0.07 silent=0.75 len=38.6 kl=0.0000 ent=0.008 |adv|=0.204 gnorm=0.5282 lr=7.19e-06 (1.81s)
+  sample[89 - 86=3]: ' <think>把 86 拆成 80 和 6：89 - 80 = 9；9 - 6 = 3。</think><answer>3</answer>'
+step 230/500 reward=1.153 acc=0.95 fmt=1.00 hack=0.05 silent=0.88 len=36.5 kl=0.0000 ent=0.007 |adv|=0.095 gnorm=0.4977 lr=6.89e-06 (2.07s)
+  sample[40 - 8=32]: ' <think>40 - 8 = 32。</think><answer>32</answer>'
+step 240/500 reward=1.016 acc=0.82 fmt=1.00 hack=0.18 silent=0.66 len=38.9 kl=0.0000 ent=0.008 |adv|=0.267 gnorm=0.4894 lr=6.59e-06 (1.82s)
+  sample[37 + 45=82]: ' <think>把 45 拆成 40 和 5：37 + 40 = 77；77 + 5 = 82。</think><answer>82</answer>'
+step 250/500 reward=1.118 acc=0.92 fmt=1.00 hack=0.08 silent=0.84 len=34.0 kl=0.0000 ent=0.007 |adv|=0.126 gnorm=0.6115 lr=6.28e-06 (2.87s)
+  eval: acc=0.922 fmt=1.000
+  sample[66 - 3=63]: ' <think>66 - 3 = 63。</think><answer>63</answer>'
+step 260/500 reward=1.137 acc=0.94 fmt=1.00 hack=0.06 silent=0.81 len=29.6 kl=0.0000 ent=0.006 |adv|=0.146 gnorm=0.5497 lr=5.97e-06 (2.22s)
+  sample[68 + 9=77]: ' <think>68 + 9 = 77。</think><answer>77</answer>'
+step 270/500 reward=1.145 acc=0.95 fmt=1.00 hack=0.05 silent=0.88 len=36.2 kl=0.0000 ent=0.004 |adv|=0.095 gnorm=0.3689 lr=5.66e-06 (1.83s)
+  sample[64 + 3=67]: ' <think>64 + 3 = 67。</think><answer>67</answer>'
+step 280/500 reward=1.145 acc=0.95 fmt=1.00 hack=0.05 silent=0.75 len=34.7 kl=0.0000 ent=0.006 |adv|=0.192 gnorm=0.6161 lr=5.34e-06 (2.26s)
+  sample[66 - 0=66]: ' <think>66 - 0 = 66。</think><answer>66</answer>'
+step 290/500 reward=1.169 acc=0.97 fmt=1.00 hack=0.03 silent=0.88 len=36.4 kl=0.0000 ent=0.005 |adv|=0.105 gnorm=0.3197 lr=5.03e-06 (2.4s)
+  sample[6 + 92=98]: ' <think>把 92 拆成 90 和 2：6 + 90 = 96；96 + 2 = 98。</think><answer>98</answer>'
+step 300/500 reward=1.169 acc=0.97 fmt=1.00 hack=0.03 silent=0.88 len=34.4 kl=0.0000 ent=0.004 |adv|=0.102 gnorm=0.4344 lr=4.72e-06 (2.08s)
+  eval: acc=0.944 fmt=1.000
+  sample[67 - 0=67]: ' <think>67 - 0 = 67。</think><answer>67</answer>'
+step 310/500 reward=1.168 acc=0.97 fmt=1.00 hack=0.03 silent=0.84 len=40.8 kl=0.0000 ent=0.008 |adv|=0.126 gnorm=0.3853 lr=4.41e-06 (3.0s)
+  sample[64 + 46=110]: ' <think>把 46 拆成 40 和 6：64 + 40 = 104；104 + 6 = 110。</think><answer>110</answer>'
+step 320/500 reward=1.169 acc=0.97 fmt=1.00 hack=0.03 silent=0.88 len=35.9 kl=0.0000 ent=0.006 |adv|=0.105 gnorm=0.4155 lr=4.11e-06 (2.07s)
+  sample[20 - 6=14]: ' <think>20 - 6 = 2。</think><answer>2</answer>'
+step 330/500 reward=1.173 acc=0.97 fmt=1.00 hack=0.03 silent=0.84 len=36.2 kl=0.0000 ent=0.003 |adv|=0.113 gnorm=0.2573 lr=3.81e-06 (2.25s)
+  sample[1 + 41=42]: ' <think>把 41 拆成 40 和 1：1 + 40 = 41；41 + 1 = 42。</think><answer>42</answer>'
+step 340/500 reward=1.180 acc=0.98 fmt=1.00 hack=0.02 silent=0.91 len=37.3 kl=0.0000 ent=0.004 |adv|=0.075 gnorm=0.3800 lr=3.53e-06 (1.81s)
+  sample[51 + 90=141]: ' <think>把 90 拆成 90 和 0：51 + 90 = 141；141 + 0 = 141。</think><answer>141</answer>'
+step 350/500 reward=1.192 acc=0.99 fmt=1.00 hack=0.01 silent=0.94 len=36.8 kl=0.0000 ent=0.003 |adv|=0.041 gnorm=0.1313 lr=3.25e-06 (2.06s)
+  eval: acc=0.952 fmt=1.000
+  sample[71 - 51=20]: ' <think>把 51 拆成 50 和 1：71 - 50 = 21；21 - 1 = 20。</think><answer>20</answer>'
+step 360/500 reward=1.177 acc=0.98 fmt=1.00 hack=0.02 silent=0.91 len=36.3 kl=0.0000 ent=0.007 |adv|=0.073 gnorm=0.4367 lr=2.98e-06 (2.56s)
+  sample[18 + 5=23]: ' <think>18 + 5 = 23。</think><answer>23</answer>'
+step 370/500 reward=1.192 acc=0.99 fmt=1.00 hack=0.01 silent=0.94 len=37.8 kl=0.0000 ent=0.003 |adv|=0.041 gnorm=0.3154 lr=2.73e-06 (2.07s)
+  sample[33 - 8=25]: ' <think>33 - 8 = 25。</think><answer>25</answer>'
+step 380/500 reward=1.200 acc=1.00 fmt=1.00 hack=0.00 silent=1.00 len=33.7 kl=0.0000 ent=0.003 |adv|=0.000 gnorm=0.0000 lr=2.49e-06 (2.37s)
+  sample[51 - 35=16]: ' <think>把 35 拆成 30 和 5：51 - 30 = 21；21 - 5 = 16。</think><answer>16</answer>'
+step 390/500 reward=1.122 acc=0.92 fmt=1.00 hack=0.08 silent=0.88 len=39.9 kl=0.0000 ent=0.003 |adv|=0.105 gnorm=0.5213 lr=2.26e-06 (1.84s)
+  sample[68 - 6=62]: ' <think>68 - 6 = 62。</think><answer>62</answer>'
+step 400/500 reward=1.165 acc=0.96 fmt=1.00 hack=0.04 silent=0.88 len=34.1 kl=0.0000 ent=0.003 |adv|=0.089 gnorm=0.5726 lr=2.05e-06 (2.3s)
+  eval: acc=0.958 fmt=1.000
+  sample[90 - 0=90]: ' <think>90 - 0 = 90。</think><answer>90</answer>'
+step 410/500 reward=1.188 acc=0.99 fmt=1.00 hack=0.01 silent=0.91 len=34.1 kl=0.0000 ent=0.004 |adv|=0.062 gnorm=0.4542 lr=1.86e-06 (2.05s)
+  sample[63 - 0=63]: ' <think>63 - 0 = 63。</think><answer>63</answer>'
+step 420/500 reward=1.196 acc=1.00 fmt=1.00 hack=0.00 silent=0.97 len=32.4 kl=0.0000 ent=0.003 |adv|=0.021 gnorm=0.1705 lr=1.68e-06 (2.25s)
+  sample[89 + 7=96]: ' <think>89 + 7 = 96。</think><answer>96</answer>'
+step 430/500 reward=1.196 acc=1.00 fmt=1.00 hack=0.00 silent=0.97 len=39.8 kl=0.0000 ent=0.002 |adv|=0.021 gnorm=0.0565 lr=1.53e-06 (2.3s)
+  sample[86 + 8=94]: ' <think>86 + 8 = 94。</think><answer>94</answer>'
+step 440/500 reward=1.153 acc=0.95 fmt=1.00 hack=0.05 silent=0.81 len=39.0 kl=0.0000 ent=0.004 |adv|=0.137 gnorm=0.4614 lr=1.39e-06 (1.88s)
+  sample[76 - 73=3]: ' <think>把 73 拆成 70 和 3：76 - 70 = 6；6 - 3 = 3。</think><answer>3</answer>'
+step 450/500 reward=1.196 acc=1.00 fmt=1.00 hack=0.00 silent=0.97 len=32.0 kl=0.0000 ent=0.003 |adv|=0.021 gnorm=0.3414 lr=1.27e-06 (2.29s)
+  eval: acc=0.970 fmt=1.000
+  sample[73 - 1=72]: ' <think>73 - 1 = 72。</think><answer>72</answer>'
+step 460/500 reward=1.196 acc=1.00 fmt=1.00 hack=0.00 silent=0.97 len=37.0 kl=0.0000 ent=0.002 |adv|=0.021 gnorm=0.1301 lr=1.17e-06 (2.05s)
+  sample[47 - 7=40]: ' <think>47 - 7 = 40。</think><answer>40</answer>'
+step 470/500 reward=1.161 acc=0.96 fmt=1.00 hack=0.04 silent=0.94 len=36.7 kl=0.0000 ent=0.002 |adv|=0.041 gnorm=0.1961 lr=1.10e-06 (1.83s)
+  sample[39 - 24=15]: ' <think>把 24 拆成 20 和 4：39 - 20 = 19；19 - 4 = 15。</think><answer>15</answer>'
+step 480/500 reward=1.196 acc=1.00 fmt=1.00 hack=0.00 silent=0.97 len=38.3 kl=0.0000 ent=0.002 |adv|=0.021 gnorm=0.1429 lr=1.04e-06 (2.06s)
+  sample[3 + 10=13]: ' <think>3 + 10 = 13。</think><answer>13</answer>'
+step 490/500 reward=1.161 acc=0.96 fmt=1.00 hack=0.04 silent=0.88 len=38.5 kl=0.0000 ent=0.004 |adv|=0.083 gnorm=0.6440 lr=1.01e-06 (1.8s)
+  sample[44 - 8=36]: ' <think>44 - 8 = 36。</think><answer>36</answer>'
+step 500/500 reward=1.196 acc=1.00 fmt=1.00 hack=0.00 silent=0.97 len=37.3 kl=0.0000 ent=0.002 |adv|=0.021 gnorm=0.5884 lr=1.00e-06 (2.08s)
+  eval: acc=0.968 fmt=1.000
+  sample[49 - 5=44]: ' <think>49 - 5 = 44。</think><answer>44</answer>'
+Saved /root/autodl-tmp/results/posttrain_v1/grpo_s2/grpo_final.pth; metrics -> /root/autodl-tmp/results/posttrain_v1/grpo_s2/grpo_metrics.jsonl; run -> /root/autodl-tmp/results/posttrain_v1/grpo_s2/runs/grpo_20261012-171131_ba96a4
+500 tasks: accuracy 0.968, format 1.000, hack 0.032, length 37.1 (4.9s)
+   op=+ n_digits=1: 0.933 of 30
+   op=+ n_digits=2: 0.988 of 240
+   op=- n_digits=1: 0.556 of 9
+   op=- n_digits=2: 0.968 of 221
+wrote /root/autodl-tmp/results/posttrain_v1/grpo_s2/dev.json
+500 tasks: accuracy 0.944, format 1.000, hack 0.056, length 33.2 (4.5s)
+   op=+ n_digits=1: 0.882 of 51
+   op=+ n_digits=2: 0.981 of 211
+   op=- n_digits=1: 0.727 of 44
+   op=- n_digits=2: 0.969 of 194
+wrote /root/autodl-tmp/results/posttrain_v1/grpo_s2/test.json
+=== grpo_kl seed 2 10-12 17:30:47 --kl_coeff 0.02
+policy: dim=768 layers=12 heads=12 kv_heads=3 hidden=2048 vocab=32768 seq=192 -> 99.503M params
+GRPO: env=arithmetic G=8 prompts/step=32 steps=500 agg=seq_mean kl=0.02 std_norm=True filter_zero_var=False
+run: /root/autodl-tmp/results/posttrain_v1/grpo_kl_s2/runs/grpo_20261012-173054_978eef
+step 0 (init) eval: acc=0.636 fmt=1.000
+step 10/500 reward=0.817 acc=0.62 fmt=1.00 hack=0.38 silent=0.34 len=33.6 kl=0.0002 ent=0.031 |adv|=0.566 gnorm=0.4494 lr=2.00e-06 (2.13s)
+  sample[0 + 30=30]: '<think>0 + 30 = 30。</think><answer>30</answer>'
+step 20/500 reward=0.864 acc=0.66 fmt=1.00 hack=0.34 silent=0.31 len=35.1 kl=0.0010 ent=0.027 |adv|=0.544 gnorm=0.4338 lr=4.00e-06 (2.36s)
+  sample[3 + 47=50]: '<think>把 47 拆成 40 和 7：3 + 40 = 43；43 + 7 = 50。</think><answer>50</answer>'
+step 30/500 reward=0.962 acc=0.76 fmt=1.00 hack=0.24 silent=0.47 len=34.9 kl=0.0013 ent=0.019 |adv|=0.452 gnorm=0.4271 lr=6.00e-06 (2.18s)
+  sample[29 - 8=21]: '<think>29 - 8 = 22。</think><answer>22</answer>'
+step 40/500 reward=0.833 acc=0.63 fmt=1.00 hack=0.37 silent=0.38 len=35.4 kl=0.0063 ent=0.028 |adv|=0.511 gnorm=0.6515 lr=8.00e-06 (1.93s)
+  sample[4 + 38=42]: '<think>把 38 拆成 30 和 8：4 + 30 = 34；34 + 8 = 42。</think><answer>42</answer>'
+step 50/500 reward=0.919 acc=0.72 fmt=1.00 hack=0.28 silent=0.50 len=34.4 kl=0.0064 ent=0.021 |adv|=0.425 gnorm=0.4927 lr=1.00e-05 (2.21s)
+  eval: acc=0.656 fmt=1.000
+  sample[8 + 87=95]: '<think>把 87 拆成 80 和 7：8 + 80 = 88；88 + 7 = 95。</think><answer>95</answer>'
+step 60/500 reward=0.954 acc=0.75 fmt=1.00 hack=0.25 silent=0.50 len=36.3 kl=0.0063 ent=0.018 |adv|=0.405 gnorm=0.5000 lr=9.99e-06 (2.11s)
+  sample[67 - 40=27]: '<think>67 - 40 = 17。</think><answer>17</answer>'
+step 70/500 reward=0.942 acc=0.74 fmt=1.00 hack=0.26 silent=0.28 len=36.2 kl=0.0340 ent=0.027 |adv|=0.601 gnorm=0.7483 lr=9.96e-06 (2.99s)
+  sample[86 - 35=51]: '<think>把 35 拆成 30 和 5：86 - 30 = 56；56 - 5 = 52。</think><answer>52</answer>'
+step 80/500 reward=0.954 acc=0.75 fmt=1.00 hack=0.25 silent=0.38 len=40.1 kl=0.0093 ent=0.018 |adv|=0.523 gnorm=0.5448 lr=9.90e-06 (1.92s)
+  sample[92 + 3=95]: '<think>92 + 3 = 95。</think><answer>95</answer>'
+step 90/500 reward=0.969 acc=0.77 fmt=1.00 hack=0.23 silent=0.41 len=35.6 kl=0.0098 ent=0.029 |adv|=0.500 gnorm=0.4259 lr=9.83e-06 (2.75s)
+  sample[41 + 1=42]: '<think>41 + 1 = 42。</think><answer>42</answer>'
+step 100/500 reward=1.020 acc=0.82 fmt=1.00 hack=0.18 silent=0.50 len=40.2 kl=0.0077 ent=0.015 |adv|=0.420 gnorm=0.5953 lr=9.73e-06 (1.95s)
+  eval: acc=0.772 fmt=1.000
+  sample[82 - 2=80]: '<think>82 - 2 = 80。</think><answer>80</answer>'
+step 110/500 reward=1.040 acc=0.84 fmt=1.00 hack=0.16 silent=0.59 len=38.8 kl=0.0078 ent=0.014 |adv|=0.327 gnorm=0.5838 lr=9.61e-06 (1.94s)
+  sample[9 + 16=25]: '<think>把 16 拆成 10 和 6：9 + 10 = 19；19 + 6 = 25。</think><answer>25</answer>'
+step 120/500 reward=0.989 acc=0.79 fmt=1.00 hack=0.21 silent=0.59 len=35.6 kl=0.0235 ent=0.015 |adv|=0.330 gnorm=0.5429 lr=9.47e-06 (2.35s)
+  sample[65 - 2=63]: '<think>65 - 2 = 63。</think><answer>63</answer>'
+step 130/500 reward=0.989 acc=0.79 fmt=1.00 hack=0.21 silent=0.66 len=37.4 kl=0.0252 ent=0.016 |adv|=0.270 gnorm=0.6845 lr=9.32e-06 (1.69s)
+  sample[62 - 18=44]: '<think>把 18 拆成 10 和 8：62 - 10 = 52；52 - 8 = 44。</think><answer>44</answer>'
+step 140/500 reward=0.981 acc=0.78 fmt=1.00 hack=0.22 silent=0.62 len=35.6 kl=0.0106 ent=0.016 |adv|=0.314 gnorm=0.8779 lr=9.14e-06 (2.36s)
+  sample[83 + 37=120]: '<think>把 37 拆成 30 和 7：83 + 30 = 113；113 + 7 = 120。</think><answer>120</answer>'
+step 150/500 reward=1.095 acc=0.89 fmt=1.00 hack=0.11 silent=0.84 len=30.8 kl=0.0117 ent=0.007 |adv|=0.113 gnorm=0.4679 lr=8.95e-06 (2.32s)
+  eval: acc=0.848 fmt=1.000
+  sample[82 + 86=168]: '<think>把 86 拆成 80 和 6：82 + 80 = 172；172 + 6 = 178。</think><answer>178</answer>'
+step 160/500 reward=0.988 acc=0.79 fmt=1.00 hack=0.21 silent=0.62 len=37.8 kl=0.0200 ent=0.011 |adv|=0.321 gnorm=0.7819 lr=8.74e-06 (2.4s)
+  sample[14 - 8=6]: '<think>14 - 8 = 4。</think><answer>4</answer>'
+step 170/500 reward=1.141 acc=0.94 fmt=1.00 hack=0.05 silent=0.81 len=34.0 kl=0.0070 ent=0.009 |adv|=0.163 gnorm=0.4247 lr=8.51e-06 (2.16s)
+  sample[2 + 31=33]: '<think>把 31 拆成 30 和 1：2 + 30 = 32；32 + 1 = 33。</think><answer>33</answer>'
+step 180/500 reward=1.044 acc=0.84 fmt=1.00 hack=0.16 silent=0.62 len=38.1 kl=0.0219 ent=0.007 |adv|=0.300 gnorm=0.5763 lr=8.27e-06 (1.92s)
+  sample[44 - 8=36]: '<think>44 - 8 = 36。</think><answer>36</answer>'
+step 190/500 reward=1.114 acc=0.91 fmt=1.00 hack=0.09 silent=0.72 len=37.6 kl=0.0067 ent=0.010 |adv|=0.219 gnorm=0.4883 lr=8.02e-06 (2.63s)
+  sample[32 + 92=124]: '<think>把 92 拆成 90 和 2：32 + 90 = 122；122 + 2 = 124。</think><answer>124</answer>'
+step 200/500 reward=1.153 acc=0.95 fmt=1.00 hack=0.05 silent=0.81 len=37.7 kl=0.0142 ent=0.005 |adv|=0.154 gnorm=0.4096 lr=7.75e-06 (2.17s)
+  eval: acc=0.904 fmt=1.000
+  sample[21 + 75=96]: '<think>把 75 拆成 70 和 5：21 + 70 = 91；91 + 5 = 96。</think><answer>96</answer>'
+step 210/500 reward=1.109 acc=0.91 fmt=1.00 hack=0.09 silent=0.75 len=35.0 kl=0.0096 ent=0.008 |adv|=0.186 gnorm=0.5599 lr=7.47e-06 (2.14s)
+  sample[41 + 23=64]: '<think>把 23 拆成 20 和 3：41 + 20 = 61；61 + 3 = 64。</think><answer>64</answer>'
+step 220/500 reward=1.118 acc=0.92 fmt=1.00 hack=0.08 silent=0.59 len=38.6 kl=0.0365 ent=0.005 |adv|=0.281 gnorm=0.4575 lr=7.19e-06 (1.9s)
+  sample[89 - 86=3]: '<think>把 86 拆成 80 和 6：89 - 80 = 9；9 - 6 = 3。</think><answer>3</answer>'
+step 230/500 reward=1.137 acc=0.94 fmt=1.00 hack=0.06 silent=0.81 len=35.7 kl=0.0082 ent=0.006 |adv|=0.146 gnorm=0.4170 lr=6.89e-06 (2.14s)
+  sample[40 - 8=32]: '<think>40 - 8 = 32。</think><answer>32</answer>'
+step 240/500 reward=1.071 acc=0.87 fmt=1.00 hack=0.13 silent=0.78 len=38.8 kl=0.0070 ent=0.006 |adv|=0.167 gnorm=0.3462 lr=6.59e-06 (1.9s)
+  sample[37 + 45=82]: '<think>把 45 拆成 40 和 5：37 + 40 = 77；77 + 5 = 82。</think><answer>82</answer>'
+step 250/500 reward=1.130 acc=0.93 fmt=1.00 hack=0.07 silent=0.84 len=33.7 kl=0.0124 ent=0.007 |adv|=0.119 gnorm=0.6245 lr=6.28e-06 (2.35s)
+  eval: acc=0.908 fmt=1.000
+  sample[66 - 3=63]: '<think>66 - 3 = 63。</think><answer>63</answer>'
+step 260/500 reward=1.188 acc=0.99 fmt=1.00 hack=0.01 silent=0.91 len=29.5 kl=0.0171 ent=0.003 |adv|=0.062 gnorm=0.2252 lr=5.97e-06 (2.12s)
+  sample[68 + 9=77]: '<think>68 + 9 = 77。</think><answer>77</answer>'
+step 270/500 reward=1.141 acc=0.94 fmt=1.00 hack=0.06 silent=0.81 len=35.4 kl=0.0191 ent=0.004 |adv|=0.130 gnorm=0.5891 lr=5.66e-06 (1.85s)
+  sample[64 + 3=67]: '<think>64 + 3 = 67。</think><answer>67</answer>'
+step 280/500 reward=1.126 acc=0.93 fmt=1.00 hack=0.07 silent=0.81 len=34.0 kl=0.0186 ent=0.006 |adv|=0.147 gnorm=0.6375 lr=5.34e-06 (2.33s)
+  sample[66 - 0=66]: '<think>66 - 0 = 66。</think><answer>66</answer>'
+step 290/500 reward=1.145 acc=0.95 fmt=1.00 hack=0.05 silent=0.84 len=35.4 kl=0.0086 ent=0.004 |adv|=0.127 gnorm=0.3492 lr=5.03e-06 (1.87s)
+  sample[6 + 92=98]: '<think>把 92 拆成 90 和 2：6 + 90 = 96；96 + 2 = 98。</think><answer>98</answer>'
+step 300/500 reward=1.177 acc=0.98 fmt=1.00 hack=0.02 silent=0.84 len=34.3 kl=0.0098 ent=0.003 |adv|=0.110 gnorm=0.2608 lr=4.72e-06 (2.11s)
+  eval: acc=0.956 fmt=1.000
+  sample[67 - 0=67]: '<think>67 - 0 = 67。</think><answer>67</answer>'
+step 310/500 reward=1.161 acc=0.96 fmt=1.00 hack=0.04 silent=0.75 len=39.8 kl=0.0144 ent=0.005 |adv|=0.175 gnorm=0.4496 lr=4.41e-06 (2.15s)
+  sample[64 + 46=110]: '<think>把 46 拆成 40 和 6：64 + 40 = 104；104 + 6 = 110。</think><answer>110</answer>'
+step 320/500 reward=1.141 acc=0.94 fmt=1.00 hack=0.06 silent=0.78 len=35.1 kl=0.0123 ent=0.007 |adv|=0.180 gnorm=0.6084 lr=4.11e-06 (2.17s)
+  sample[20 - 6=14]: '<think>20 - 6 = 14。</think><answer>14</answer>'
+step 330/500 reward=1.141 acc=0.94 fmt=1.00 hack=0.06 silent=0.78 len=36.2 kl=0.0325 ent=0.005 |adv|=0.157 gnorm=0.5353 lr=3.81e-06 (2.34s)
+  sample[1 + 41=42]: '<think>把 41 拆成 40 和 1：1 + 40 = 41；41 + 1 = 42。</think><answer>42</answer>'
+step 340/500 reward=1.184 acc=0.98 fmt=1.00 hack=0.02 silent=0.88 len=36.5 kl=0.0077 ent=0.004 |adv|=0.083 gnorm=0.2967 lr=3.53e-06 (1.94s)
+  sample[51 + 90=141]: '<think>51 + 90 = 141。</think><answer>141</answer>'
+step 350/500 reward=1.153 acc=0.95 fmt=1.00 hack=0.05 silent=0.88 len=34.9 kl=0.0662 ent=0.004 |adv|=0.083 gnorm=0.4522 lr=3.25e-06 (2.18s)
+  eval: acc=0.952 fmt=1.000
+  sample[71 - 51=20]: '<think>把 51 拆成 50 和 1：71 - 50 = 21；21 - 1 = 20。</think><answer>20</answer>'
+step 360/500 reward=1.169 acc=0.97 fmt=1.00 hack=0.03 silent=1.00 len=35.4 kl=0.0066 ent=0.002 |adv|=0.000 gnorm=0.0006 lr=2.98e-06 (2.17s)
+  sample[18 + 5=23]: '<think>18 + 5 = 23。</think><answer>23</answer>'
+step 370/500 reward=1.184 acc=0.98 fmt=1.00 hack=0.02 silent=0.91 len=37.8 kl=0.0208 ent=0.002 |adv|=0.068 gnorm=0.2609 lr=2.73e-06 (2.14s)
+  sample[33 - 8=25]: '<think>33 - 8 = 25。</think><answer>25</answer>'
+step 380/500 reward=1.184 acc=0.98 fmt=1.00 hack=0.02 silent=0.91 len=32.7 kl=0.0112 ent=0.003 |adv|=0.068 gnorm=0.3267 lr=2.49e-06 (2.36s)
+  sample[51 - 35=16]: '<think>把 35 拆成 30 和 5：51 - 30 = 21；21 - 5 = 16。</think><answer>16</answer>'
+step 390/500 reward=1.145 acc=0.95 fmt=1.00 hack=0.05 silent=0.88 len=40.0 kl=0.0088 ent=0.004 |adv|=0.115 gnorm=0.4974 lr=2.26e-06 (1.9s)
+  sample[68 - 6=62]: '<think>68 - 6 = 62。</think><answer>62</answer>'
+step 400/500 reward=1.191 acc=0.99 fmt=1.00 hack=0.00 silent=0.94 len=34.1 kl=0.0140 ent=0.002 |adv|=0.041 gnorm=0.1226 lr=2.05e-06 (2.38s)
+  eval: acc=0.960 fmt=1.000
+  sample[90 - 0=90]: '<think>90 - 0 = 90。</think><answer>90</answer>'
+step 410/500 reward=1.173 acc=0.97 fmt=1.00 hack=0.03 silent=0.84 len=32.9 kl=0.0254 ent=0.004 |adv|=0.116 gnorm=0.4118 lr=1.86e-06 (2.12s)
+  sample[63 - 0=63]: '<think>63 - 0 = 63。</think><answer>63</answer>'
+step 420/500 reward=1.192 acc=0.99 fmt=1.00 hack=0.01 silent=0.94 len=30.7 kl=0.0088 ent=0.002 |adv|=0.041 gnorm=0.2118 lr=1.68e-06 (2.31s)
+  sample[89 + 7=96]: '<think>89 + 7 = 96。</think><answer>96</answer>'
+step 430/500 reward=1.192 acc=0.99 fmt=1.00 hack=0.01 silent=0.94 len=39.8 kl=0.0073 ent=0.002 |adv|=0.041 gnorm=0.1441 lr=1.53e-06 (2.4s)
+  sample[86 + 8=94]: '<think>86 + 8 = 94。</think><answer>94</answer>'
+step 440/500 reward=1.177 acc=0.98 fmt=1.00 hack=0.02 silent=0.88 len=37.5 kl=0.0132 ent=0.004 |adv|=0.092 gnorm=0.2908 lr=1.39e-06 (1.92s)
+  sample[76 - 73=3]: '<think>把 73 拆成 70 和 3：76 - 70 = 6；6 - 3 = 3。</think><answer>3</answer>'
+step 450/500 reward=1.196 acc=1.00 fmt=1.00 hack=0.00 silent=0.97 len=30.5 kl=0.0107 ent=0.002 |adv|=0.021 gnorm=0.0770 lr=1.27e-06 (2.15s)
+  eval: acc=0.968 fmt=1.000
+  sample[73 - 1=72]: '<think>73 - 1 = 72。</think><answer>72</answer>'
+step 460/500 reward=1.192 acc=0.99 fmt=1.00 hack=0.01 silent=0.94 len=36.2 kl=0.0098 ent=0.002 |adv|=0.041 gnorm=0.1379 lr=1.17e-06 (2.18s)
+  sample[47 - 7=40]: '<think>47 - 7 = 40。</think><answer>40</answer>'
+step 470/500 reward=1.180 acc=0.98 fmt=1.00 hack=0.02 silent=0.84 len=35.3 kl=0.0217 ent=0.002 |adv|=0.103 gnorm=0.3853 lr=1.10e-06 (1.89s)
+  sample[39 - 24=15]: '<think>把 24 拆成 20 和 4：39 - 20 = 19；19 - 4 = 15。</think><answer>15</answer>'
+step 480/500 reward=1.196 acc=1.00 fmt=1.00 hack=0.00 silent=0.97 len=38.1 kl=0.0101 ent=0.002 |adv|=0.021 gnorm=0.1150 lr=1.04e-06 (2.14s)
+  sample[3 + 10=13]: '<think>3 + 10 = 13。</think><answer>13</answer>'
+step 490/500 reward=1.165 acc=0.96 fmt=1.00 hack=0.04 silent=0.97 len=37.4 kl=0.0078 ent=0.002 |adv|=0.021 gnorm=0.1831 lr=1.01e-06 (1.92s)
+  sample[44 - 8=36]: '<think>44 - 8 = 36。</think><answer>36</answer>'
+step 500/500 reward=1.196 acc=1.00 fmt=1.00 hack=0.00 silent=0.97 len=36.5 kl=0.0069 ent=0.002 |adv|=0.021 gnorm=0.2346 lr=1.00e-06 (2.19s)
+  eval: acc=0.966 fmt=1.000
+  sample[49 - 5=44]: '<think>49 - 5 = 44。</think><answer>44</answer>'
+Saved /root/autodl-tmp/results/posttrain_v1/grpo_kl_s2/grpo_final.pth; metrics -> /root/autodl-tmp/results/posttrain_v1/grpo_kl_s2/grpo_metrics.jsonl; run -> /root/autodl-tmp/results/posttrain_v1/grpo_kl_s2/runs/grpo_20261012-173054_978eef
+500 tasks: accuracy 0.966, format 1.000, hack 0.034, length 35.9 (5.0s)
+   op=+ n_digits=1: 0.867 of 30
+   op=+ n_digits=2: 0.983 of 240
+   op=- n_digits=1: 0.778 of 9
+   op=- n_digits=2: 0.968 of 221
+wrote /root/autodl-tmp/results/posttrain_v1/grpo_kl_s2/dev.json
+500 tasks: accuracy 0.938, format 1.000, hack 0.062, length 32.2 (4.5s)
+   op=+ n_digits=1: 0.843 of 51
+   op=+ n_digits=2: 0.986 of 211
+   op=- n_digits=1: 0.682 of 44
+   op=- n_digits=2: 0.969 of 194
+wrote /root/autodl-tmp/results/posttrain_v1/grpo_kl_s2/test.json
+=== dr_grpo seed 2 10-12 17:50:39 --normalize_advantage_std False --aggregation dr_grpo
+policy: dim=768 layers=12 heads=12 kv_heads=3 hidden=2048 vocab=32768 seq=192 -> 99.503M params
+GRPO: env=arithmetic G=8 prompts/step=32 steps=500 agg=dr_grpo kl=0.0 std_norm=False filter_zero_var=False
+run: /root/autodl-tmp/results/posttrain_v1/dr_grpo_s2/runs/grpo_20261012-175045_63d342
+step 0 (init) eval: acc=0.636 fmt=1.000
+step 10/500 reward=0.817 acc=0.62 fmt=1.00 hack=0.38 silent=0.34 len=33.6 kl=0.0000 ent=0.031 |adv|=0.250 gnorm=0.0614 lr=2.00e-06 (2.05s)
+  sample[0 + 30=30]: '<think>0 + 30 = 30。</think><answer>30</answer>'
+step 20/500 reward=0.848 acc=0.65 fmt=1.00 hack=0.35 silent=0.38 len=35.1 kl=0.0000 ent=0.028 |adv|=0.217 gnorm=0.0608 lr=4.00e-06 (2.27s)
+  sample[3 + 47=50]: '<think>把 47 拆成 40 和 7：3 + 40 = 43；43 + 7 = 50。</think><answer>50</answer>'
+step 30/500 reward=0.981 acc=0.78 fmt=1.00 hack=0.22 silent=0.50 len=35.0 kl=0.0000 ent=0.021 |adv|=0.166 gnorm=0.0681 lr=6.00e-06 (2.11s)
+  sample[29 - 8=21]: '<think>29 - 8 = 19。</think><answer>19</answer>'
+step 40/500 reward=0.802 acc=0.60 fmt=1.00 hack=0.40 silent=0.25 len=35.3 kl=0.0000 ent=0.028 |adv|=0.262 gnorm=0.1110 lr=8.00e-06 (1.81s)
+  sample[4 + 38=42]: '<think>把 38 拆成 30 和 8：4 + 30 = 34；34 + 8 = 43。</think><answer>43</answer>'
+step 50/500 reward=0.993 acc=0.79 fmt=1.00 hack=0.21 silent=0.56 len=34.5 kl=0.0000 ent=0.020 |adv|=0.163 gnorm=0.0747 lr=1.00e-05 (2.03s)
+  eval: acc=0.690 fmt=1.000
+  sample[8 + 87=95]: '<think>把 87 拆成 80 和 7：8 + 80 = 88；88 + 7 = 94。</think><answer>94</answer>'
+step 60/500 reward=0.884 acc=0.68 fmt=1.00 hack=0.32 silent=0.53 len=36.4 kl=0.0000 ent=0.020 |adv|=0.147 gnorm=0.0572 lr=9.99e-06 (2.07s)
+  sample[67 - 40=27]: '<think>67 - 40 = 17。</think><answer>17</answer>'
+step 70/500 reward=0.938 acc=0.74 fmt=1.00 hack=0.26 silent=0.41 len=35.9 kl=0.0000 ent=0.025 |adv|=0.206 gnorm=0.0874 lr=9.96e-06 (2.29s)
+  sample[86 - 35=51]: '<think>把 35 拆成 30 和 5：86 - 30 = 56；56 - 5 = 51。</think><answer>51</answer>'
+step 80/500 reward=0.884 acc=0.68 fmt=1.00 hack=0.32 silent=0.41 len=40.2 kl=0.0000 ent=0.017 |adv|=0.228 gnorm=0.1036 lr=9.90e-06 (1.94s)
+  sample[92 + 3=95]: '<think>92 + 3 = 95。</think><answer>95</answer>'
+step 90/500 reward=0.950 acc=0.75 fmt=1.00 hack=0.25 silent=0.50 len=35.4 kl=0.0000 ent=0.018 |adv|=0.166 gnorm=0.0835 lr=9.83e-06 (1.99s)
+  sample[41 + 1=42]: '<think>41 + 1 = 42。</think><answer>42</answer>'
+step 100/500 reward=1.020 acc=0.82 fmt=1.00 hack=0.18 silent=0.53 len=40.2 kl=0.0000 ent=0.013 |adv|=0.164 gnorm=0.0718 lr=9.73e-06 (1.8s)
+  eval: acc=0.766 fmt=1.000
+  sample[82 - 2=80]: '<think>82 - 2 = 80。</think><answer>80</answer>'
+step 110/500 reward=0.989 acc=0.79 fmt=1.00 hack=0.21 silent=0.66 len=38.8 kl=0.0000 ent=0.013 |adv|=0.129 gnorm=0.1174 lr=9.61e-06 (1.83s)
+  sample[9 + 16=25]: '<think>把 16 拆成 10 和 6：9 + 10 = 19；19 + 6 = 25。</think><answer>25</answer>'
+step 120/500 reward=1.009 acc=0.81 fmt=1.00 hack=0.19 silent=0.59 len=35.6 kl=0.0000 ent=0.016 |adv|=0.157 gnorm=0.1038 lr=9.47e-06 (2.25s)
+  sample[65 - 2=63]: '<think>65 - 2 = 63。</think><answer>63</answer>'
+step 130/500 reward=0.973 acc=0.77 fmt=1.00 hack=0.23 silent=0.69 len=37.4 kl=0.0000 ent=0.013 |adv|=0.111 gnorm=0.0904 lr=9.32e-06 (1.59s)
+  sample[62 - 18=44]: '<think>把 18 拆成 10 和 8：62 - 10 = 52；52 - 8 = 44。</think><answer>44</answer>'
+step 140/500 reward=1.052 acc=0.85 fmt=1.00 hack=0.15 silent=0.62 len=35.7 kl=0.0000 ent=0.013 |adv|=0.123 gnorm=0.0909 lr=9.14e-06 (2.24s)
+  sample[83 + 37=120]: '<think>把 37 拆成 30 和 7：83 + 30 = 113；113 + 7 = 120。</think><answer>120</answer>'
+step 150/500 reward=1.059 acc=0.86 fmt=1.00 hack=0.14 silent=0.84 len=30.7 kl=0.0000 ent=0.010 |adv|=0.039 gnorm=0.0472 lr=8.95e-06 (2.2s)
+  eval: acc=0.830 fmt=1.000
+  sample[82 + 86=168]: '<think>把 86 拆成 80 和 6：82 + 80 = 162；162 + 6 = 170。</think><answer>170</answer>'
+step 160/500 reward=1.032 acc=0.83 fmt=1.00 hack=0.17 silent=0.66 len=38.0 kl=0.0000 ent=0.017 |adv|=0.110 gnorm=0.1299 lr=8.74e-06 (2.21s)
+  sample[14 - 8=6]: '<think>14 - 8 = 7。</think><answer>7</answer>'
+step 170/500 reward=1.149 acc=0.95 fmt=1.00 hack=0.05 silent=0.84 len=34.1 kl=0.0000 ent=0.007 |adv|=0.034 gnorm=0.0394 lr=8.51e-06 (2.02s)
+  sample[2 + 31=33]: '<think>把 31 拆成 30 和 1：2 + 30 = 32；32 + 1 = 33。</think><answer>33</answer>'
+step 180/500 reward=1.079 acc=0.88 fmt=1.00 hack=0.12 silent=0.72 len=37.9 kl=0.0000 ent=0.010 |adv|=0.089 gnorm=0.0764 lr=8.27e-06 (1.83s)
+  sample[44 - 8=36]: '<think>44 - 8 = 36。</think><answer>36</answer>'
+step 190/500 reward=1.130 acc=0.93 fmt=1.00 hack=0.07 silent=0.81 len=37.6 kl=0.0000 ent=0.015 |adv|=0.082 gnorm=0.0942 lr=8.02e-06 (2.23s)
+  sample[32 + 92=124]: '<think>把 92 拆成 90 和2：32 + 90 = 122；122 + 2 = 124。</think><answer>124</answer>'
+step 200/500 reward=1.169 acc=0.97 fmt=1.00 hack=0.03 silent=0.88 len=37.7 kl=0.0000 ent=0.007 |adv|=0.035 gnorm=0.0369 lr=7.75e-06 (2.0s)
+  eval: acc=0.878 fmt=1.000
+  sample[21 + 75=96]: '<think>把 75 拆成 70 和 5：21 + 70 = 91；91 + 5 = 96。</think><answer>96</answer>'
+step 210/500 reward=1.098 acc=0.90 fmt=1.00 hack=0.10 silent=0.69 len=34.8 kl=0.0000 ent=0.011 |adv|=0.096 gnorm=0.0662 lr=7.47e-06 (2.04s)
+  sample[41 + 23=64]: '<think>把 23 拆成 20 和 3：41 + 20 = 61；61 + 3 = 64。</think><answer>64</answer>'
+step 220/500 reward=1.165 acc=0.96 fmt=1.00 hack=0.04 silent=0.84 len=38.6 kl=0.0000 ent=0.010 |adv|=0.048 gnorm=0.0506 lr=7.19e-06 (1.81s)
+  sample[89 - 86=3]: '<think>把 86 拆成 80 和6：89 / 80 = 9；9 / 6 = 3。</think><answer>3</answer>'
+step 230/500 reward=1.110 acc=0.91 fmt=1.00 hack=0.09 silent=0.75 len=36.3 kl=0.0000 ent=0.011 |adv|=0.067 gnorm=0.1039 lr=6.89e-06 (2.02s)
+  sample[40 - 8=32]: '<think>40 - 8 = 32。</think><answer>32</answer>'
+step 240/500 reward=1.117 acc=0.92 fmt=1.00 hack=0.08 silent=0.75 len=38.7 kl=0.0000 ent=0.012 |adv|=0.069 gnorm=0.1006 lr=6.59e-06 (1.83s)
+  sample[37 + 45=82]: '<think>把 45 拆成 40 和5：37 + 40 = 77；77 + 5 = 82。</think><answer>82</answer>'
+step 250/500 reward=1.114 acc=0.91 fmt=1.00 hack=0.09 silent=0.81 len=33.6 kl=0.0000 ent=0.008 |adv|=0.064 gnorm=0.0920 lr=6.28e-06 (2.19s)
+  eval: acc=0.916 fmt=1.000
+  sample[66 - 3=63]: '<think>66 - 3 = 63。</think><answer>63</answer>'
+step 260/500 reward=1.110 acc=0.91 fmt=1.00 hack=0.09 silent=0.72 len=30.4 kl=0.0000 ent=0.010 |adv|=0.106 gnorm=0.1215 lr=5.97e-06 (2.46s)
+  sample[68 + 9=77]: '<think>68 + 9 = 77。</think><answer>77</answer>'
+step 270/500 reward=1.192 acc=0.99 fmt=1.00 hack=0.01 silent=0.94 len=36.4 kl=0.0000 ent=0.004 |adv|=0.014 gnorm=0.0372 lr=5.66e-06 (1.76s)
+  sample[64 + 3=67]: '<think>64 + 3 = 67。</think><answer>67</answer>'
+step 280/500 reward=1.095 acc=0.89 fmt=1.00 hack=0.11 silent=0.75 len=34.3 kl=0.0000 ent=0.006 |adv|=0.089 gnorm=0.1200 lr=5.34e-06 (2.21s)
+  sample[66 - 0=66]: '<think>66 - 0 = 66。</think><answer>66</answer>'
+step 290/500 reward=1.177 acc=0.98 fmt=1.00 hack=0.02 silent=0.88 len=35.6 kl=0.0000 ent=0.003 |adv|=0.035 gnorm=0.0758 lr=5.03e-06 (1.74s)
+  sample[6 + 92=98]: '<think>把 92 拆成 90 和2：6 + 90 = 96；96 + 2 = 98。</think><answer>98</answer>'
+step 300/500 reward=1.141 acc=0.94 fmt=1.00 hack=0.06 silent=0.84 len=34.0 kl=0.0000 ent=0.005 |adv|=0.048 gnorm=0.0548 lr=4.72e-06 (2.15s)
+  eval: acc=0.936 fmt=1.000
+  sample[67 - 0=67]: '<think>67 - 0 = 67。</think><answer>67</answer>'
+step 310/500 reward=1.153 acc=0.95 fmt=1.00 hack=0.05 silent=0.72 len=39.9 kl=0.0000 ent=0.006 |adv|=0.074 gnorm=0.0928 lr=4.41e-06 (2.15s)
+  sample[64 + 46=110]: '<think>把 46 拆成 40 和6：64 + 40 = 104；104 + 6 = 110。</think><answer>110</answer>'
+step 320/500 reward=1.169 acc=0.97 fmt=1.00 hack=0.03 silent=0.84 len=35.4 kl=0.0000 ent=0.005 |adv|=0.047 gnorm=0.0454 lr=4.11e-06 (2.02s)
+  sample[20 - 6=14]: '<think>20 - 6 = 14。</think><answer>14</answer>'
+step 330/500 reward=1.165 acc=0.96 fmt=1.00 hack=0.04 silent=0.88 len=35.8 kl=0.0000 ent=0.002 |adv|=0.032 gnorm=0.0313 lr=3.81e-06 (2.24s)
+  sample[1 + 41=42]: '<think>把 41 拆成 40 和1：1 + 40 = 41；41 + 1 = 42。</think><answer>42</answer>'
+step 340/500 reward=1.141 acc=0.94 fmt=1.00 hack=0.06 silent=0.78 len=36.8 kl=0.0000 ent=0.004 |adv|=0.063 gnorm=0.0656 lr=3.53e-06 (1.77s)
+  sample[51 + 90=141]: '<think>把 90 拆成 90 和0：51 + 90 = 141；141 + 0 = 141。</think><answer>141</answer>'
+step 350/500 reward=1.145 acc=0.95 fmt=1.00 hack=0.05 silent=0.88 len=35.9 kl=0.0000 ent=0.006 |adv|=0.037 gnorm=0.0720 lr=3.25e-06 (2.0s)
+  eval: acc=0.932 fmt=1.000
+  sample[71 - 51=20]: '<think>把 51 拆成 50 和1：71 - 50 = 21；21 - 1 = 20。</think><answer>20</answer>'
+step 360/500 reward=1.145 acc=0.95 fmt=1.00 hack=0.05 silent=0.94 len=35.7 kl=0.0000 ent=0.003 |adv|=0.021 gnorm=0.0433 lr=2.98e-06 (2.07s)
+  sample[18 + 5=23]: '<think>18 + 5 = 23。</think><answer>23</answer>'
+step 370/500 reward=1.184 acc=0.98 fmt=1.00 hack=0.02 silent=0.94 len=37.2 kl=0.0000 ent=0.003 |adv|=0.021 gnorm=0.0984 lr=2.73e-06 (2.01s)
+  sample[33 - 8=25]: '<think>33 - 8 = 25。</think><answer>25</answer>'
+step 380/500 reward=1.188 acc=0.99 fmt=1.00 hack=0.01 silent=0.97 len=33.3 kl=0.0000 ent=0.003 |adv|=0.015 gnorm=0.0258 lr=2.49e-06 (2.23s)
+  sample[51 - 35=16]: '<think>把 35 拆成 30 和5：51 - 30 = 21；21 - 5 = 16。</think><answer>16</answer>'
+step 390/500 reward=1.141 acc=0.94 fmt=1.00 hack=0.06 silent=0.84 len=39.3 kl=0.0000 ent=0.003 |adv|=0.044 gnorm=0.0697 lr=2.26e-06 (1.77s)
+  sample[68 - 6=62]: '<think>68 - 6 = 62。</think><answer>62</answer>'
+step 400/500 reward=1.188 acc=0.99 fmt=1.00 hack=0.01 silent=0.94 len=33.7 kl=0.0000 ent=0.002 |adv|=0.019 gnorm=0.0408 lr=2.05e-06 (2.22s)
+  eval: acc=0.954 fmt=1.000
+  sample[90 - 0=90]: '<think>90 - 0 = 90。</think><answer>90</answer>'
+step 410/500 reward=1.169 acc=0.97 fmt=1.00 hack=0.03 silent=0.84 len=34.0 kl=0.0000 ent=0.005 |adv|=0.043 gnorm=0.0705 lr=1.86e-06 (2.0s)
+  sample[63 - 0=63]: '<think>63 - 0 = 63。</think><answer>63</answer>'
+step 420/500 reward=1.184 acc=0.98 fmt=1.00 hack=0.02 silent=0.97 len=31.9 kl=0.0000 ent=0.003 |adv|=0.016 gnorm=0.0512 lr=1.68e-06 (2.2s)
+  sample[89 + 7=96]: '<think>89 + 7 = 96。</think><answer>96</answer>'
+step 430/500 reward=1.188 acc=0.99 fmt=1.00 hack=0.01 silent=0.94 len=39.2 kl=0.0000 ent=0.002 |adv|=0.019 gnorm=0.0268 lr=1.53e-06 (2.24s)
+  sample[86 + 8=94]: '<think>86 + 8 = 94。</think><answer>94</answer>'
+step 440/500 reward=1.141 acc=0.94 fmt=1.00 hack=0.06 silent=0.84 len=38.4 kl=0.0000 ent=0.006 |adv|=0.042 gnorm=0.0729 lr=1.39e-06 (1.78s)
+  sample[76 - 73=3]: '<think>把 73 拆成 70 和3：76 - 70 = 6；6 - 3 = 3。</think><answer>3</answer>'
+step 450/500 reward=1.188 acc=0.99 fmt=1.00 hack=0.01 silent=0.94 len=31.7 kl=0.0000 ent=0.003 |adv|=0.019 gnorm=0.0366 lr=1.27e-06 (2.2s)
+  eval: acc=0.966 fmt=1.000
+  sample[73 - 1=72]: '<think>73 - 1 = 72。</think><answer>72</answer>'
+step 460/500 reward=1.192 acc=0.99 fmt=1.00 hack=0.01 silent=0.97 len=36.5 kl=0.0000 ent=0.002 |adv|=0.012 gnorm=0.0347 lr=1.17e-06 (2.04s)
+  sample[47 - 7=40]: '<think>47 - 7 = 40。</think><answer>40</answer>'
+step 470/500 reward=1.180 acc=0.98 fmt=1.00 hack=0.02 silent=0.88 len=36.3 kl=0.0000 ent=0.002 |adv|=0.032 gnorm=0.0404 lr=1.10e-06 (1.79s)
+  sample[39 - 24=15]: '<think>把 24 拆成 20 和4：39 - 20 = 19；19 - 4 = 15。</think><answer>15</answer>'
+step 480/500 reward=1.184 acc=0.98 fmt=1.00 hack=0.02 silent=0.88 len=37.9 kl=0.0000 ent=0.003 |adv|=0.027 gnorm=0.0434 lr=1.04e-06 (1.99s)
+  sample[3 + 10=13]: '<think>3 + 10 = 13。</think><answer>13</answer>'
+step 490/500 reward=1.169 acc=0.97 fmt=1.00 hack=0.03 silent=1.00 len=38.0 kl=0.0000 ent=0.002 |adv|=0.000 gnorm=0.0000 lr=1.01e-06 (1.79s)
+  sample[44 - 8=36]: '<think>44 - 8 = 36。</think><answer>36</answer>'
+step 500/500 reward=1.192 acc=0.99 fmt=1.00 hack=0.01 silent=0.94 len=36.8 kl=0.0000 ent=0.002 |adv|=0.014 gnorm=0.0349 lr=1.00e-06 (2.0s)
+  eval: acc=0.968 fmt=1.000
+  sample[49 - 5=44]: '<think>49 - 5 = 44。</think><answer>44</answer>'
+Saved /root/autodl-tmp/results/posttrain_v1/dr_grpo_s2/grpo_final.pth; metrics -> /root/autodl-tmp/results/posttrain_v1/dr_grpo_s2/grpo_metrics.jsonl; run -> /root/autodl-tmp/results/posttrain_v1/dr_grpo_s2/runs/grpo_20261012-175045_63d342
+500 tasks: accuracy 0.968, format 1.000, hack 0.032, length 36.5 (5.0s)
+   op=+ n_digits=1: 0.833 of 30
+   op=+ n_digits=2: 0.983 of 240
+   op=- n_digits=1: 0.889 of 9
+   op=- n_digits=2: 0.973 of 221
+wrote /root/autodl-tmp/results/posttrain_v1/dr_grpo_s2/dev.json
+500 tasks: accuracy 0.954, format 1.000, hack 0.046, length 32.8 (4.5s)
+   op=+ n_digits=1: 0.824 of 51
+   op=+ n_digits=2: 0.986 of 211
+   op=- n_digits=1: 0.864 of 44
+   op=- n_digits=2: 0.974 of 194
+wrote /root/autodl-tmp/results/posttrain_v1/dr_grpo_s2/test.json
+=== dapo_lite seed 2 10-12 18:09:18 --filter_zero_variance True --clip_eps_high 0.28 --aggregation token_mean
+policy: dim=768 layers=12 heads=12 kv_heads=3 hidden=2048 vocab=32768 seq=192 -> 99.503M params
+GRPO: env=arithmetic G=8 prompts/step=32 steps=500 agg=token_mean kl=0.0 std_norm=True filter_zero_var=True
+run: /root/autodl-tmp/results/posttrain_v1/dapo_lite_s2/runs/grpo_20261012-180923_5f09cf
+step 0 (init) eval: acc=0.636 fmt=1.000
+step 10/500 reward=0.817 acc=0.62 fmt=1.00 hack=0.38 silent=0.34 len=33.6 kl=0.0000 ent=0.038 |adv|=0.862 gnorm=0.6025 lr=2.00e-06 (1.91s)
+  sample[54 + 3=57]: '<think>54 + 3 = 57。</think><answer>57</answer>'
+step 20/500 reward=0.848 acc=0.65 fmt=1.00 hack=0.35 silent=0.38 len=35.1 kl=0.0000 ent=0.038 |adv|=0.822 gnorm=0.6138 lr=4.00e-06 (2.15s)
+  sample[3 + 47=50]: '<think>把 47 拆成 40 和 7：3 + 40 = 43；43 + 7 = 50。</think><answer>50</answer>'
+step 30/500 reward=0.970 acc=0.77 fmt=1.00 hack=0.23 silent=0.47 len=34.9 kl=0.0000 ent=0.025 |adv|=0.838 gnorm=0.6354 lr=6.00e-06 (1.9s)
+  sample[29 - 8=21]: '<think>29 - 8 = 22。</think><answer>22</answer>'
+step 40/500 reward=0.809 acc=0.61 fmt=1.00 hack=0.39 silent=0.22 len=35.3 kl=0.0000 ent=0.031 |adv|=0.807 gnorm=0.6178 lr=8.00e-06 (1.76s)
+  sample[4 + 38=42]: '<think>把 38 拆成 30 和 8：4 + 30 = 34；34 + 8 = 41。</think><answer>41</answer>'
+step 50/500 reward=0.938 acc=0.74 fmt=1.00 hack=0.26 silent=0.53 len=34.5 kl=0.0000 ent=0.029 |adv|=0.793 gnorm=0.8349 lr=1.00e-05 (1.78s)
+  eval: acc=0.652 fmt=1.000
+  sample[8 + 87=95]: '<think>把 87 拆成 80 和 7：8 + 80 = 88；88 + 7 = 95。</think><answer>95</answer>'
+step 60/500 reward=0.938 acc=0.74 fmt=1.00 hack=0.26 silent=0.38 len=36.4 kl=0.0000 ent=0.026 |adv|=0.822 gnorm=0.9416 lr=9.99e-06 (2.41s)
+  sample[67 - 40=27]: '<think>67 - 40 = 27。</think><answer>27</answer>'
+step 70/500 reward=0.887 acc=0.69 fmt=1.00 hack=0.31 silent=0.47 len=35.7 kl=0.0000 ent=0.024 |adv|=0.861 gnorm=0.9648 lr=9.96e-06 (2.06s)
+  sample[98 + 89=187]: '<think>把 89 拆成 80 和 9：98 + 80 = 178；178 + 9 = 187。</think><answer>187</answer>'
+step 80/500 reward=0.938 acc=0.74 fmt=1.00 hack=0.26 silent=0.34 len=40.1 kl=0.0000 ent=0.023 |adv|=0.851 gnorm=0.8021 lr=9.90e-06 (1.67s)
+  sample[92 + 3=95]: '<think>92 + 3 = 95。</think><answer>95</answer>'
+step 90/500 reward=0.923 acc=0.72 fmt=1.00 hack=0.28 silent=0.41 len=35.3 kl=0.0000 ent=0.025 |adv|=0.810 gnorm=0.9707 lr=9.83e-06 (1.87s)
+  sample[42 - 5=37]: '<think>42 - 5 = 37。</think><answer>37</answer>'
+step 100/500 reward=1.028 acc=0.83 fmt=1.00 hack=0.17 silent=0.50 len=40.4 kl=0.0000 ent=0.021 |adv|=0.791 gnorm=0.9703 lr=9.73e-06 (2.09s)
+  eval: acc=0.802 fmt=1.000
+  sample[80 - 36=44]: '<think>把 36 拆成 30 和 6：80 - 30 = 50；50 - 6 = 44。</think><answer>44</answer>'
+step 110/500 reward=1.036 acc=0.84 fmt=1.00 hack=0.16 silent=0.62 len=38.9 kl=0.0000 ent=0.016 |adv|=0.752 gnorm=1.0787 lr=9.61e-06 (1.58s)
+  sample[9 + 16=25]: '<think>把 16 拆成 10 和 6：9 + 10 = 19；19 + 6 = 25。</think><answer>25</answer>'
+step 120/500 reward=1.001 acc=0.80 fmt=1.00 hack=0.20 silent=0.69 len=35.5 kl=0.0000 ent=0.034 |adv|=0.821 gnorm=2.3082 lr=9.47e-06 (1.97s)
+  sample[65 - 2=63]: '<think>65 - 2 = 64。</think><answer>64</answer>'
+step 130/500 reward=0.977 acc=0.78 fmt=1.00 hack=0.22 silent=0.72 len=37.5 kl=0.0000 ent=0.025 |adv|=0.855 gnorm=1.5062 lr=9.32e-06 (1.32s)
+  sample[62 - 18=44]: '<think>把 18 拆成 10 和 8：62 - 10 = 52；52 - 8 = 34。</think><answer>34</answer>'
+step 140/500 reward=1.016 acc=0.82 fmt=1.00 hack=0.18 silent=0.75 len=35.6 kl=0.0000 ent=0.019 |adv|=0.823 gnorm=1.6769 lr=9.14e-06 (1.9s)
+  sample[26 - 4=22]: '<think>26 - 4 = 23。</think><answer>23</answer>'
+step 150/500 reward=1.106 acc=0.91 fmt=1.00 hack=0.09 silent=0.88 len=30.8 kl=0.0000 ent=0.027 |adv|=0.840 gnorm=5.0271 lr=8.95e-06 (1.84s)
+  eval: acc=0.854 fmt=1.000
+  sample[55 - 9=46]: '<think>55 - 9 = 46。</think><answer>46</answer>'
+step 160/500 reward=1.075 acc=0.88 fmt=1.00 hack=0.12 silent=0.69 len=38.0 kl=0.0000 ent=0.016 |adv|=0.746 gnorm=1.8006 lr=8.74e-06 (1.81s)
+  sample[15 + 55=70]: '<think>把 55 拆成 50 和 5：15 + 50 = 65；65 + 5 = 70。</think><answer>70</answer>'
+step 170/500 reward=1.169 acc=0.97 fmt=1.00 hack=0.03 silent=0.84 len=34.0 kl=0.0000 ent=0.011 |adv|=0.729 gnorm=1.5852 lr=8.51e-06 (1.66s)
+  sample[47 - 16=31]: '<think>把 16 拆成 10 和 6：47 - 10 = 37；37 - 6 = 31。</think><answer>31</answer>'
+step 180/500 reward=1.036 acc=0.84 fmt=1.00 hack=0.16 silent=0.69 len=38.1 kl=0.0000 ent=0.013 |adv|=0.798 gnorm=2.0328 lr=8.27e-06 (1.53s)
+  sample[44 - 8=36]: '<think>44 - 8 = 37。</think><answer>37</answer>'
+step 190/500 reward=1.165 acc=0.96 fmt=1.00 hack=0.04 silent=0.88 len=37.5 kl=0.0000 ent=0.024 |adv|=0.713 gnorm=1.7796 lr=8.02e-06 (1.83s)
+  sample[31 - 4=27]: '<think>31 - 4 = 27。</think><answer>27</answer>'
+step 200/500 reward=1.153 acc=0.95 fmt=1.00 hack=0.05 silent=0.84 len=37.7 kl=0.0000 ent=0.017 |adv|=0.886 gnorm=3.1040 lr=7.75e-06 (1.62s)
+  eval: acc=0.904 fmt=1.000
+  sample[43 - 20=23]: '<think>43 - 20 = 43。</think><answer>43</answer>'
+step 210/500 reward=1.063 acc=0.86 fmt=1.00 hack=0.14 silent=0.88 len=35.0 kl=0.0000 ent=0.025 |adv|=0.789 gnorm=4.4272 lr=7.47e-06 (1.65s)
+  sample[97 - 68=29]: '<think>把 68 拆成 60 和 8：97 - 60 = 37；37 - 8 = 29。</think><answer>29</answer>'
+step 220/500 reward=1.145 acc=0.95 fmt=1.00 hack=0.05 silent=0.78 len=38.6 kl=0.0000 ent=0.014 |adv|=0.787 gnorm=1.9191 lr=7.19e-06 (1.44s)
+  sample[89 - 86=3]: '<think>把 86 拆成 80 和 6：89 - 80 = 9；9 - 6 = 3。</think><answer>3</answer>'
+step 230/500 reward=1.180 acc=0.98 fmt=1.00 hack=0.02 silent=0.88 len=35.8 kl=0.0000 ent=0.010 |adv|=0.713 gnorm=2.5690 lr=6.89e-06 (1.64s)
+  sample[40 - 8=32]: '<think>40 - 8 = 32。</think><answer>32</answer>'
+step 240/500 reward=1.098 acc=0.90 fmt=1.00 hack=0.10 silent=0.69 len=38.8 kl=0.0000 ent=0.010 |adv|=0.716 gnorm=1.7119 lr=6.59e-06 (1.52s)
+  sample[29 + 20=49]: '<think>29 + 20 = 59。</think><answer>59</answer>'
+step 250/500 reward=1.141 acc=0.94 fmt=1.00 hack=0.06 silent=0.88 len=33.7 kl=0.0000 ent=0.015 |adv|=0.789 gnorm=2.9706 lr=6.28e-06 (1.85s)
+  eval: acc=0.916 fmt=1.000
+  sample[94 + 4=98]: '<think>94 + 4 = 98。</think><answer>98</answer>'
+step 260/500 reward=1.196 acc=1.00 fmt=1.00 hack=0.00 silent=0.97 len=29.6 kl=0.0000 ent=0.015 |adv|=0.661 gnorm=8.9372 lr=5.97e-06 (1.61s)
+  sample[49 - 30=19]: '<think>49 - 30 = 19。</think><answer>19</answer>'
+step 270/500 reward=1.161 acc=0.96 fmt=1.00 hack=0.04 silent=0.88 len=35.4 kl=0.0000 ent=0.027 |adv|=0.764 gnorm=4.9078 lr=5.66e-06 (1.47s)
+  sample[98 - 46=52]: '<think>把 46 拆成 40 和 6：98 - 40 = 58；58 - 6 = 52。</think><answer>52</answer>'
+step 280/500 reward=1.161 acc=0.96 fmt=1.00 hack=0.04 silent=0.88 len=41.0 kl=0.0000 ent=0.031 |adv|=0.815 gnorm=2.3759 lr=5.34e-06 (3.23s)
+  sample[62 - 55=7]: '<think>把 55 拆成 50 和 5：62 - 50 = 12；12 - 5 = 6。</think><answer>6</answer></answer></answer>'
+step 290/500 reward=1.180 acc=0.98 fmt=1.00 hack=0.02 silent=0.84 len=35.8 kl=0.0000 ent=0.015 |adv|=0.661 gnorm=3.3669 lr=5.03e-06 (1.49s)
+  sample[7 + 83=90]: '<think>把 83 拆成 80 和 3：7 + 80 = 87；87 + 3 = 90。</think><answer>90</answer>'
+step 300/500 reward=1.157 acc=0.96 fmt=1.00 hack=0.04 silent=0.91 len=34.3 kl=0.0000 ent=0.014 |adv|=0.764 gnorm=4.1824 lr=4.72e-06 (1.61s)
+  eval: acc=0.956 fmt=1.000
+  sample[35 - 34=1]: '<think>把 34 拆成 30 和 4：35 - 30 = 5；5 - 4 = 1。</think><answer>1</answer>'
+step 310/500 reward=1.165 acc=0.96 fmt=1.00 hack=0.04 silent=0.81 len=45.2 kl=0.0000 ent=0.015 |adv|=0.764 gnorm=2.0017 lr=4.41e-06 (2.55s)
+  sample[64 + 46=110]: '<think>把 46 拆成 40 和 6：64 + 40 = 104；104 + 6 = 110。</think><answer>110</answer>'
+step 320/500 reward=1.157 acc=0.96 fmt=1.00 hack=0.04 silent=0.78 len=35.3 kl=0.0000 ent=0.013 |adv|=0.739 gnorm=2.0862 lr=4.11e-06 (2.18s)
+  sample[20 - 6=14]: '<think>20 - 6 = 14。</think><answer>14</answer>'
+step 330/500 reward=1.149 acc=0.95 fmt=1.00 hack=0.05 silent=0.91 len=36.2 kl=0.0000 ent=0.017 |adv|=0.764 gnorm=1.9512 lr=3.81e-06 (1.85s)
+  sample[65 + 54=119]: '<think>把 54 拆成 50 和 4：65 + 50 = 115；115 + 4 = 121。</think><answer>121</answer>'
+step 340/500 reward=1.161 acc=0.96 fmt=1.00 hack=0.04 silent=0.84 len=36.5 kl=0.0000 ent=0.011 |adv|=0.764 gnorm=2.1023 lr=3.53e-06 (1.43s)
+  sample[10 - 3=7]: '<think>10 - 3 = 8。</think><answer>8</answer>'
+step 350/500 reward=1.161 acc=0.96 fmt=1.00 hack=0.04 silent=0.84 len=34.9 kl=0.0000 ent=0.009 |adv|=0.764 gnorm=3.0365 lr=3.25e-06 (1.65s)
+  eval: acc=0.958 fmt=1.000
+  sample[60 - 56=4]: '<think>把 56 拆成 50 和 6：60 - 50 = 10；10 - 6 = 3。</think><answer>3</answer>'
+step 360/500 reward=1.188 acc=0.99 fmt=1.00 hack=0.01 silent=0.97 len=35.3 kl=0.0000 ent=0.021 |adv|=0.968 gnorm=9.5962 lr=2.98e-06 (1.68s)
+  sample[8 + 91=99]: '<think>把 91 拆成 90 和 1：8 + 90 = 98；98 + 1 = 101。</think><answer>101</answer>'
+step 370/500 reward=1.161 acc=0.96 fmt=1.00 hack=0.04 silent=0.88 len=37.8 kl=0.0000 ent=0.018 |adv|=0.764 gnorm=5.2620 lr=2.73e-06 (1.64s)
+  sample[93 - 89=4]: '<think>把 89 拆成 80 和 9：93 - 80 = 13；13 - 9 = 4。</think><answer>4</answer>'
+step 380/500 reward=1.192 acc=0.99 fmt=1.00 hack=0.01 silent=0.97 len=32.7 kl=0.0000 ent=0.024 |adv|=0.866 gnorm=7.4672 lr=2.49e-06 (1.86s)
+  sample[13 - 4=9]: '<think>13 - 4 = 9。</think><answer>9</answer>'
+step 390/500 reward=1.161 acc=0.96 fmt=1.00 hack=0.04 silent=0.91 len=40.0 kl=0.0000 ent=0.017 |adv|=0.730 gnorm=4.5132 lr=2.26e-06 (1.39s)
+  sample[36 - 33=3]: '<think>把 33 拆成 30 和 3：36 - 30 = 6；6 - 3 = 1。</think><answer>1</answer>'
+step 400/500 reward=1.196 acc=1.00 fmt=1.00 hack=0.00 silent=0.97 len=34.4 kl=0.0000 ent=0.003 |adv|=0.661 gnorm=3.2670 lr=2.05e-06 (2.31s)
+  eval: acc=0.964 fmt=1.000
+  sample[99 - 26=73]: '<think>把 26 拆成 20 和 6：99 - 20 = 79；79 - 6 = 73。</think><answer>73</answer>'
+step 410/500 reward=1.165 acc=0.96 fmt=1.00 hack=0.04 silent=0.88 len=32.9 kl=0.0000 ent=0.021 |adv|=0.789 gnorm=4.6895 lr=1.86e-06 (1.65s)
+  sample[96 + 3=99]: '<think>96 + 3 = 100。</think><answer>100</answer>'
+step 420/500 reward=1.184 acc=0.98 fmt=1.00 hack=0.02 silent=0.97 len=30.7 kl=0.0000 ent=0.016 |adv|=1.000 gnorm=8.5840 lr=1.68e-06 (1.81s)
+  sample[85 - 79=6]: '<think>把 79 拆成 70 和 9：85 - 70 = 15；15 - 9 = 8。</think><answer>8</answer>'
+step 430/500 reward=1.192 acc=0.99 fmt=1.00 hack=0.01 silent=0.94 len=39.8 kl=0.0000 ent=0.003 |adv|=0.661 gnorm=2.6629 lr=1.53e-06 (1.91s)
+  sample[48 + 86=134]: '<think>把 86 拆成 80 和 6：48 + 80 = 128；128 + 6 = 134。</think><answer>134</answer>'
+step 440/500 reward=1.184 acc=0.98 fmt=1.00 hack=0.02 silent=0.91 len=37.5 kl=0.0000 ent=0.010 |adv|=0.730 gnorm=3.4858 lr=1.39e-06 (1.44s)
+  sample[1 + 19=20]: '<think>把 19 拆成 10 和 9：1 + 10 = 11；11 + 9 = 20。</think><answer>20</answer>'
+step 450/500 reward=1.196 acc=1.00 fmt=1.00 hack=0.00 silent=0.97 len=30.5 kl=0.0000 ent=0.001 |adv|=0.661 gnorm=3.0435 lr=1.27e-06 (1.65s)
+  eval: acc=0.966 fmt=1.000
+  sample[68 + 77=145]: '<think>把 77 拆成 70 和 7：68 + 70 = 138；138 + 7 = 145。</think><answer>145</answer>'
+step 460/500 reward=1.188 acc=0.99 fmt=1.00 hack=0.01 silent=0.91 len=36.2 kl=0.0000 ent=0.009 |adv|=0.661 gnorm=1.8995 lr=1.17e-06 (1.63s)
+  sample[77 + 45=122]: '<think>把 45 拆成 40 和 5：77 + 40 = 117；117 + 5 = 1情況\n<think><answer>117</answer>'
+step 470/500 reward=1.165 acc=0.96 fmt=1.00 hack=0.04 silent=0.97 len=35.3 kl=0.0000 ent=0.002 |adv|=0.661 gnorm=2.7912 lr=1.10e-06 (1.38s)
+  sample[68 + 78=146]: '<think>把 78 拆成 70 和 8：68 + 70 = 138；138 + 8 = 146。</think><answer>146</answer>'
+step 480/500 reward=1.184 acc=0.98 fmt=1.00 hack=0.02 silent=0.91 len=38.1 kl=0.0000 ent=0.018 |adv|=0.730 gnorm=5.0870 lr=1.04e-06 (1.65s)
+  sample[92 - 13=79]: '<think>把 13 拆成 10 和 3：92 - 10 = 82；82 - 3 = 79。</think><answer>79</answer>'
+step 490/500 reward=1.188 acc=0.99 fmt=1.00 hack=0.01 silent=0.91 len=37.5 kl=0.0000 ent=0.012 |adv|=0.661 gnorm=3.2355 lr=1.01e-06 (1.45s)
+  sample[39 - 36=3]: '<think>把 36 拆成 30 和 6：39 - 30 = 9；9 - 6 = 3。</think><answer>3</answer>'
+step 500/500 reward=1.192 acc=0.99 fmt=1.00 hack=0.01 silent=0.94 len=36.5 kl=0.0000 ent=0.008 |adv|=0.661 gnorm=2.7481 lr=1.00e-06 (1.66s)
+  eval: acc=0.972 fmt=1.000
+  sample[69 - 22=47]: '<think>把 22 拆成 20 和 2：69 - 20 = 49；49 - 2 = 47。</think><answer>47</answer>'
+Saved /root/autodl-tmp/results/posttrain_v1/dapo_lite_s2/grpo_final.pth; metrics -> /root/autodl-tmp/results/posttrain_v1/dapo_lite_s2/grpo_metrics.jsonl; run -> /root/autodl-tmp/results/posttrain_v1/dapo_lite_s2/runs/grpo_20261012-180923_5f09cf
+500 tasks: accuracy 0.972, format 1.000, hack 0.028, length 35.9 (5.0s)
+   op=+ n_digits=1: 0.867 of 30
+   op=+ n_digits=2: 0.992 of 240
+   op=- n_digits=1: 0.778 of 9
+   op=- n_digits=2: 0.973 of 221
+wrote /root/autodl-tmp/results/posttrain_v1/dapo_lite_s2/dev.json
+500 tasks: accuracy 0.954, format 1.000, hack 0.046, length 32.2 (4.4s)
+   op=+ n_digits=1: 0.922 of 51
+   op=+ n_digits=2: 0.991 of 211
+   op=- n_digits=1: 0.727 of 44
+   op=- n_digits=2: 0.974 of 194
+wrote /root/autodl-tmp/results/posttrain_v1/dapo_lite_s2/test.json
+=== grpo seed 3 10-12 18:26:00 
+policy: dim=768 layers=12 heads=12 kv_heads=3 hidden=2048 vocab=32768 seq=192 -> 99.503M params
+GRPO: env=arithmetic G=8 prompts/step=32 steps=500 agg=seq_mean kl=0.0 std_norm=True filter_zero_var=False
+run: /root/autodl-tmp/results/posttrain_v1/grpo_s3/runs/grpo_20261012-182605_4448c5
+step 0 (init) eval: acc=0.636 fmt=1.000
+step 10/500 reward=0.774 acc=0.57 fmt=1.00 hack=0.43 silent=0.34 len=39.2 kl=0.0000 ent=0.031 |adv|=0.565 gnorm=0.3771 lr=2.00e-06 (2.35s)
+  sample[2 + 38=40]: '<think>把 38 拆成 30 和 8：2 + 30 = 32；32 + 8 = 40。</think><answer>40</answer>'
+step 20/500 reward=0.777 acc=0.58 fmt=1.00 hack=0.42 silent=0.31 len=33.0 kl=0.0000 ent=0.033 |adv|=0.552 gnorm=0.6349 lr=4.00e-06 (2.3s)
+  sample[8 + 37=45]: '<think>把 37 拆成 30 和 7：8 + 30 = 38；38 + 7 = 45。</think><answer>45</answer>'
+step 30/500 reward=0.902 acc=0.70 fmt=1.00 hack=0.30 silent=0.34 len=33.2 kl=0.0000 ent=0.026 |adv|=0.568 gnorm=0.3952 lr=6.00e-06 (2.13s)
+  sample[77 - 6=71]: '<think>77 - 6 = 70。</think><answer>70</answer>'
+step 40/500 reward=0.915 acc=0.71 fmt=1.00 hack=0.29 silent=0.50 len=33.2 kl=0.0000 ent=0.023 |adv|=0.419 gnorm=0.4195 lr=8.00e-06 (1.78s)
+  sample[66 - 65=1]: '<think>把 65 拆成 60 和 5：66 - 60 = 6；6 - 5 = 2。</think><answer>2</answer>'
+step 50/500 reward=0.867 acc=0.67 fmt=1.00 hack=0.33 silent=0.44 len=35.1 kl=0.0000 ent=0.025 |adv|=0.449 gnorm=0.7003 lr=1.00e-05 (2.07s)
+  eval: acc=0.694 fmt=1.000
+  sample[5 + 8=13]: '<think>5 + 8 = summary(5 + 8)\n<answer>5 + 8</answer>'
+step 60/500 reward=0.895 acc=0.70 fmt=1.00 hack=0.30 silent=0.34 len=36.9 kl=0.0000 ent=0.023 |adv|=0.544 gnorm=0.6196 lr=9.99e-06 (2.06s)
+  sample[90 - 9=81]: '<think>90 - 9 = 81。</think><answer>81</answer>'
+step 70/500 reward=0.954 acc=0.75 fmt=1.00 hack=0.25 silent=0.59 len=34.9 kl=0.0000 ent=0.018 |adv|=0.354 gnorm=0.4258 lr=9.96e-06 (2.02s)
+  sample[20 - 4=16]: '<think>20 - 4 = 16。</think><answer>16</answer>'
+step 80/500 reward=0.973 acc=0.77 fmt=1.00 hack=0.23 silent=0.50 len=34.5 kl=0.0000 ent=0.018 |adv|=0.380 gnorm=0.5522 lr=9.90e-06 (2.35s)
+  sample[48 - 0=48]: '<think>48 - 0 = 48。</think><answer>48</answer>'
+step 90/500 reward=0.977 acc=0.78 fmt=1.00 hack=0.22 silent=0.56 len=39.2 kl=0.0000 ent=0.016 |adv|=0.361 gnorm=0.3845 lr=9.83e-06 (2.36s)
+  sample[79 - 4=75]: '<think>79 - 4 = 75。</think><answer>75</answer>'
+step 100/500 reward=0.970 acc=0.77 fmt=1.00 hack=0.23 silent=0.53 len=34.7 kl=0.0000 ent=0.019 |adv|=0.364 gnorm=0.6049 lr=9.73e-06 (2.02s)
+  eval: acc=0.822 fmt=1.000
+  sample[86 + 6=92]: '<think>86 + 6 = 91。</think><answer>91</answer>'
+step 110/500 reward=0.934 acc=0.73 fmt=1.00 hack=0.27 silent=0.56 len=35.3 kl=0.0000 ent=0.023 |adv|=0.369 gnorm=0.7640 lr=9.61e-06 (2.38s)
+  sample[42 + 3=45]: '<think>42 + 3 = 45。</think><answer>45</answer>'
+step 120/500 reward=1.055 acc=0.86 fmt=1.00 hack=0.14 silent=0.50 len=33.7 kl=0.0000 ent=0.013 |adv|=0.403 gnorm=0.6184 lr=9.47e-06 (2.05s)
+  sample[0 + 91=91]: '<think>把 91 拆成 90 和 1：0 + 90 = 90；90 + 1 = 91。</think><answer>91</answer>'
+step 130/500 reward=1.020 acc=0.82 fmt=1.00 hack=0.18 silent=0.66 len=37.4 kl=0.0000 ent=0.015 |adv|=0.287 gnorm=0.6655 lr=9.32e-06 (2.06s)
+  sample[61 - 58=3]: '<think>把 58 拆成 50 和 8：61 - 50 = 21；21 - 8 = 13。</think><answer>13</answer>'
+step 140/500 reward=0.911 acc=0.71 fmt=1.00 hack=0.29 silent=0.66 len=33.5 kl=0.0000 ent=0.016 |adv|=0.295 gnorm=0.8242 lr=9.14e-06 (2.05s)
+  sample[91 - 31=60]: '<think>把 31 拆成 30 和 1：91 - 30 = 61；61 - 1 = 59。</think><answer>59</answer>'
+step 150/500 reward=1.024 acc=0.82 fmt=1.00 hack=0.18 silent=0.53 len=34.5 kl=0.0000 ent=0.015 |adv|=0.391 gnorm=0.8181 lr=8.95e-06 (1.86s)
+  eval: acc=0.852 fmt=1.000
+  sample[82 + 7=89]: '<think>82 + 7 = 89。</think><answer>89</answer>'
+step 160/500 reward=1.024 acc=0.82 fmt=1.00 hack=0.18 silent=0.62 len=36.3 kl=0.0000 ent=0.011 |adv|=0.296 gnorm=0.5925 lr=8.74e-06 (2.29s)
+  sample[3 + 3=6]: '<think>3 + 3 = 6。</think><answer>6</answer>'
+step 170/500 reward=1.063 acc=0.86 fmt=1.00 hack=0.14 silent=0.56 len=34.5 kl=0.0000 ent=0.014 |adv|=0.322 gnorm=0.6551 lr=8.51e-06 (2.31s)
+  sample[1 + 80=81]: '<think>1 + 80 = 81。</think><answer>81</answer>'
+step 180/500 reward=1.102 acc=0.90 fmt=1.00 hack=0.10 silent=0.72 len=36.3 kl=0.0000 ent=0.008 |adv|=0.203 gnorm=0.4708 lr=8.27e-06 (2.07s)
+  sample[48 - 3=45]: '<think>48 - 3 = 45。</think><answer>45</answer>'
+step 190/500 reward=1.149 acc=0.95 fmt=1.00 hack=0.05 silent=0.75 len=33.8 kl=0.0000 ent=0.007 |adv|=0.181 gnorm=0.6321 lr=8.02e-06 (2.06s)
+  sample[53 + 8=61]: '<think>53 + 8 = 61。</think><answer>61</answer>'
+step 200/500 reward=1.165 acc=0.96 fmt=1.00 hack=0.04 silent=0.75 len=34.4 kl=0.0000 ent=0.006 |adv|=0.172 gnorm=0.4757 lr=7.75e-06 (2.31s)
+  eval: acc=0.922 fmt=1.000
+  sample[67 + 1=68]: '<think>67 + 1 = 68。</think><answer>68</answer>'
+step 210/500 reward=1.095 acc=0.89 fmt=1.00 hack=0.11 silent=0.69 len=37.0 kl=0.0000 ent=0.008 |adv|=0.249 gnorm=0.6861 lr=7.47e-06 (2.06s)
+  sample[39 - 14=25]: '<think>把 14 拆成 10 和 4：39 - 10 = 29；29 - 4 = 25。</think><answer>25</answer>'
+step 220/500 reward=1.035 acc=0.84 fmt=1.00 hack=0.16 silent=0.84 len=33.1 kl=0.0000 ent=0.008 |adv|=0.109 gnorm=0.5250 lr=7.19e-06 (2.86s)
+  sample[91 - 82=9]: '<think>把 82 拆成 80 和 2：91 - 80 = 11；11 - 2 = 9。</think><answer>9</answer>'
+step 230/500 reward=1.153 acc=0.95 fmt=1.00 hack=0.05 silent=0.91 len=33.1 kl=0.0000 ent=0.006 |adv|=0.068 gnorm=0.2299 lr=6.89e-06 (2.34s)
+  sample[4 + 65=69]: '<think>把 65 拆成 60 和 5：4 + 60 = 64；64 + 5 = 69。</think><answer>69</answer>'
+step 240/500 reward=1.078 acc=0.88 fmt=1.00 hack=0.12 silent=0.88 len=37.7 kl=0.0000 ent=0.007 |adv|=0.102 gnorm=0.4347 lr=6.59e-06 (2.64s)
+  sample[29 + 4=33]: '<think>29 + 4 = 33。</think><answer>33</answer>'
+step 250/500 reward=1.055 acc=0.86 fmt=1.00 hack=0.14 silent=0.72 len=35.1 kl=0.0000 ent=0.016 |adv|=0.222 gnorm=0.9828 lr=6.28e-06 (1.88s)
+  eval: acc=0.928 fmt=1.000
+  sample[2 + 96=98]: '<think>把 96 拆成 90 和 6：2 + 90 = 92；92 + 6 = 98。</think><answer>98</answer>'
+step 260/500 reward=1.126 acc=0.93 fmt=1.00 hack=0.07 silent=0.81 len=36.6 kl=0.0000 ent=0.005 |adv|=0.147 gnorm=0.5186 lr=5.97e-06 (2.07s)
+  sample[44 - 7=37]: '<think>44 - 7 = 37。</think><answer>37</answer>'
+step 270/500 reward=1.180 acc=0.98 fmt=1.00 hack=0.02 silent=0.88 len=38.0 kl=0.0000 ent=0.004 |adv|=0.089 gnorm=0.2696 lr=5.66e-06 (1.86s)
+  sample[5 + 53=58]: '<think>把 53 拆成 50 和 3：5 + 50 = 55；55 + 3 = 58。</think><answer>58</answer>'
+step 280/500 reward=1.184 acc=0.98 fmt=1.00 hack=0.02 silent=0.94 len=36.6 kl=0.0000 ent=0.003 |adv|=0.054 gnorm=0.1653 lr=5.34e-06 (2.3s)
+  sample[73 + 12=85]: '<think>把 12 拆成 10 和 2：73 + 10 = 83；83 + 2 = 85。</think><answer>85</answer>'
+step 290/500 reward=1.180 acc=0.98 fmt=1.00 hack=0.02 silent=0.88 len=37.4 kl=0.0000 ent=0.004 |adv|=0.089 gnorm=0.3659 lr=5.03e-06 (1.83s)
+  sample[25 - 8=17]: '<think>25 - 8 = 17。</think><answer>17</answer>'
+step 300/500 reward=1.118 acc=0.92 fmt=1.00 hack=0.08 silent=0.88 len=33.1 kl=0.0000 ent=0.005 |adv|=0.108 gnorm=0.7318 lr=4.72e-06 (2.04s)
+  eval: acc=0.940 fmt=1.000
+  sample[43 + 7=50]: '<think>43 + 7 = 48。</think><answer>48</answer>'
+step 310/500 reward=1.114 acc=0.91 fmt=1.00 hack=0.09 silent=0.84 len=34.2 kl=0.0000 ent=0.004 |adv|=0.132 gnorm=0.8697 lr=4.41e-06 (2.26s)
+  sample[14 - 0=14]: '<think>14 - 0 = 14。</think><answer>14</answer>'
+step 320/500 reward=1.173 acc=0.97 fmt=1.00 hack=0.03 silent=0.84 len=38.0 kl=0.0000 ent=0.003 |adv|=0.116 gnorm=0.3318 lr=4.11e-06 (2.06s)
+  sample[32 + 2=34]: '<think>32 + 2 = 34。</think><answer>34</answer>'
+step 330/500 reward=1.177 acc=0.98 fmt=1.00 hack=0.02 silent=0.91 len=36.7 kl=0.0000 ent=0.004 |adv|=0.073 gnorm=0.3043 lr=3.81e-06 (2.28s)
+  sample[55 - 1=54]: '<think>55 - 1 = 54。</think><answer>54</answer>'
+step 340/500 reward=1.173 acc=0.97 fmt=1.00 hack=0.03 silent=0.84 len=33.8 kl=0.0000 ent=0.005 |adv|=0.113 gnorm=0.6703 lr=3.53e-06 (2.26s)
+  sample[5 + 15=20]: '<think>把 15 拆成 10 和 5：5 + 10 = 15；15 + 5 = 20。</think><answer>20</answer>'
+step 350/500 reward=1.165 acc=0.96 fmt=1.00 hack=0.04 silent=0.88 len=36.8 kl=0.0000 ent=0.003 |adv|=0.089 gnorm=0.3053 lr=3.25e-06 (2.03s)
+  eval: acc=0.952 fmt=1.000
+  sample[52 - 41=11]: '<think>把 41 拆成 40 和 1：52 - 40 = 12；12 - 1 = 11。</think><answer>11</answer>'
+step 360/500 reward=1.169 acc=0.97 fmt=1.00 hack=0.03 silent=0.78 len=36.5 kl=0.0000 ent=0.003 |adv|=0.151 gnorm=0.4226 lr=2.98e-06 (2.29s)
+  sample[14 + 0=14]: '<think>14 + 0 = 14。</think><answer>14</answer>'
+step 370/500 reward=1.161 acc=0.96 fmt=1.00 hack=0.04 silent=0.94 len=36.5 kl=0.0000 ent=0.003 |adv|=0.041 gnorm=0.1932 lr=2.73e-06 (1.85s)
+  sample[76 - 2=74]: '<think>76 - 2 = 74。</think><answer>74</answer>'
+step 380/500 reward=1.184 acc=0.98 fmt=1.00 hack=0.02 silent=0.91 len=35.8 kl=0.0000 ent=0.002 |adv|=0.068 gnorm=0.2959 lr=2.49e-06 (2.25s)
+  sample[71 + 5=76]: '<think>71 + 5 = 76。</think><answer>76</answer>'
+step 390/500 reward=1.188 acc=0.99 fmt=1.00 hack=0.01 silent=0.91 len=33.8 kl=0.0000 ent=0.002 |adv|=0.062 gnorm=0.3036 lr=2.26e-06 (2.22s)
+  sample[80 - 6=74]: '<think>80 - 6 = 74。</think><answer>74</answer>'
+step 400/500 reward=1.188 acc=0.99 fmt=1.00 hack=0.01 silent=0.94 len=36.5 kl=0.0000 ent=0.002 |adv|=0.048 gnorm=0.2032 lr=2.05e-06 (2.05s)
+  eval: acc=0.966 fmt=1.000
+  sample[5 + 79=84]: '<think>把 79 拆成 70 和 9：5 + 70 = 75；75 + 9 = 84。</think><answer>84</answer>'
+step 410/500 reward=1.200 acc=1.00 fmt=1.00 hack=0.00 silent=1.00 len=33.9 kl=0.0000 ent=0.001 |adv|=0.000 gnorm=0.0000 lr=1.86e-06 (2.26s)
+  sample[8 + 1=9]: '<think>8 + 1 = 9。</think><answer>9</answer>'
+step 420/500 reward=1.141 acc=0.94 fmt=1.00 hack=0.06 silent=0.94 len=32.8 kl=0.0000 ent=0.003 |adv|=0.048 gnorm=0.3553 lr=1.68e-06 (2.02s)
+  sample[8 + 55=63]: '<think>把 55 拆成 50 和 5：8 + 50 = 58；58 + 5 = 63。</think><answer>63</answer>'
+step 430/500 reward=1.165 acc=0.96 fmt=1.00 hack=0.04 silent=0.97 len=36.5 kl=0.0000 ent=0.002 |adv|=0.021 gnorm=0.1351 lr=1.53e-06 (2.29s)
+  sample[94 + 0=94]: '<think>94 + 0 = 94。</think><answer>94</answer>'
+step 440/500 reward=1.184 acc=0.98 fmt=1.00 hack=0.02 silent=0.91 len=35.3 kl=0.0000 ent=0.004 |adv|=0.068 gnorm=0.3131 lr=1.39e-06 (2.68s)
+  sample[41 + 9=50]: '<think>41 + 9 = 50。</think><answer>50</answer>'
+step 450/500 reward=1.184 acc=0.98 fmt=1.00 hack=0.02 silent=0.91 len=33.4 kl=0.0000 ent=0.004 |adv|=0.068 gnorm=0.2590 lr=1.27e-06 (2.06s)
+  eval: acc=0.974 fmt=1.000
+  sample[17 - 9=8]: '<think>17 - 9 = 8。</think><answer>8</answer>'
+step 460/500 reward=1.177 acc=0.98 fmt=1.00 hack=0.02 silent=0.94 len=35.5 kl=0.0000 ent=0.003 |adv|=0.061 gnorm=0.4909 lr=1.17e-06 (2.07s)
+  sample[58 - 37=21]: '<think>把 37 拆成 30 和 7：58 - 30 = 28；28 - 7 = 21。</think><answer>21</answer>'
+step 470/500 reward=1.196 acc=1.00 fmt=1.00 hack=0.00 silent=0.97 len=31.8 kl=0.0000 ent=0.002 |adv|=0.021 gnorm=0.0957 lr=1.10e-06 (2.08s)
+  sample[7 + 2=9]: '<think>7 + 2 = 9。</think><answer>9</answer>'
+step 480/500 reward=1.200 acc=1.00 fmt=1.00 hack=0.00 silent=1.00 len=32.9 kl=0.0000 ent=0.001 |adv|=0.000 gnorm=0.0000 lr=1.04e-06 (2.29s)
+  sample[31 + 7=38]: '<think>31 + 7 = 38。</think><answer>38</answer>'
+step 490/500 reward=1.188 acc=0.99 fmt=1.00 hack=0.01 silent=0.94 len=34.5 kl=0.0000 ent=0.002 |adv|=0.048 gnorm=0.3068 lr=1.01e-06 (1.86s)
+  sample[56 + 7=63]: '<think>56 + 7 = 63。</think><answer>63</answer>'
+step 500/500 reward=1.169 acc=0.97 fmt=1.00 hack=0.03 silent=1.00 len=35.0 kl=0.0000 ent=0.003 |adv|=0.000 gnorm=0.0000 lr=1.00e-06 (1.81s)
+  eval: acc=0.978 fmt=1.000
+  sample[31 - 30=1]: '<think>31 - 30 = 1。</think><answer>1</answer>'
+Saved /root/autodl-tmp/results/posttrain_v1/grpo_s3/grpo_final.pth; metrics -> /root/autodl-tmp/results/posttrain_v1/grpo_s3/grpo_metrics.jsonl; run -> /root/autodl-tmp/results/posttrain_v1/grpo_s3/runs/grpo_20261012-182605_4448c5
+500 tasks: accuracy 0.978, format 1.000, hack 0.022, length 35.9 (5.0s)
+   op=+ n_digits=1: 0.933 of 30
+   op=+ n_digits=2: 0.992 of 240
+   op=- n_digits=1: 0.556 of 9
+   op=- n_digits=2: 0.986 of 221
+wrote /root/autodl-tmp/results/posttrain_v1/grpo_s3/dev.json
+500 tasks: accuracy 0.944, format 1.000, hack 0.056, length 32.2 (4.5s)
+   op=+ n_digits=1: 0.882 of 51
+   op=+ n_digits=2: 0.991 of 211
+   op=- n_digits=1: 0.636 of 44
+   op=- n_digits=2: 0.979 of 194
+wrote /root/autodl-tmp/results/posttrain_v1/grpo_s3/test.json
+=== grpo_kl seed 3 10-12 18:45:11 --kl_coeff 0.02
+policy: dim=768 layers=12 heads=12 kv_heads=3 hidden=2048 vocab=32768 seq=192 -> 99.503M params
+GRPO: env=arithmetic G=8 prompts/step=32 steps=500 agg=seq_mean kl=0.02 std_norm=True filter_zero_var=False
+run: /root/autodl-tmp/results/posttrain_v1/grpo_kl_s3/runs/grpo_20261012-184518_f7c563
+step 0 (init) eval: acc=0.636 fmt=1.000
+step 10/500 reward=0.774 acc=0.57 fmt=1.00 hack=0.43 silent=0.34 len=39.2 kl=0.0004 ent=0.031 |adv|=0.565 gnorm=0.3779 lr=2.00e-06 (2.44s)
+  sample[2 + 38=40]: '<think>把 38 拆成 30 和 8：2 + 30 = 32；32 + 8 = 40。</think><answer>40</answer>'
+step 20/500 reward=0.777 acc=0.58 fmt=1.00 hack=0.42 silent=0.31 len=33.0 kl=0.0031 ent=0.033 |adv|=0.547 gnorm=0.6316 lr=4.00e-06 (2.37s)
+  sample[8 + 37=45]: '<think>把 37 拆成 30 和 7：8 + 30 = 38；38 + 7 = 45。</think><answer>45</answer>'
+step 30/500 reward=0.891 acc=0.69 fmt=1.00 hack=0.31 silent=0.34 len=33.2 kl=0.0043 ent=0.026 |adv|=0.573 gnorm=0.4002 lr=6.00e-06 (2.14s)
+  sample[77 - 6=71]: '<think>77 - 6 = 70。</think><answer>70</answer>'
+step 40/500 reward=0.919 acc=0.72 fmt=1.00 hack=0.28 silent=0.47 len=33.2 kl=0.0033 ent=0.023 |adv|=0.440 gnorm=0.4291 lr=8.00e-06 (1.91s)
+  sample[66 - 65=1]: '<think>把 65 拆成 60 和 5：66 - 60 = 6；6 - 5 = 2。</think><answer>2</answer>'
+step 50/500 reward=0.872 acc=0.67 fmt=1.00 hack=0.33 silent=0.59 len=35.1 kl=0.0043 ent=0.024 |adv|=0.339 gnorm=0.3413 lr=1.00e-05 (2.15s)
+  eval: acc=0.694 fmt=1.000
+  sample[5 + 8=13]: '<think>5 + 8 = 13。</think><answer>13</answer>'
+step 60/500 reward=0.899 acc=0.70 fmt=1.00 hack=0.30 silent=0.44 len=36.9 kl=0.0075 ent=0.024 |adv|=0.493 gnorm=0.4421 lr=9.99e-06 (2.14s)
+  sample[90 - 9=81]: '<think>90 - 9 = 81。</think><answer>81</answer>'
+step 70/500 reward=0.970 acc=0.77 fmt=1.00 hack=0.23 silent=0.62 len=34.9 kl=0.0052 ent=0.019 |adv|=0.331 gnorm=0.4345 lr=9.96e-06 (2.1s)
+  sample[20 - 4=16]: '<think>20 - 4 = 16。</think><answer>16</answer>'
+step 80/500 reward=0.954 acc=0.75 fmt=1.00 hack=0.25 silent=0.41 len=34.5 kl=0.0112 ent=0.018 |adv|=0.491 gnorm=0.5071 lr=9.90e-06 (2.36s)
+  sample[48 - 0=48]: '<think>48 - 0 = 48。</think><answer>48</answer>'
+step 90/500 reward=0.921 acc=0.72 fmt=0.99 hack=0.27 silent=0.44 len=39.2 kl=0.0176 ent=0.019 |adv|=0.470 gnorm=1.0791 lr=9.83e-06 (2.37s)
+  sample[79 - 4=75]: '<think>79 - 4 = 75。</think><answer>75</answer>'
+step 100/500 reward=0.930 acc=0.73 fmt=1.00 hack=0.27 silent=0.44 len=34.7 kl=0.0180 ent=0.022 |adv|=0.477 gnorm=0.6713 lr=9.73e-06 (2.12s)
+  eval: acc=0.824 fmt=1.000
+  sample[86 + 6=92]: '<think>86 + 6 = 93。</think><answer>93</answer>'
+step 110/500 reward=0.934 acc=0.73 fmt=1.00 hack=0.26 silent=0.50 len=35.1 kl=0.0129 ent=0.021 |adv|=0.382 gnorm=0.6367 lr=9.61e-06 (2.35s)
+  sample[42 + 3=45]: '<think>42 + 3 = 45。</think><answer>45</answer>'
+step 120/500 reward=1.083 acc=0.88 fmt=1.00 hack=0.12 silent=0.56 len=33.6 kl=0.0049 ent=0.013 |adv|=0.350 gnorm=0.4952 lr=9.47e-06 (2.13s)
+  sample[0 + 91=91]: '<think>把 91 拆成 90 和 1：0 + 90 = 90；90 + 1 = 91。</think><answer>91</answer>'
+step 130/500 reward=1.024 acc=0.82 fmt=1.00 hack=0.18 silent=0.56 len=37.5 kl=0.0096 ent=0.015 |adv|=0.350 gnorm=0.5157 lr=9.32e-06 (2.66s)
+  sample[61 - 58=3]: '<think>把 58 拆成 50 和 8：61 - 50 = 1；1 - 8 = i。</think><answer>i</answer>'
+step 140/500 reward=0.954 acc=0.75 fmt=1.00 hack=0.25 silent=0.56 len=33.5 kl=0.0437 ent=0.016 |adv|=0.369 gnorm=0.6878 lr=9.14e-06 (2.14s)
+  sample[91 - 31=60]: '<think>把 31 拆成 30 和 1：91 - 30 = 61；61 - 1 = 58。</think><answer>58</answer>'
+step 150/500 reward=0.985 acc=0.79 fmt=1.00 hack=0.21 silent=0.53 len=34.5 kl=0.0221 ent=0.015 |adv|=0.412 gnorm=0.7409 lr=8.95e-06 (1.92s)
+  eval: acc=0.880 fmt=1.000
+  sample[82 + 7=89]: '<think>82 + 7 = 89。</think><answer>89</answer>'
+step 160/500 reward=1.052 acc=0.85 fmt=1.00 hack=0.15 silent=0.69 len=36.3 kl=0.0161 ent=0.011 |adv|=0.260 gnorm=0.4516 lr=8.74e-06 (2.35s)
+  sample[3 + 3=6]: '<think>3 + 3 = 6。</think><answer>6</answer>'
+step 170/500 reward=1.067 acc=0.87 fmt=1.00 hack=0.13 silent=0.59 len=34.3 kl=0.0142 ent=0.012 |adv|=0.320 gnorm=0.7470 lr=8.51e-06 (2.3s)
+  sample[1 + 80=81]: '<think>1 + 80 = 81。</think><answer>81</answer>'
+step 180/500 reward=1.091 acc=0.89 fmt=1.00 hack=0.11 silent=0.75 len=36.3 kl=0.0100 ent=0.008 |adv|=0.205 gnorm=0.5693 lr=8.27e-06 (2.13s)
+  sample[48 - 3=45]: '<think>48 - 3 = 45。</think><answer>45</answer>'
+step 190/500 reward=1.095 acc=0.89 fmt=1.00 hack=0.11 silent=0.72 len=33.7 kl=0.0273 ent=0.008 |adv|=0.208 gnorm=0.7917 lr=8.02e-06 (2.14s)
+  sample[53 + 8=61]: '<think>53 + 8 = 61。</think><answer>61</answer>'
+step 200/500 reward=1.122 acc=0.92 fmt=1.00 hack=0.08 silent=0.69 len=34.4 kl=0.0140 ent=0.007 |adv|=0.216 gnorm=0.5019 lr=7.75e-06 (2.37s)
+  eval: acc=0.920 fmt=1.000
+  sample[67 + 1=68]: '<think>67 + 1 = 68。</think><answer>68</answer>'
+step 210/500 reward=1.087 acc=0.89 fmt=1.00 hack=0.11 silent=0.62 len=37.1 kl=0.0162 ent=0.009 |adv|=0.287 gnorm=0.6535 lr=7.47e-06 (2.15s)
+  sample[39 - 14=25]: '<think>把 14 拆成 10 和 4：39 - 10 = 29；29 - 4 = 25。</think><answer>25</answer>'
+step 220/500 reward=1.051 acc=0.85 fmt=1.00 hack=0.14 silent=0.66 len=33.0 kl=0.0223 ent=0.013 |adv|=0.270 gnorm=0.9583 lr=7.19e-06 (2.38s)
+  sample[91 - 82=9]: '<think>把 82 拆成 80 和 2：91 - 80 = 11；11 - 2 = 9。</think><answer>9</answer>'
+step 230/500 reward=1.153 acc=0.95 fmt=1.00 hack=0.05 silent=0.81 len=33.2 kl=0.0259 ent=0.006 |adv|=0.137 gnorm=0.4259 lr=6.89e-06 (2.37s)
+  sample[4 + 65=69]: '<think>把 65 拆成 60 和 5：4 + 60 = 64；64 + 5 = 69。</think><answer>69</answer>'
+step 240/500 reward=1.095 acc=0.89 fmt=1.00 hack=0.11 silent=0.78 len=37.6 kl=0.0110 ent=0.008 |adv|=0.177 gnorm=0.6072 lr=6.59e-06 (2.18s)
+  sample[29 + 4=33]: '<think>29 + 4 = 33。</think><answer>33</answer>'
+step 250/500 reward=1.020 acc=0.82 fmt=1.00 hack=0.18 silent=0.72 len=35.2 kl=0.0422 ent=0.015 |adv|=0.229 gnorm=1.1349 lr=6.28e-06 (1.91s)
+  eval: acc=0.918 fmt=1.000
+  sample[2 + 96=98]: '<think>把 96 拆成 90 和 6：2 + 90 = 92；92 + 6 = 98。</think><answer>98</answer>'
+step 260/500 reward=1.137 acc=0.94 fmt=1.00 hack=0.06 silent=0.91 len=36.7 kl=0.0101 ent=0.006 |adv|=0.082 gnorm=0.3535 lr=5.97e-06 (2.16s)
+  sample[44 - 7=37]: '<think>44 - 7 = 37。</think><answer>37</answer>'
+step 270/500 reward=1.134 acc=0.93 fmt=1.00 hack=0.07 silent=0.78 len=38.0 kl=0.0073 ent=0.007 |adv|=0.154 gnorm=0.3615 lr=5.66e-06 (1.93s)
+  sample[5 + 53=58]: '<think>把 53 拆成 50 和 3：5 + 50 = 55；55 + 3 = 58。</think><answer>58</answer>'
+step 280/500 reward=1.177 acc=0.98 fmt=1.00 hack=0.02 silent=0.84 len=36.6 kl=0.0126 ent=0.004 |adv|=0.110 gnorm=0.4313 lr=5.34e-06 (2.39s)
+  sample[73 + 12=85]: '<think>把 12 拆成 10 和 2：73 + 10 = 83；83 + 2 = 85。</think><answer>85</answer>'
+step 290/500 reward=1.157 acc=0.96 fmt=1.00 hack=0.04 silent=0.84 len=37.4 kl=0.0098 ent=0.004 |adv|=0.130 gnorm=0.4409 lr=5.03e-06 (1.92s)
+  sample[25 - 8=17]: '<think>25 - 8 = 17。</think><answer>17</answer>'
+step 300/500 reward=1.169 acc=0.97 fmt=1.00 hack=0.03 silent=0.88 len=33.1 kl=0.0557 ent=0.004 |adv|=0.092 gnorm=0.4652 lr=4.72e-06 (2.14s)
+  eval: acc=0.948 fmt=1.000
+  sample[43 + 7=50]: '<think>43 + 7 = 50。</think><answer>50</answer>'
+step 310/500 reward=1.165 acc=0.96 fmt=1.00 hack=0.04 silent=0.88 len=34.2 kl=0.0058 ent=0.005 |adv|=0.103 gnorm=0.4549 lr=4.41e-06 (2.35s)
+  sample[14 - 0=14]: '<think>14 - 0 = 14。</think><answer>14</answer>'
+step 320/500 reward=1.173 acc=0.97 fmt=1.00 hack=0.03 silent=0.78 len=38.1 kl=0.0191 ent=0.003 |adv|=0.145 gnorm=0.5655 lr=4.11e-06 (2.18s)
+  sample[32 + 2=34]: '<think>32 + 2 = 34。</think><answer>34</answer>'
+step 330/500 reward=1.180 acc=0.98 fmt=1.00 hack=0.02 silent=0.91 len=36.7 kl=0.0090 ent=0.003 |adv|=0.072 gnorm=0.2730 lr=3.81e-06 (2.37s)
+  sample[55 - 1=54]: '<think>55 - 1 = 54。</think><answer>54</answer>'
+step 340/500 reward=1.188 acc=0.99 fmt=1.00 hack=0.01 silent=0.91 len=33.8 kl=0.0101 ent=0.003 |adv|=0.062 gnorm=0.6331 lr=3.53e-06 (2.38s)
+  sample[5 + 15=20]: '<think>把 15 拆成 10 和 5：5 + 10 = 15；15 + 5 = 20。</think><answer>20</answer>'
+step 350/500 reward=1.184 acc=0.98 fmt=1.00 hack=0.02 silent=0.94 len=36.8 kl=0.0124 ent=0.004 |adv|=0.051 gnorm=0.4508 lr=3.25e-06 (2.13s)
+  eval: acc=0.962 fmt=1.000
+  sample[52 - 41=11]: '<think>把 41 拆成 40 和 1：52 - 40 = 12；12 - 1 = 11。</think><answer>11</answer>'
+step 360/500 reward=1.180 acc=0.98 fmt=1.00 hack=0.02 silent=0.84 len=36.5 kl=0.0254 ent=0.003 |adv|=0.103 gnorm=0.4168 lr=2.98e-06 (2.38s)
+  sample[14 + 0=14]: '<think>14 + 0 = 14。</think><answer>14</answer>'
+step 370/500 reward=1.157 acc=0.96 fmt=1.00 hack=0.04 silent=0.91 len=36.5 kl=0.1050 ent=0.003 |adv|=0.062 gnorm=0.6540 lr=2.73e-06 (1.97s)
+  sample[76 - 2=74]: '<think>76 - 2 = 74。</think><answer>74</answer>'
+step 380/500 reward=1.188 acc=0.99 fmt=1.00 hack=0.01 silent=0.91 len=35.8 kl=0.0142 ent=0.003 |adv|=0.062 gnorm=0.3838 lr=2.49e-06 (2.37s)
+  sample[71 + 5=76]: '<think>71 + 5 = 76。</think><answer>76</answer>'
+step 390/500 reward=1.188 acc=0.99 fmt=1.00 hack=0.01 silent=0.91 len=33.8 kl=0.0255 ent=0.002 |adv|=0.062 gnorm=0.2217 lr=2.26e-06 (2.34s)
+  sample[80 - 6=74]: '<think>80 - 6 = 74。</think><answer>74</answer>'
+step 400/500 reward=1.177 acc=0.98 fmt=1.00 hack=0.02 silent=0.88 len=36.5 kl=0.0140 ent=0.003 |adv|=0.092 gnorm=0.3982 lr=2.05e-06 (2.18s)
+  eval: acc=0.964 fmt=1.000
+  sample[5 + 79=84]: '<think>把 79 拆成 70 和 9：5 + 70 = 75；75 + 9 = 84。</think><answer>84</answer>'
+step 410/500 reward=1.196 acc=1.00 fmt=1.00 hack=0.00 silent=0.97 len=33.9 kl=0.0041 ent=0.001 |adv|=0.021 gnorm=0.0875 lr=1.86e-06 (2.38s)
+  sample[8 + 1=9]: '<think>8 + 1 = 9。</think><answer>9</answer>'
+step 420/500 reward=1.134 acc=0.93 fmt=1.00 hack=0.07 silent=0.91 len=32.8 kl=0.0316 ent=0.003 |adv|=0.062 gnorm=0.2702 lr=1.68e-06 (2.16s)
+  sample[8 + 55=63]: '<think>把 55 拆成 50 和 5：8 + 50 = 58；58 + 5 = 63。</think><answer>63</answer>'
+step 430/500 reward=1.157 acc=0.96 fmt=1.00 hack=0.04 silent=0.94 len=36.5 kl=0.0124 ent=0.002 |adv|=0.048 gnorm=0.1209 lr=1.53e-06 (2.37s)
+  sample[94 + 0=94]: '<think>94 + 0 = 94。</think><answer>94</answer>'
+step 440/500 reward=1.165 acc=0.96 fmt=1.00 hack=0.04 silent=0.84 len=35.1 kl=0.1042 ent=0.003 |adv|=0.126 gnorm=0.6976 lr=1.39e-06 (2.19s)
+  sample[41 + 9=50]: '<think>41 + 9 = 50。</think><answer>50</answer>'
+step 450/500 reward=1.173 acc=0.97 fmt=1.00 hack=0.03 silent=0.91 len=33.3 kl=0.0131 ent=0.004 |adv|=0.079 gnorm=0.2853 lr=1.27e-06 (2.14s)
+  eval: acc=0.966 fmt=1.000
+  sample[17 - 9=8]: '<think>17 - 9 = 8。</think><answer>8</answer>'
+step 460/500 reward=1.177 acc=0.98 fmt=1.00 hack=0.02 silent=0.91 len=35.5 kl=0.0110 ent=0.002 |adv|=0.073 gnorm=0.3164 lr=1.17e-06 (2.16s)
+  sample[58 - 37=21]: '<think>把 37 拆成 30 和 7：58 - 30 = 28；28 - 7 = 21。</think><answer>21</answer>'
+step 470/500 reward=1.200 acc=1.00 fmt=1.00 hack=0.00 silent=1.00 len=31.8 kl=0.0076 ent=0.002 |adv|=0.000 gnorm=0.0004 lr=1.10e-06 (2.13s)
+  sample[7 + 2=9]: '<think>7 + 2 = 9。</think><answer>9</answer>'
+step 480/500 reward=1.192 acc=0.99 fmt=1.00 hack=0.01 silent=0.94 len=33.0 kl=0.0149 ent=0.002 |adv|=0.041 gnorm=0.1295 lr=1.04e-06 (2.56s)
+  sample[31 + 7=38]: '<think>31 + 7 = 38。</think><answer>38</answer>'
+step 490/500 reward=1.188 acc=0.99 fmt=1.00 hack=0.01 silent=0.91 len=34.5 kl=0.0149 ent=0.002 |adv|=0.062 gnorm=0.4181 lr=1.01e-06 (1.95s)
+  sample[56 + 7=63]: '<think>56 + 7 = 63。</think><answer>63</answer>'
+step 500/500 reward=1.137 acc=0.94 fmt=1.00 hack=0.06 silent=0.72 len=35.0 kl=0.0348 ent=0.003 |adv|=0.202 gnorm=0.5528 lr=1.00e-06 (1.95s)
+  eval: acc=0.974 fmt=1.000
+  sample[31 - 30=1]: '<think>31 - 30 = 1。</think><answer>1</answer>'
+Saved /root/autodl-tmp/results/posttrain_v1/grpo_kl_s3/grpo_final.pth; metrics -> /root/autodl-tmp/results/posttrain_v1/grpo_kl_s3/grpo_metrics.jsonl; run -> /root/autodl-tmp/results/posttrain_v1/grpo_kl_s3/runs/grpo_20261012-184518_f7c563
+500 tasks: accuracy 0.974, format 1.000, hack 0.026, length 35.9 (5.0s)
+   op=+ n_digits=1: 0.900 of 30
+   op=+ n_digits=2: 0.992 of 240
+   op=- n_digits=1: 0.889 of 9
+   op=- n_digits=2: 0.968 of 221
+wrote /root/autodl-tmp/results/posttrain_v1/grpo_kl_s3/dev.json
+500 tasks: accuracy 0.942, format 1.000, hack 0.058, length 32.2 (4.5s)
+   op=+ n_digits=1: 0.863 of 51
+   op=+ n_digits=2: 0.981 of 211
+   op=- n_digits=1: 0.682 of 44
+   op=- n_digits=2: 0.979 of 194
+wrote /root/autodl-tmp/results/posttrain_v1/grpo_kl_s3/test.json
+=== dr_grpo seed 3 10-12 19:05:03 --normalize_advantage_std False --aggregation dr_grpo
+policy: dim=768 layers=12 heads=12 kv_heads=3 hidden=2048 vocab=32768 seq=192 -> 99.503M params
+GRPO: env=arithmetic G=8 prompts/step=32 steps=500 agg=dr_grpo kl=0.0 std_norm=False filter_zero_var=False
+run: /root/autodl-tmp/results/posttrain_v1/dr_grpo_s3/runs/grpo_20261012-190509_a09acc
+step 0 (init) eval: acc=0.636 fmt=1.000
+step 10/500 reward=0.790 acc=0.59 fmt=1.00 hack=0.41 silent=0.34 len=39.2 kl=0.0000 ent=0.031 |adv|=0.243 gnorm=0.0719 lr=2.00e-06 (2.32s)
+  sample[2 + 38=40]: '<think>把 38 拆成 30 和 8：2 + 30 = 32；32 + 8 = 40。</think><answer>40</answer>'
+step 20/500 reward=0.786 acc=0.59 fmt=1.00 hack=0.41 silent=0.28 len=33.0 kl=0.0000 ent=0.032 |adv|=0.238 gnorm=0.0754 lr=4.00e-06 (2.22s)
+  sample[8 + 37=45]: '<think>把 37 拆成 30 和 7：8 + 30 = 38；38 + 7 = 45。</think><answer>45</answer>'
+step 30/500 reward=0.895 acc=0.70 fmt=1.00 hack=0.30 silent=0.31 len=33.2 kl=0.0000 ent=0.025 |adv|=0.260 gnorm=0.0820 lr=6.00e-06 (2.0s)
+  sample[77 - 6=71]: '<think>77 - 6 = 70。</think><answer>70</answer>'
+step 40/500 reward=0.895 acc=0.70 fmt=1.00 hack=0.30 silent=0.38 len=33.2 kl=0.0000 ent=0.024 |adv|=0.211 gnorm=0.0619 lr=8.00e-06 (1.76s)
+  sample[66 - 65=1]: '<think>把 65 拆成 60 和 5：66 - 60 = 6；6 - 5 = 0。</think><answer>0</answer>'
+step 50/500 reward=0.852 acc=0.65 fmt=1.00 hack=0.35 silent=0.50 len=35.1 kl=0.0000 ent=0.027 |adv|=0.168 gnorm=0.0609 lr=1.00e-05 (2.05s)
+  eval: acc=0.696 fmt=1.000
+  sample[5 + 8=13]: '<think>5 + 8 = 13。</think><answer>13</answer>'
+step 60/500 reward=0.946 acc=0.75 fmt=1.00 hack=0.25 silent=0.41 len=36.9 kl=0.0000 ent=0.022 |adv|=0.233 gnorm=0.0876 lr=9.99e-06 (2.01s)
+  sample[90 - 9=81]: '<think>90 - 9 = 81。</think><answer>81</answer>'
+step 70/500 reward=0.977 acc=0.78 fmt=1.00 hack=0.22 silent=0.62 len=34.9 kl=0.0000 ent=0.018 |adv|=0.159 gnorm=0.0702 lr=9.96e-06 (1.99s)
+  sample[20 - 4=16]: '<think>20 - 4 = 16。</think><answer>16</answer>'
+step 80/500 reward=0.907 acc=0.71 fmt=1.00 hack=0.29 silent=0.44 len=34.4 kl=0.0000 ent=0.020 |adv|=0.202 gnorm=0.1072 lr=9.90e-06 (2.24s)
+  sample[48 - 0=48]: '<think>48 - 0 = 48。</think><answer>48</answer>'
+step 90/500 reward=0.997 acc=0.80 fmt=1.00 hack=0.20 silent=0.59 len=39.2 kl=0.0000 ent=0.015 |adv|=0.166 gnorm=0.0796 lr=9.83e-06 (2.29s)
+  sample[79 - 4=75]: '<think>79 - 4 = 75。</think><answer>75</answer>'
+step 100/500 reward=0.954 acc=0.75 fmt=1.00 hack=0.25 silent=0.69 len=34.7 kl=0.0000 ent=0.016 |adv|=0.097 gnorm=0.0561 lr=9.73e-06 (1.97s)
+  eval: acc=0.786 fmt=1.000
+  sample[86 + 6=92]: '<think>86 + 6 = 92。</think><answer>92</answer>'
+step 110/500 reward=0.958 acc=0.76 fmt=1.00 hack=0.24 silent=0.62 len=34.9 kl=0.0000 ent=0.015 |adv|=0.146 gnorm=0.1030 lr=9.61e-06 (2.01s)
+  sample[42 + 3=45]: '<think>42 + 3 = 45。</think><answer>45</answer>'
+step 120/500 reward=1.034 acc=0.84 fmt=0.99 hack=0.16 silent=0.53 len=33.7 kl=0.0000 ent=0.011 |adv|=0.159 gnorm=0.0892 lr=9.47e-06 (2.0s)
+  sample[0 + 91=91]: '<think>把 91 拆成 90 和 1：0 + 90 = 90；90 + 1 = 91。</think><answer>91</answer>'
+step 130/500 reward=1.020 acc=0.82 fmt=1.00 hack=0.18 silent=0.66 len=37.4 kl=0.0000 ent=0.013 |adv|=0.131 gnorm=0.1101 lr=9.32e-06 (2.04s)
+  sample[61 - 58=3]: '<think>把 58 拆成 50 和 8：61 - 50 = 11；11 - 8 = 5。</think><answer>5</answer>'
+step 140/500 reward=0.958 acc=0.76 fmt=1.00 hack=0.24 silent=0.53 len=33.6 kl=0.0000 ent=0.014 |adv|=0.154 gnorm=0.0965 lr=9.14e-06 (2.02s)
+  sample[91 - 31=60]: '<think>把 31 拆成 30 和 1：91 - 30 = 61；61 - 1 = 59。</think><answer>59</answer>'
+step 150/500 reward=1.032 acc=0.83 fmt=1.00 hack=0.17 silent=0.66 len=34.5 kl=0.0000 ent=0.011 |adv|=0.095 gnorm=0.0684 lr=8.95e-06 (1.78s)
+  eval: acc=0.860 fmt=1.000
+  sample[82 + 7=89]: '<think>82 + 7 = 89。</think><answer>89</answer>'
+step 160/500 reward=1.070 acc=0.87 fmt=1.00 hack=0.12 silent=0.72 len=36.3 kl=0.0000 ent=0.011 |adv|=0.082 gnorm=0.0760 lr=8.74e-06 (2.25s)
+  sample[3 + 3=6]: '<think>3 + 3 = 6。</think><answer>6</answer>'
+step 170/500 reward=1.048 acc=0.85 fmt=1.00 hack=0.15 silent=0.69 len=34.3 kl=0.0000 ent=0.014 |adv|=0.140 gnorm=0.0982 lr=8.51e-06 (2.2s)
+  sample[1 + 80=81]: '<think>1 + 80 = 81。</think><answer>81</answer>'
+step 180/500 reward=1.036 acc=0.84 fmt=1.00 hack=0.16 silent=0.66 len=36.3 kl=0.0000 ent=0.010 |adv|=0.109 gnorm=0.1055 lr=8.27e-06 (2.02s)
+  sample[48 - 3=45]: '<think>48 - 3 = 45。</think><answer>45</answer>'
+step 190/500 reward=1.134 acc=0.93 fmt=1.00 hack=0.07 silent=0.62 len=33.8 kl=0.0000 ent=0.006 |adv|=0.104 gnorm=0.0908 lr=8.02e-06 (2.04s)
+  sample[53 + 8=61]: '<think>53 + 8 = 61。</think><answer>61</answer>'
+step 200/500 reward=1.087 acc=0.89 fmt=1.00 hack=0.11 silent=0.75 len=34.4 kl=0.0000 ent=0.006 |adv|=0.071 gnorm=0.0666 lr=7.75e-06 (2.23s)
+  eval: acc=0.930 fmt=1.000
+  sample[67 + 1=68]: '<think>67 + 1 = 68。</think><answer>68</answer>'
+step 210/500 reward=1.114 acc=0.91 fmt=1.00 hack=0.09 silent=0.69 len=37.0 kl=0.0000 ent=0.008 |adv|=0.094 gnorm=0.0919 lr=7.47e-06 (2.03s)
+  sample[39 - 14=25]: '<think>把 14 拆成 10 和 4：39 - 10 = 29；29 - 4 = 25。</think><answer>25</answer>'
+step 220/500 reward=1.118 acc=0.92 fmt=1.00 hack=0.08 silent=0.78 len=33.0 kl=0.0000 ent=0.008 |adv|=0.085 gnorm=0.1206 lr=7.19e-06 (2.16s)
+  sample[91 - 82=9]: '<think>把 82 拆成 80 和 2：91 - 80 = 11；11 - 2 = 10。</think><answer>10</answer>'
+step 230/500 reward=1.134 acc=0.93 fmt=1.00 hack=0.07 silent=0.75 len=33.1 kl=0.0000 ent=0.006 |adv|=0.085 gnorm=0.0943 lr=6.89e-06 (2.26s)
+  sample[4 + 65=69]: '<think>把 65 拆成 60 和 5：4 + 60 = 64；64 + 5 = 69。</think><answer>69</answer>'
+step 240/500 reward=1.095 acc=0.89 fmt=1.00 hack=0.11 silent=0.75 len=37.5 kl=0.0000 ent=0.007 |adv|=0.081 gnorm=0.1133 lr=6.59e-06 (2.01s)
+  sample[29 + 4=33]: '<think>29 + 4 = 33。</think><answer>33</answer>'
+step 250/500 reward=1.091 acc=0.89 fmt=1.00 hack=0.11 silent=0.94 len=35.0 kl=0.0000 ent=0.006 |adv|=0.021 gnorm=0.0280 lr=6.28e-06 (1.76s)
+  eval: acc=0.930 fmt=1.000
+  sample[2 + 96=98]: '<think>把 96 拆成 90 和 6：2 + 90 = 92；92 + 6 = 98。</think><answer>98</answer>'
+step 260/500 reward=1.145 acc=0.95 fmt=1.00 hack=0.05 silent=0.84 len=36.6 kl=0.0000 ent=0.004 |adv|=0.038 gnorm=0.0665 lr=5.97e-06 (2.02s)
+  sample[44 - 7=37]: '<think>44 - 7 = 37。</think><answer>37</answer>'
+step 270/500 reward=1.161 acc=0.96 fmt=1.00 hack=0.04 silent=0.75 len=38.0 kl=0.0000 ent=0.005 |adv|=0.062 gnorm=0.0563 lr=5.66e-06 (1.79s)
+  sample[5 + 53=58]: '<think>把 53 拆成 50 和 3：5 + 50 = 55；55 + 3 = 58。</think><answer>58</answer>'
+step 280/500 reward=1.188 acc=0.99 fmt=1.00 hack=0.01 silent=0.91 len=36.6 kl=0.0000 ent=0.003 |adv|=0.021 gnorm=0.0324 lr=5.34e-06 (2.23s)
+  sample[73 + 12=85]: '<think>把 12 拆成 10 和 2：73 + 10 = 83；83 + 2 = 85。</think><answer>85</answer>'
+step 290/500 reward=1.180 acc=0.98 fmt=1.00 hack=0.02 silent=0.91 len=37.4 kl=0.0000 ent=0.003 |adv|=0.028 gnorm=0.0384 lr=5.03e-06 (1.79s)
+  sample[25 - 8=17]: '<think>25 - 8 = 17。</think><answer>17</answer>'
+step 300/500 reward=1.134 acc=0.93 fmt=1.00 hack=0.07 silent=0.84 len=33.1 kl=0.0000 ent=0.004 |adv|=0.044 gnorm=0.0677 lr=4.72e-06 (2.0s)
+  eval: acc=0.954 fmt=1.000
+  sample[43 + 7=50]: '<think>43 + 7 = 50。</think><answer>50</answer>'
+step 310/500 reward=1.141 acc=0.94 fmt=1.00 hack=0.06 silent=0.97 len=34.2 kl=0.0000 ent=0.004 |adv|=0.007 gnorm=0.0204 lr=4.41e-06 (2.21s)
+  sample[14 - 0=14]: '<think>14 - 0 = 14。</think><answer>14</answer>'
+step 320/500 reward=1.118 acc=0.92 fmt=1.00 hack=0.08 silent=0.84 len=38.1 kl=0.0000 ent=0.005 |adv|=0.042 gnorm=0.0603 lr=4.11e-06 (2.01s)
+  sample[32 + 2=34]: '<think>32 + 2 = 34。</think><answer>34</answer>'
+step 330/500 reward=1.180 acc=0.98 fmt=1.00 hack=0.02 silent=0.88 len=36.7 kl=0.0000 ent=0.003 |adv|=0.032 gnorm=0.0522 lr=3.81e-06 (2.24s)
+  sample[55 - 1=54]: '<think>55 - 1 = 54。</think><answer>54</answer>'
+step 340/500 reward=1.165 acc=0.96 fmt=1.00 hack=0.04 silent=0.88 len=33.8 kl=0.0000 ent=0.004 |adv|=0.046 gnorm=0.0378 lr=3.53e-06 (2.24s)
+  sample[5 + 15=20]: '<think>把 15 拆成 10 和 5：5 + 10 = 15；15 + 5 = 20。</think><answer>20</answer>'
+step 350/500 reward=1.141 acc=0.94 fmt=1.00 hack=0.06 silent=0.84 len=36.8 kl=0.0000 ent=0.003 |adv|=0.050 gnorm=0.0776 lr=3.25e-06 (1.98s)
+  eval: acc=0.966 fmt=1.000
+  sample[52 - 41=11]: '<think>把 41 拆成 40 和 1：52 - 40 = 12；12 - 1 = 11。</think><answer>11</answer>'
+step 360/500 reward=1.157 acc=0.96 fmt=1.00 hack=0.04 silent=0.88 len=36.5 kl=0.0000 ent=0.003 |adv|=0.032 gnorm=0.0656 lr=2.98e-06 (2.26s)
+  sample[14 + 0=14]: '<think>14 + 0 = 14。</think><answer>14</answer>'
+step 370/500 reward=1.165 acc=0.96 fmt=1.00 hack=0.04 silent=0.97 len=36.5 kl=0.0000 ent=0.004 |adv|=0.007 gnorm=0.0165 lr=2.73e-06 (1.82s)
+  sample[76 - 2=74]: '<think>76 - 2 = 74。</think><answer>74</answer>'
+step 380/500 reward=1.180 acc=0.98 fmt=1.00 hack=0.02 silent=0.84 len=35.8 kl=0.0000 ent=0.003 |adv|=0.034 gnorm=0.0374 lr=2.49e-06 (2.22s)
+  sample[71 + 5=76]: '<think>71 + 5 = 76。</think><answer>76</answer>'
+step 390/500 reward=1.173 acc=0.97 fmt=1.00 hack=0.03 silent=0.94 len=33.8 kl=0.0000 ent=0.003 |adv|=0.019 gnorm=0.0637 lr=2.26e-06 (2.21s)
+  sample[80 - 6=74]: '<think>80 - 6 = 74。</think><answer>74</answer>'
+step 400/500 reward=1.200 acc=1.00 fmt=1.00 hack=0.00 silent=1.00 len=36.5 kl=0.0000 ent=0.002 |adv|=0.000 gnorm=0.0000 lr=2.05e-06 (2.02s)
+  eval: acc=0.968 fmt=1.000
+  sample[5 + 79=84]: '<think>把 79 拆成 70 和 9：5 + 70 = 75；75 + 9 = 84。</think><answer>84</answer>'
+step 410/500 reward=1.169 acc=0.97 fmt=1.00 hack=0.03 silent=0.84 len=33.9 kl=0.0000 ent=0.003 |adv|=0.049 gnorm=0.0857 lr=1.86e-06 (2.22s)
+  sample[8 + 1=9]: '<think>8 + 1 = 9。</think><answer>9</answer>'
+step 420/500 reward=1.149 acc=0.95 fmt=1.00 hack=0.05 silent=0.94 len=32.8 kl=0.0000 ent=0.003 |adv|=0.026 gnorm=0.0748 lr=1.68e-06 (2.0s)
+  sample[8 + 55=63]: '<think>把 55 拆成 50 和 5：8 + 50 = 58；58 + 5 = 63。</think><answer>63</answer>'
+step 430/500 reward=1.169 acc=0.97 fmt=1.00 hack=0.03 silent=0.94 len=36.5 kl=0.0000 ent=0.002 |adv|=0.014 gnorm=0.0320 lr=1.53e-06 (2.23s)
+  sample[94 + 0=94]: '<think>94 + 0 = 94。</think><answer>94</answer>'
+step 440/500 reward=1.188 acc=0.99 fmt=1.00 hack=0.01 silent=0.94 len=35.1 kl=0.0000 ent=0.003 |adv|=0.019 gnorm=0.0193 lr=1.39e-06 (2.01s)
+  sample[41 + 9=50]: '<think>41 + 9 = 50。</think><answer>50</answer>'
+step 450/500 reward=1.184 acc=0.98 fmt=1.00 hack=0.02 silent=0.88 len=33.3 kl=0.0000 ent=0.003 |adv|=0.027 gnorm=0.0507 lr=1.27e-06 (2.02s)
+  eval: acc=0.964 fmt=1.000
+  sample[17 - 9=8]: '<think>17 - 9 = 8。</think><answer>8</answer>'
+step 460/500 reward=1.184 acc=0.98 fmt=1.00 hack=0.02 silent=0.88 len=35.5 kl=0.0000 ent=0.003 |adv|=0.027 gnorm=0.0373 lr=1.17e-06 (2.15s)
+  sample[58 - 37=21]: '<think>把 37 拆成 30 和 7：58 - 30 = 28；28 - 7 = 21。</think><answer>21</answer>'
+step 470/500 reward=1.192 acc=0.99 fmt=1.00 hack=0.01 silent=0.94 len=31.8 kl=0.0000 ent=0.003 |adv|=0.014 gnorm=0.0342 lr=1.10e-06 (1.98s)
+  sample[7 + 2=9]: '<think>7 + 2 = 9。</think><answer>9</answer>'
+step 480/500 reward=1.200 acc=1.00 fmt=1.00 hack=0.00 silent=1.00 len=32.9 kl=0.0000 ent=0.001 |adv|=0.000 gnorm=0.0000 lr=1.04e-06 (2.22s)
+  sample[31 + 7=38]: '<think>31 + 7 = 38。</think><answer>38</answer>'
+step 490/500 reward=1.157 acc=0.96 fmt=1.00 hack=0.04 silent=0.91 len=34.5 kl=0.0000 ent=0.005 |adv|=0.021 gnorm=0.0492 lr=1.01e-06 (1.83s)
+  sample[56 + 7=63]: '<think>56 + 7 = 63。</think><answer>63</answer>'
+step 500/500 reward=1.180 acc=0.98 fmt=1.00 hack=0.02 silent=0.91 len=35.0 kl=0.0000 ent=0.003 |adv|=0.028 gnorm=0.0704 lr=1.00e-06 (1.79s)
+  eval: acc=0.978 fmt=1.000
+  sample[31 - 30=1]: '<think>31 - 30 = 1。</think><answer>1</answer>'
+Saved /root/autodl-tmp/results/posttrain_v1/dr_grpo_s3/grpo_final.pth; metrics -> /root/autodl-tmp/results/posttrain_v1/dr_grpo_s3/grpo_metrics.jsonl; run -> /root/autodl-tmp/results/posttrain_v1/dr_grpo_s3/runs/grpo_20261012-190509_a09acc
+500 tasks: accuracy 0.978, format 1.000, hack 0.022, length 35.9 (4.9s)
+   op=+ n_digits=1: 0.867 of 30
+   op=+ n_digits=2: 0.996 of 240
+   op=- n_digits=1: 0.889 of 9
+   op=- n_digits=2: 0.977 of 221
+wrote /root/autodl-tmp/results/posttrain_v1/dr_grpo_s3/dev.json
+500 tasks: accuracy 0.962, format 1.000, hack 0.038, length 32.2 (4.5s)
+   op=+ n_digits=1: 0.941 of 51
+   op=+ n_digits=2: 0.991 of 211
+   op=- n_digits=1: 0.773 of 44
+   op=- n_digits=2: 0.979 of 194
+wrote /root/autodl-tmp/results/posttrain_v1/dr_grpo_s3/test.json
+=== dapo_lite seed 3 10-12 19:23:38 --filter_zero_variance True --clip_eps_high 0.28 --aggregation token_mean
+policy: dim=768 layers=12 heads=12 kv_heads=3 hidden=2048 vocab=32768 seq=192 -> 99.503M params
+GRPO: env=arithmetic G=8 prompts/step=32 steps=500 agg=token_mean kl=0.0 std_norm=True filter_zero_var=True
+run: /root/autodl-tmp/results/posttrain_v1/dapo_lite_s3/runs/grpo_20261012-192344_97f6d8
+step 0 (init) eval: acc=0.636 fmt=1.000
+step 10/500 reward=0.782 acc=0.58 fmt=1.00 hack=0.42 silent=0.34 len=39.2 kl=0.0000 ent=0.034 |adv|=0.856 gnorm=0.5348 lr=2.00e-06 (2.17s)
+  sample[47 - 3=44]: '<think>47 - 3 = 44。</think><answer>44</answer>'
+step 20/500 reward=0.778 acc=0.58 fmt=1.00 hack=0.42 silent=0.34 len=33.0 kl=0.0000 ent=0.039 |adv|=0.815 gnorm=0.8285 lr=4.00e-06 (2.11s)
+  sample[8 + 37=45]: '<think>把 37 拆成 30 和 7：8 + 30 = 38；38 + 7 = 45。</think><answer>45</answer>'
+step 30/500 reward=0.898 acc=0.70 fmt=1.00 hack=0.30 silent=0.31 len=33.2 kl=0.0000 ent=0.030 |adv|=0.856 gnorm=0.5993 lr=6.00e-06 (1.9s)
+  sample[77 - 6=71]: '<think>77 - 6 = 70。</think><answer>70</answer>'
+step 40/500 reward=0.906 acc=0.71 fmt=1.00 hack=0.29 silent=0.38 len=33.2 kl=0.0000 ent=0.033 |adv|=0.850 gnorm=0.8312 lr=8.00e-06 (1.61s)
+  sample[66 - 65=1]: '<think>把 65 拆成 60 和 5：66 - 60 = 6；6 - 5 = 0。</think><answer>0</answer>'
+step 50/500 reward=0.884 acc=0.68 fmt=1.00 hack=0.32 silent=0.44 len=35.1 kl=0.0000 ent=0.030 |adv|=0.862 gnorm=0.6024 lr=1.00e-05 (1.87s)
+  eval: acc=0.718 fmt=1.000
+  sample[53 - 14=39]: '<think>把 14 拆成 10 和 4：53 - 10 = 43；43 - 4 = 38。</think><answer>38</answer>'
+step 60/500 reward=0.922 acc=0.72 fmt=1.00 hack=0.27 silent=0.47 len=36.9 kl=0.0000 ent=0.033 |adv|=0.890 gnorm=1.0132 lr=9.99e-06 (1.87s)
+  sample[6 + 64=70]: '<think>把 64 拆成 60 和 4：6 + 60 = 66；66 + 4 = 69。</think><answer>69</answer>'
+step 70/500 reward=0.950 acc=0.75 fmt=1.00 hack=0.25 silent=0.47 len=35.0 kl=0.0000 ent=0.027 |adv|=0.802 gnorm=0.8874 lr=9.96e-06 (1.85s)
+  sample[20 - 4=16]: '<think>20 - 4 = 16。</think><answer>16</answer>'
+step 80/500 reward=0.946 acc=0.75 fmt=1.00 hack=0.25 silent=0.47 len=34.4 kl=0.0000 ent=0.029 |adv|=0.839 gnorm=0.9908 lr=9.90e-06 (2.1s)
+  sample[99 - 89=10]: '<think>把 89 拆成 80 和 9：99 - 80 = 19；19 - 9 = 10。</think><answer>10</answer>'
+step 90/500 reward=0.992 acc=0.79 fmt=1.00 hack=0.21 silent=0.53 len=39.2 kl=0.0000 ent=0.020 |adv|=0.772 gnorm=0.9153 lr=9.83e-06 (2.01s)
+  sample[67 + 74=141]: '<think>把 74 拆成 70 和 4：67 + 70 = 127；127 + 4 = 132。</think><answer>132</answer>'
+step 100/500 reward=0.880 acc=0.68 fmt=1.00 hack=0.32 silent=0.62 len=34.7 kl=0.0000 ent=0.033 |adv|=0.869 gnorm=1.7307 lr=9.73e-06 (1.74s)
+  eval: acc=0.768 fmt=1.000
+  sample[86 + 6=92]: '<think>86 + 6 = 91。</think><answer>91</answer>'
+step 110/500 reward=0.930 acc=0.73 fmt=1.00 hack=0.27 silent=0.44 len=35.2 kl=0.0000 ent=0.026 |adv|=0.856 gnorm=1.3126 lr=9.61e-06 (1.87s)
+  sample[85 - 16=69]: '<think>把 16 拆成 10 和 6：85 - 10 = 75；75 - 6 = 68。</think><answer>68</answer>'
+step 120/500 reward=1.079 acc=0.88 fmt=1.00 hack=0.12 silent=0.56 len=33.6 kl=0.0000 ent=0.018 |adv|=0.771 gnorm=1.4926 lr=9.47e-06 (1.76s)
+  sample[43 - 7=36]: '<think>43 - 7 = 38。</think><answer>38</answer>'
+step 130/500 reward=1.009 acc=0.81 fmt=1.00 hack=0.19 silent=0.59 len=37.4 kl=0.0000 ent=0.019 |adv|=0.847 gnorm=1.0431 lr=9.32e-06 (1.78s)
+  sample[75 - 3=72]: '<think>75 - 3 = 72。</think><answer>72</answer>'
+step 140/500 reward=0.973 acc=0.77 fmt=1.00 hack=0.23 silent=0.44 len=33.5 kl=0.0000 ent=0.022 |adv|=0.803 gnorm=1.2811 lr=9.14e-06 (1.86s)
+  sample[91 - 31=60]: '<think>把 31 拆成 30 和 1：91 - 30 = 61；61 - 1 = 59。</think><answer>59</answer>'
+step 150/500 reward=1.067 acc=0.87 fmt=1.00 hack=0.13 silent=0.66 len=34.5 kl=0.0000 ent=0.022 |adv|=0.829 gnorm=1.6610 lr=8.95e-06 (1.52s)
+  eval: acc=0.874 fmt=1.000
+  sample[26 - 4=22]: '<think>26 - 4 = 22。</think><answer>22</answer>'
+step 160/500 reward=1.052 acc=0.85 fmt=1.00 hack=0.15 silent=0.62 len=36.4 kl=0.0000 ent=0.019 |adv|=0.778 gnorm=1.3666 lr=8.74e-06 (1.97s)
+  sample[79 - 6=73]: '<think>79 - 6 = 73。</think><answer>73</answer>'
+step 170/500 reward=1.059 acc=0.86 fmt=1.00 hack=0.14 silent=0.62 len=34.3 kl=0.0000 ent=0.019 |adv|=0.815 gnorm=1.7603 lr=8.51e-06 (2.04s)
+  sample[74 + 48=122]: '<think>把 48 拆成 40 和 8：74 + 40 = 104；104 + 8 = 112。</think><answer>112</answer>'
+step 180/500 reward=1.102 acc=0.90 fmt=1.00 hack=0.10 silent=0.75 len=36.3 kl=0.0000 ent=0.011 |adv|=0.725 gnorm=2.0969 lr=8.27e-06 (1.69s)
+  sample[48 - 3=45]: '<think>48 - 3 = 45。</think><answer>45</answer>'
+step 190/500 reward=1.145 acc=0.95 fmt=1.00 hack=0.05 silent=0.72 len=33.8 kl=0.0000 ent=0.015 |adv|=0.745 gnorm=2.5904 lr=8.02e-06 (1.74s)
+  sample[33 + 67=100]: '<think>把 67 拆成 60 和 7：33 + 60 = 93；93 + 7 = 98。</think><answer>98</answer>'
+step 200/500 reward=1.130 acc=0.93 fmt=1.00 hack=0.07 silent=0.72 len=34.5 kl=0.0000 ent=0.017 |adv|=0.798 gnorm=1.4966 lr=7.75e-06 (2.33s)
+  eval: acc=0.906 fmt=1.000
+  sample[9 + 17=26]: '<think>把 17 拆成 10 和 7：9 + 10 = 19；19 + 7 = 26。</think><answer>26</answer>'
+step 210/500 reward=1.067 acc=0.87 fmt=1.00 hack=0.13 silent=0.75 len=37.0 kl=0.0000 ent=0.017 |adv|=0.819 gnorm=1.8637 lr=7.47e-06 (1.68s)
+  sample[76 + 85=161]: '<think>把 85 拆成 80 和 5：76 + 80 = 156；156 + 5 = 161。</think><answer>161</answer>'
+step 220/500 reward=1.130 acc=0.93 fmt=1.00 hack=0.07 silent=0.88 len=33.0 kl=0.0000 ent=0.016 |adv|=0.764 gnorm=2.7818 lr=7.19e-06 (1.84s)
+  sample[66 - 64=2]: '<think>把 64 拆成 60 和 4：66 - 60 = 6；6 - 4 = 2。</think><answer>2</answer>'
+step 230/500 reward=1.157 acc=0.96 fmt=1.00 hack=0.04 silent=0.81 len=33.1 kl=0.0000 ent=0.010 |adv|=0.696 gnorm=1.9274 lr=6.89e-06 (1.87s)
+  sample[83 - 26=57]: '<think>把 26 拆成 20 和 6：83 - 20 = 63；63 - 6 = 57。</think><answer>57</answer>'
+step 240/500 reward=1.114 acc=0.91 fmt=1.00 hack=0.09 silent=0.84 len=37.6 kl=0.0000 ent=0.017 |adv|=0.852 gnorm=2.4693 lr=6.59e-06 (1.66s)
+  sample[93 - 17=76]: '<think>把 17 拆成 10 和 7：93 - 10 = 83；83 - 7 = 78。</think><answer>78</answer>'
+step 250/500 reward=1.134 acc=0.93 fmt=1.00 hack=0.07 silent=0.78 len=35.1 kl=0.0000 ent=0.014 |adv|=0.802 gnorm=2.2944 lr=6.28e-06 (1.43s)
+  eval: acc=0.932 fmt=1.000
+  sample[2 + 96=98]: '<think>把 96 拆成 90 和 6：2 + 90 = 92；92 + 6 = 98。</think><answer>98</answer>'
+step 260/500 reward=1.161 acc=0.96 fmt=1.00 hack=0.04 silent=0.88 len=36.6 kl=0.0000 ent=0.006 |adv|=0.661 gnorm=2.0057 lr=5.97e-06 (1.64s)
+  sample[44 - 7=37]: '<think>44 - 7 = 35。</think><answer>35</answer>'
+step 270/500 reward=1.184 acc=0.98 fmt=1.00 hack=0.02 silent=0.91 len=38.0 kl=0.0000 ent=0.010 |adv|=0.730 gnorm=3.6124 lr=5.66e-06 (1.41s)
+  sample[63 + 29=92]: '<think>把 29 拆成 20 和 9：63 + 20 = 83；83 + 9 = 92。</think><answer>92</answer>'
+step 280/500 reward=1.192 acc=0.99 fmt=1.00 hack=0.01 silent=0.94 len=36.6 kl=0.0000 ent=0.004 |adv|=0.661 gnorm=4.9708 lr=5.34e-06 (1.83s)
+  sample[69 + 42=111]: '<think>把 42 拆成 40 和 2：69 + 40 = 119；119 + 2 = 121。</think><answer>121</answer>'
+step 290/500 reward=1.161 acc=0.96 fmt=1.00 hack=0.04 silent=0.84 len=37.4 kl=0.0000 ent=0.010 |adv|=0.791 gnorm=2.1066 lr=5.03e-06 (1.41s)
+  sample[66 - 37=29]: '<think>把 37 拆成 30 和 7：66 - 30 = 36；36 - 7 = 27。</think><answer>27</answer>'
+step 300/500 reward=1.137 acc=0.94 fmt=1.00 hack=0.06 silent=0.88 len=33.2 kl=0.0000 ent=0.030 |adv|=0.738 gnorm=3.5574 lr=4.72e-06 (1.8s)
+  eval: acc=0.946 fmt=1.000
+  sample[33 - 4=29]: '<think>33 - 4 = 29。</think><answer>29</answer>'
+step 310/500 reward=1.157 acc=0.96 fmt=1.00 hack=0.04 silent=0.84 len=34.2 kl=0.0000 ent=0.016 |adv|=0.852 gnorm=2.2601 lr=4.41e-06 (1.84s)
+  sample[67 + 57=124]: '<think>把 57 拆成 50 和 7：67 + 50 = 117；117 + 7 = 124。</think><answer>124</answer>'
+step 320/500 reward=1.188 acc=0.99 fmt=1.00 hack=0.01 silent=0.94 len=38.1 kl=0.0000 ent=0.028 |adv|=0.764 gnorm=5.7650 lr=4.11e-06 (1.62s)
+  sample[42 - 8=34]: '<think>42 - 8 = 35。</think><answer>35</answer>'
+step 330/500 reward=1.188 acc=0.99 fmt=1.00 hack=0.01 silent=0.91 len=36.7 kl=0.0000 ent=0.005 |adv|=0.661 gnorm=3.2617 lr=3.81e-06 (1.85s)
+  sample[90 - 3=87]: '<think>90 - 3 = 87。</think><answer>87</answer>'
+step 340/500 reward=1.184 acc=0.98 fmt=1.00 hack=0.02 silent=0.94 len=33.8 kl=0.0000 ent=0.014 |adv|=0.815 gnorm=3.8421 lr=3.53e-06 (1.83s)
+  sample[10 - 2=8]: '<think>10 - 2 = 7。</think><answer>7</answer>'
+step 350/500 reward=1.173 acc=0.97 fmt=1.00 hack=0.03 silent=0.84 len=36.8 kl=0.0000 ent=0.007 |adv|=0.743 gnorm=2.3683 lr=3.25e-06 (1.61s)
+  eval: acc=0.962 fmt=1.000
+  sample[48 + 72=120]: '<think>把 72 拆成 70 和 2：48 + 70 = 118；118 + 2 = 120。</think><answer>120</answer>'
+step 360/500 reward=1.192 acc=0.99 fmt=1.00 hack=0.01 silent=0.94 len=36.5 kl=0.0000 ent=0.004 |adv|=0.661 gnorm=4.0350 lr=2.98e-06 (1.85s)
+  sample[91 - 81=10]: '<think>把 81 拆成 80 和 1：91 - 80 = 11；11 - 1 = 9。</think><answer>9</answer>'
+step 370/500 reward=1.173 acc=0.97 fmt=1.00 hack=0.03 silent=0.88 len=36.6 kl=0.0000 ent=0.010 |adv|=0.746 gnorm=3.4620 lr=2.73e-06 (1.47s)
+  sample[17 + 82=99]: '<think>把 82 拆成 80 和 2：17 + 80 = 97；97 + 2 = 99。</think><answer>99</answer>'
+step 380/500 reward=1.192 acc=0.99 fmt=1.00 hack=0.01 silent=0.94 len=35.8 kl=0.0000 ent=0.005 |adv|=0.661 gnorm=4.1797 lr=2.49e-06 (1.83s)
+  sample[91 - 48=43]: '<think>把 48 拆成 40 和 8：91 - 40 = 51；51 - 8 = 43。</think><answer>43</answer>'
+step 390/500 reward=1.177 acc=0.98 fmt=1.00 hack=0.02 silent=0.88 len=33.8 kl=0.0000 ent=0.012 |adv|=0.764 gnorm=5.3683 lr=2.26e-06 (1.81s)
+  sample[21 - 5=16]: '<think>21 - 5 = 16。</think><answer>16</answer>'
+step 400/500 reward=1.192 acc=0.99 fmt=1.00 hack=0.01 silent=0.94 len=36.5 kl=0.0000 ent=0.007 |adv|=0.661 gnorm=4.3103 lr=2.05e-06 (1.63s)
+  eval: acc=0.972 fmt=1.000
+  sample[82 - 75=7]: '<think>把 75 拆成 70 和 5：82 - 70 = 12；12 - 5 = 7。</think><answer>7</answer>'
+step 410/500 reward=1.196 acc=1.00 fmt=1.00 hack=0.00 silent=0.97 len=33.9 kl=0.0000 ent=0.008 |adv|=0.661 gnorm=5.9101 lr=1.86e-06 (1.84s)
+  sample[59 - 53=6]: '<think>把 53 拆成 50 和 3：59 - 50 = 9；9 - 3 = 6。</think><answer>6</answer>'
+step 420/500 reward=1.149 acc=0.95 fmt=1.00 hack=0.05 silent=0.88 len=32.8 kl=0.0000 ent=0.004 |adv|=0.713 gnorm=1.4900 lr=1.68e-06 (1.63s)
+  sample[1 + 19=20]: '<think>把 19 拆成 10 和 9：1 + 10 = 11；11 + 9 = 20。</think><answer>20</answer>'
+step 430/500 reward=1.180 acc=0.98 fmt=1.00 hack=0.02 silent=0.94 len=36.5 kl=0.0000 ent=0.018 |adv|=0.831 gnorm=9.7638 lr=1.53e-06 (1.85s)
+  sample[42 + 4=46]: '<think>42 + 4 = 46。</think><answer>46</answer>'
+step 440/500 reward=1.192 acc=0.99 fmt=1.00 hack=0.01 silent=0.94 len=35.1 kl=0.0000 ent=0.004 |adv|=0.661 gnorm=2.2242 lr=1.39e-06 (1.61s)
+  sample[77 - 76=1]: '<think>把 76 拆成 70 和 6：77 - 70 = 7；7 - 6 = 1。</think><answer>1</answer>'
+step 450/500 reward=1.157 acc=0.96 fmt=1.00 hack=0.04 silent=0.91 len=33.3 kl=0.0000 ent=0.009 |adv|=0.661 gnorm=3.6112 lr=1.27e-06 (1.62s)
+  eval: acc=0.982 fmt=1.000
+  sample[35 - 4=31]: '<think>35 - 4 = 29。</think><answer>29</answer>'
+step 460/500 reward=1.165 acc=0.96 fmt=1.00 hack=0.04 silent=0.88 len=35.5 kl=0.0000 ent=0.024 |adv|=0.789 gnorm=5.9585 lr=1.17e-06 (1.64s)
+  sample[36 + 3=39]: '<think>36 + 3 = 41。</think><answer>41</answer>'
+step 470/500 reward=1.196 acc=1.00 fmt=1.00 hack=0.00 silent=0.97 len=31.8 kl=0.0000 ent=0.002 |adv|=0.661 gnorm=7.8692 lr=1.10e-06 (1.6s)
+  sample[26 - 20=6]: '<think>26 - 20 = 46。</think><answer>46</answer>'
+step 480/500 reward=1.196 acc=1.00 fmt=1.00 hack=0.00 silent=0.97 len=32.9 kl=0.0000 ent=0.002 |adv|=0.661 gnorm=3.9973 lr=1.04e-06 (1.81s)
+  sample[67 + 32=99]: '<think>把 32 拆成 30 和 2：67 + 30 = 97；97 + 2 = 99。</think><answer>99</answer>'
+step 490/500 reward=1.192 acc=0.99 fmt=1.00 hack=0.01 silent=0.94 len=34.5 kl=0.0000 ent=0.004 |adv|=0.661 gnorm=3.8143 lr=1.01e-06 (1.42s)
+  sample[70 - 2=68]: '<think>70 - 2 = 68。</think><answer>68</answer>'
+step 500/500 reward=1.157 acc=0.96 fmt=1.00 hack=0.04 silent=0.94 len=35.0 kl=0.0000 ent=0.011 |adv|=0.764 gnorm=6.6462 lr=1.00e-06 (1.44s)
+  eval: acc=0.978 fmt=1.000
+  sample[18 + 34=52]: '<think>把 34 拆成 30 和 4：18 + 30 = 48；48 + 4 = 54。</think><answer>54</answer>'
+Saved /root/autodl-tmp/results/posttrain_v1/dapo_lite_s3/grpo_final.pth; metrics -> /root/autodl-tmp/results/posttrain_v1/dapo_lite_s3/grpo_metrics.jsonl; run -> /root/autodl-tmp/results/posttrain_v1/dapo_lite_s3/runs/grpo_20261012-192344_97f6d8
+500 tasks: accuracy 0.978, format 1.000, hack 0.022, length 35.9 (4.9s)
+   op=+ n_digits=1: 0.833 of 30
+   op=+ n_digits=2: 0.996 of 240
+   op=- n_digits=1: 0.889 of 9
+   op=- n_digits=2: 0.982 of 221
+wrote /root/autodl-tmp/results/posttrain_v1/dapo_lite_s3/dev.json
+500 tasks: accuracy 0.944, format 1.000, hack 0.056, length 32.2 (4.5s)
+   op=+ n_digits=1: 0.882 of 51
+   op=+ n_digits=2: 0.976 of 211
+   op=- n_digits=1: 0.727 of 44
+   op=- n_digits=2: 0.974 of 194
+wrote /root/autodl-tmp/results/posttrain_v1/dapo_lite_s3/test.json
+=== done 10-12 19:39:39
+
+=== /root/autodl-tmp/results/posttrain_v1/grpo_s1/grpo_metrics.jsonl  (501 records)
+        steps    n reward_me  accuracy format_ra hack_rate silent_gr   entropy        kl grad_norm completio
+------------------------------------------------------------------------------------------------------------
+    0-49        50     0.819     0.619     0.999     0.381     0.357     0.028     0.000     0.485    36.600
+   50-99        50     0.910     0.710     0.999     0.289     0.486     0.020     0.000     0.566    36.504
+  100-149       50     0.990     0.790     1.000     0.210     0.598     0.014     0.000     0.630    36.313
+  150-199       50     1.084     0.884     1.000     0.116     0.715     0.010     0.000     0.572    36.349
+  200-249       50     1.117     0.917     1.000     0.083     0.772     0.007     0.000     0.561    36.636
+  250-299       50     1.141     0.941     1.000     0.059     0.831     0.006     0.000     0.519    36.182
+  300-349       50     1.155     0.955     1.000     0.044     0.869     0.014     0.000     0.488    38.417
+  350-399       50     1.168     0.968     1.000     0.031     0.897     0.003     0.000     0.349    36.725
+  400-449       50     1.170     0.970     1.000     0.030     0.910     0.003     0.000     0.363    35.402
+  450-499       50     1.184     0.984     1.000     0.016     0.938     0.002     0.000     0.231    36.224
+  500-549        1     1.169     0.969     1.000     0.031     1.000     0.004     0.000     0.000    32.664
+
+eval checkpoints:
+        steps    n eval_accu eval_form eval_hack
+------------------------------------------------
+    0-0          1     0.636     1.000     0.364
+   25-25         1     0.664     1.000     0.336
+   50-50         1     0.710     1.000     0.290
+   75-75         1     0.720     1.000     0.280
+  100-100        1     0.796     1.000     0.204
+  125-125        1     0.824     1.000     0.176
+  150-150        1     0.852     1.000     0.148
+  175-175        1     0.868     1.000     0.132
+  200-200        1     0.908     1.000     0.092
+  225-225        1     0.932     1.000     0.068
+  250-250        1     0.934     1.000     0.066
+  275-275        1     0.914     1.000     0.086
+  300-300        1     0.936     1.000     0.064
+  325-325        1     0.942     1.000     0.058
+  350-350        1     0.966     1.000     0.034
+  375-375        1     0.954     1.000     0.046
+  400-400        1     0.958     1.000     0.042
+  425-425        1     0.962     1.000     0.038
+  450-450        1     0.976     1.000     0.024
+  475-475        1     0.968     1.000     0.032
+  500-500        1     0.972     1.000     0.028
+
+=== /root/autodl-tmp/results/posttrain_v1/grpo_kl_s1/grpo_metrics.jsonl  (501 records)
+        steps    n reward_me  accuracy format_ra hack_rate silent_gr   entropy        kl grad_norm completio
+------------------------------------------------------------------------------------------------------------
+    0-49        50     0.818     0.618     0.999     0.381     0.368     0.028     0.003     0.472    36.596
+   50-99        50     0.913     0.714     0.999     0.286     0.458     0.021     0.013     0.589    36.604
+  100-149       50     1.002     0.802     1.000     0.198     0.571     0.014     0.017     0.607    36.293
+  150-199       50     1.087     0.887     1.000     0.113     0.700     0.009     0.015     0.564    36.292
+  200-249       50     1.124     0.924     1.000     0.076     0.774     0.007     0.015     0.481    36.571
+  250-299       50     1.138     0.938     1.000     0.062     0.813     0.005     0.017     0.523    36.067
+  300-349       50     1.155     0.955     1.000     0.045     0.856     0.004     0.019     0.480    35.795
+  350-399       50     1.173     0.973     1.000     0.027     0.888     0.004     0.024     0.380    36.707
+  400-449       50     1.173     0.973     1.000     0.027     0.906     0.003     0.022     0.356    35.408
+  450-499       50     1.177     0.977     1.000     0.023     0.887     0.003     0.022     0.323    36.207
+  500-549        1     1.169     0.969     1.000     0.031     1.000     0.003     0.008     0.001    32.078
+
+eval checkpoints:
+        steps    n eval_accu eval_form eval_hack
+------------------------------------------------
+    0-0          1     0.636     1.000     0.364
+   25-25         1     0.668     1.000     0.332
+   50-50         1     0.688     1.000     0.312
+   75-75         1     0.712     1.000     0.288
+  100-100        1     0.788     1.000     0.212
+  125-125        1     0.840     1.000     0.160
+  150-150        1     0.864     1.000     0.136
+  175-175        1     0.856     1.000     0.144
+  200-200        1     0.902     1.000     0.098
+  225-225        1     0.940     1.000     0.060
+  250-250        1     0.920     1.000     0.080
+  275-275        1     0.930     1.000     0.070
+  300-300        1     0.928     1.000     0.072
+  325-325        1     0.946     1.000     0.054
+  350-350        1     0.958     1.000     0.042
+  375-375        1     0.962     1.000     0.038
+  400-400        1     0.948     1.000     0.052
+  425-425        1     0.968     1.000     0.032
+  450-450        1     0.968     1.000     0.032
+  475-475        1     0.960     1.000     0.040
+  500-500        1     0.976     1.000     0.024
+
+=== /root/autodl-tmp/results/posttrain_v1/dr_grpo_s1/grpo_metrics.jsonl  (501 records)
+        steps    n reward_me  accuracy format_ra hack_rate silent_gr   entropy        kl grad_norm completio
+------------------------------------------------------------------------------------------------------------
+    0-49        50     0.819     0.619     1.000     0.380     0.365     0.028     0.000     0.071    36.582
+   50-99        50     0.927     0.727     0.999     0.272     0.476     0.020     0.000     0.089    36.520
+  100-149       50     1.020     0.820     0.999     0.179     0.609     0.014     0.000     0.093    36.297
+  150-199       50     1.091     0.891     0.996     0.107     0.715     0.009     0.000     0.086    36.326
+  200-249       50     1.124     0.924     0.999     0.075     0.783     0.007     0.000     0.076    36.545
+  250-299       50     1.149     0.950     0.999     0.050     0.838     0.005     0.000     0.073    36.075
+  300-349       50     1.160     0.960     1.000     0.040     0.882     0.004     0.000     0.065    35.779
+  350-399       50     1.170     0.970     1.000     0.030     0.904     0.003     0.000     0.052    36.682
+  400-449       50     1.177     0.977     1.000     0.023     0.923     0.002     0.000     0.041    35.384
+  450-499       50     1.184     0.984     1.000     0.016     0.947     0.002     0.000     0.032    36.214
+  500-549        1     1.169     0.969     1.000     0.031     1.000     0.002     0.000     0.000    32.094
+
+eval checkpoints:
+        steps    n eval_accu eval_form eval_hack
+------------------------------------------------
+    0-0          1     0.636     1.000     0.364
+   25-25         1     0.674     1.000     0.326
+   50-50         1     0.712     1.000     0.288
+   75-75         1     0.756     1.000     0.244
+  100-100        1     0.788     1.000     0.212
+  125-125        1     0.858     1.000     0.142
+  150-150        1     0.898     1.000     0.102
+  175-175        1     0.904     0.998     0.094
+  200-200        1     0.906     1.000     0.094
+  225-225        1     0.908     1.000     0.092
+  250-250        1     0.930     1.000     0.070
+  275-275        1     0.920     1.000     0.080
+  300-300        1     0.944     1.000     0.056
+  325-325        1     0.950     1.000     0.050
+  350-350        1     0.948     1.000     0.052
+  375-375        1     0.952     1.000     0.048
+  400-400        1     0.948     1.000     0.052
+  425-425        1     0.960     1.000     0.040
+  450-450        1     0.962     1.000     0.038
+  475-475        1     0.964     1.000     0.036
+  500-500        1     0.962     1.000     0.038
+
+=== /root/autodl-tmp/results/posttrain_v1/dapo_lite_s1/grpo_metrics.jsonl  (501 records)
+        steps    n reward_me  accuracy format_ra hack_rate silent_gr   entropy        kl grad_norm completio
+------------------------------------------------------------------------------------------------------------
+    0-49        50     0.821     0.621     1.000     0.379     0.370     0.034     0.000     0.658    36.581
+   50-99        50     0.912     0.712     0.999     0.287     0.484     0.027     0.000     0.989    36.464
+  100-149       50     1.025     0.825     1.000     0.174     0.604     0.023     0.000     1.404    36.270
+  150-199       50     1.094     0.894     1.000     0.105     0.729     0.020     0.000     1.921    36.416
+  200-249       50     1.124     0.924     1.000     0.076     0.797     0.019     0.000     2.537    37.474
+  250-299       50     1.151     0.951     1.000     0.049     0.848     0.015     0.000     2.844    36.774
+  300-349       50     1.170     0.970     1.000     0.030     0.904     0.015     0.000     4.495    36.705
+  350-399       50     1.175     0.975     1.000     0.025     0.921     0.011     0.000     3.737    37.815
+  400-449       50     1.181     0.981     1.000     0.019     0.928     0.011     0.000     3.869    36.695
+  450-499       50     1.184     0.984     1.000     0.016     0.941     0.010     0.000     4.552    37.453
+  500-549        1     1.157     0.957     1.000     0.043     0.969     0.023     0.000     7.197    34.355
+
+eval checkpoints:
+        steps    n eval_accu eval_form eval_hack
+------------------------------------------------
+    0-0          1     0.636     1.000     0.364
+   25-25         1     0.682     1.000     0.318
+   50-50         1     0.678     1.000     0.322
+   75-75         1     0.760     1.000     0.240
+  100-100        1     0.790     1.000     0.210
+  125-125        1     0.838     1.000     0.162
+  150-150        1     0.868     1.000     0.132
+  175-175        1     0.892     1.000     0.108
+  200-200        1     0.920     1.000     0.080
+  225-225        1     0.896     1.000     0.104
+  250-250        1     0.936     1.000     0.064
+  275-275        1     0.932     1.000     0.068
+  300-300        1     0.952     1.000     0.048
+  325-325        1     0.958     1.000     0.042
+  350-350        1     0.974     1.000     0.026
+  375-375        1     0.968     1.000     0.032
+  400-400        1     0.966     1.000     0.034
+  425-425        1     0.978     1.000     0.022
+  450-450        1     0.982     1.000     0.018
+  475-475        1     0.984     1.000     0.016
+  500-500        1     0.982     1.000     0.018
+
+=== /root/autodl-tmp/results/posttrain_v1/grpo_s2/grpo_metrics.jsonl  (501 records)
+        steps    n reward_me  accuracy format_ra hack_rate silent_gr   entropy        kl grad_norm completio
+------------------------------------------------------------------------------------------------------------
+    0-49        50     0.826     0.626     0.999     0.373     0.363     0.028     0.000     0.494    36.368
+   50-99        50     0.923     0.723     0.999     0.276     0.464     0.020     0.000     0.587    35.664
+  100-149       50     1.015     0.816     0.998     0.183     0.603     0.017     0.000     0.672    36.081
+  150-199       50     1.079     0.879     1.000     0.120     0.729     0.010     0.000     0.611    36.235
+  200-249       50     1.115     0.915     1.000     0.085     0.773     0.008     0.000     0.572    36.827
+  250-299       50     1.139     0.939     0.999     0.061     0.823     0.006     0.000     0.498    36.096
+  300-349       50     1.166     0.966     1.000     0.034     0.871     0.005     0.000     0.450    37.176
+  350-399       50     1.176     0.976     1.000     0.024     0.916     0.003     0.000     0.331    36.758
+  400-449       50     1.175     0.976     1.000     0.024     0.913     0.003     0.000     0.318    36.893
+  450-499       50     1.182     0.982     1.000     0.018     0.929     0.003     0.000     0.253    37.114
+  500-549        1     1.196     0.996     1.000     0.004     0.969     0.002     0.000     0.588    37.312
+
+eval checkpoints:
+        steps    n eval_accu eval_form eval_hack
+------------------------------------------------
+    0-0          1     0.636     1.000     0.364
+   25-25         1     0.666     1.000     0.334
+   50-50         1     0.654     1.000     0.346
+   75-75         1     0.720     1.000     0.280
+  100-100        1     0.752     1.000     0.248
+  125-125        1     0.826     0.998     0.172
+  150-150        1     0.862     1.000     0.138
+  175-175        1     0.886     1.000     0.114
+  200-200        1     0.894     1.000     0.106
+  225-225        1     0.928     1.000     0.072
+  250-250        1     0.922     1.000     0.078
+  275-275        1     0.944     1.000     0.056
+  300-300        1     0.944     1.000     0.056
+  325-325        1     0.936     1.000     0.064
+  350-350        1     0.952     1.000     0.048
+  375-375        1     0.960     1.000     0.040
+  400-400        1     0.958     1.000     0.042
+  425-425        1     0.960     1.000     0.040
+  450-450        1     0.970     1.000     0.030
+  475-475        1     0.966     1.000     0.034
+  500-500        1     0.968     1.000     0.032
+
+=== /root/autodl-tmp/results/posttrain_v1/grpo_kl_s2/grpo_metrics.jsonl  (501 records)
+        steps    n reward_me  accuracy format_ra hack_rate silent_gr   entropy        kl grad_norm completio
+------------------------------------------------------------------------------------------------------------
+    0-49        50     0.827     0.627     0.999     0.372     0.369     0.028     0.003     0.479    36.340
+   50-99        50     0.924     0.724     0.999     0.275     0.476     0.021     0.016     0.587    35.716
+  100-149       50     1.020     0.820     1.000     0.180     0.614     0.015     0.015     0.611    36.008
+  150-199       50     1.076     0.876     1.000     0.124     0.696     0.010     0.019     0.607    35.986
+  200-249       50     1.120     0.920     1.000     0.079     0.757     0.007     0.019     0.527    36.365
+  250-299       50     1.141     0.941     1.000     0.059     0.826     0.005     0.016     0.467    35.544
+  300-349       50     1.164     0.964     1.000     0.036     0.865     0.004     0.023     0.462    36.126
+  350-399       50     1.171     0.971     1.000     0.029     0.898     0.003     0.018     0.383    35.705
+  400-449       50     1.178     0.978     1.000     0.022     0.909     0.003     0.014     0.277    35.773
+  450-499       50     1.182     0.982     1.000     0.018     0.915     0.002     0.022     0.258    36.214
+  500-549        1     1.196     0.996     1.000     0.004     0.969     0.002     0.007     0.235    36.500
+
+eval checkpoints:
+        steps    n eval_accu eval_form eval_hack
+------------------------------------------------
+    0-0          1     0.636     1.000     0.364
+   25-25         1     0.668     1.000     0.332
+   50-50         1     0.656     1.000     0.344
+   75-75         1     0.722     1.000     0.278
+  100-100        1     0.772     1.000     0.228
+  125-125        1     0.816     1.000     0.184
+  150-150        1     0.848     1.000     0.152
+  175-175        1     0.868     1.000     0.132
+  200-200        1     0.904     1.000     0.096
+  225-225        1     0.924     1.000     0.076
+  250-250        1     0.908     1.000     0.092
+  275-275        1     0.916     1.000     0.084
+  300-300        1     0.956     1.000     0.044
+  325-325        1     0.928     1.000     0.072
+  350-350        1     0.952     1.000     0.048
+  375-375        1     0.950     1.000     0.050
+  400-400        1     0.960     1.000     0.040
+  425-425        1     0.960     1.000     0.040
+  450-450        1     0.968     1.000     0.032
+  475-475        1     0.966     1.000     0.034
+  500-500        1     0.966     1.000     0.034
+
+=== /root/autodl-tmp/results/posttrain_v1/dr_grpo_s2/grpo_metrics.jsonl  (501 records)
+        steps    n reward_me  accuracy format_ra hack_rate silent_gr   entropy        kl grad_norm completio
+------------------------------------------------------------------------------------------------------------
+    0-49        50     0.829     0.629     1.000     0.371     0.373     0.027     0.000     0.071    36.322
+   50-99        50     0.918     0.718     0.999     0.281     0.471     0.020     0.000     0.088    35.618
+  100-149       50     1.028     0.828     0.999     0.171     0.639     0.014     0.000     0.091    36.008
+  150-199       50     1.068     0.868     0.999     0.131     0.714     0.013     0.000     0.093    35.961
+  200-249       50     1.111     0.911     1.000     0.089     0.775     0.010     0.000     0.082    36.794
+  250-299       50     1.137     0.937     1.000     0.062     0.838     0.006     0.000     0.061    35.832
+  300-349       50     1.162     0.962     1.000     0.038     0.864     0.004     0.000     0.060    36.568
+  350-399       50     1.171     0.971     1.000     0.029     0.910     0.003     0.000     0.048    36.235
+  400-449       50     1.178     0.978     1.000     0.022     0.919     0.003     0.000     0.049    36.475
+  450-499       50     1.184     0.984     1.000     0.016     0.939     0.003     0.000     0.035    36.658
+  500-549        1     1.192     0.992     1.000     0.008     0.938     0.002     0.000     0.035    36.781
+
+eval checkpoints:
+        steps    n eval_accu eval_form eval_hack
+------------------------------------------------
+    0-0          1     0.636     1.000     0.364
+   25-25         1     0.668     1.000     0.332
+   50-50         1     0.690     1.000     0.310
+   75-75         1     0.722     1.000     0.278
+  100-100        1     0.766     1.000     0.234
+  125-125        1     0.790     1.000     0.210
+  150-150        1     0.830     1.000     0.170
+  175-175        1     0.826     1.000     0.174
+  200-200        1     0.878     1.000     0.122
+  225-225        1     0.916     1.000     0.084
+  250-250        1     0.916     1.000     0.084
+  275-275        1     0.922     1.000     0.078
+  300-300        1     0.936     1.000     0.064
+  325-325        1     0.950     1.000     0.050
+  350-350        1     0.932     1.000     0.068
+  375-375        1     0.948     1.000     0.052
+  400-400        1     0.954     1.000     0.046
+  425-425        1     0.952     1.000     0.048
+  450-450        1     0.966     1.000     0.034
+  475-475        1     0.960     1.000     0.040
+  500-500        1     0.968     1.000     0.032
+
+=== /root/autodl-tmp/results/posttrain_v1/dapo_lite_s2/grpo_metrics.jsonl  (501 records)
+        steps    n reward_me  accuracy format_ra hack_rate silent_gr   entropy        kl grad_norm completio
+------------------------------------------------------------------------------------------------------------
+    0-49        50     0.832     0.632     1.000     0.368     0.359     0.033     0.000     0.648    36.318
+   50-99        50     0.933     0.733     0.999     0.266     0.467     0.028     0.000     1.028    35.667
+  100-149       50     1.028     0.828     1.000     0.172     0.641     0.023     0.000     1.612    35.999
+  150-199       50     1.087     0.887     1.000     0.112     0.746     0.018     0.000     2.234    35.981
+  200-249       50     1.123     0.923     1.000     0.077     0.812     0.015     0.000     2.508    36.370
+  250-299       50     1.148     0.948     1.000     0.051     0.855     0.020     0.000     3.507    37.613
+  300-349       50     1.164     0.964     1.000     0.036     0.874     0.014     0.000     3.728    37.283
+  350-399       50     1.175     0.975     1.000     0.025     0.917     0.013     0.000     5.061    35.737
+  400-449       50     1.179     0.979     1.000     0.021     0.924     0.010     0.000     3.987    35.784
+  450-499       50     1.186     0.986     1.000     0.014     0.946     0.008     0.000     3.733    36.246
+  500-549        1     1.192     0.992     1.000     0.008     0.938     0.008     0.000     2.748    36.500
+
+eval checkpoints:
+        steps    n eval_accu eval_form eval_hack
+------------------------------------------------
+    0-0          1     0.636     1.000     0.364
+   25-25         1     0.676     1.000     0.324
+   50-50         1     0.652     1.000     0.348
+   75-75         1     0.720     1.000     0.280
+  100-100        1     0.802     1.000     0.198
+  125-125        1     0.786     1.000     0.214
+  150-150        1     0.854     1.000     0.146
+  175-175        1     0.880     1.000     0.120
+  200-200        1     0.904     1.000     0.096
+  225-225        1     0.928     1.000     0.072
+  250-250        1     0.916     1.000     0.084
+  275-275        1     0.936     1.000     0.064
+  300-300        1     0.956     1.000     0.044
+  325-325        1     0.948     1.000     0.052
+  350-350        1     0.958     1.000     0.042
+  375-375        1     0.954     1.000     0.046
+  400-400        1     0.964     1.000     0.036
+  425-425        1     0.960     1.000     0.040
+  450-450        1     0.966     1.000     0.034
+  475-475        1     0.962     1.000     0.038
+  500-500        1     0.972     1.000     0.028
+
+=== /root/autodl-tmp/results/posttrain_v1/grpo_s3/grpo_metrics.jsonl  (501 records)
+        steps    n reward_me  accuracy format_ra hack_rate silent_gr   entropy        kl grad_norm completio
+------------------------------------------------------------------------------------------------------------
+    0-49        50     0.814     0.614     0.999     0.385     0.380     0.029     0.000     0.458    36.149
+   50-99        50     0.904     0.704     1.000     0.296     0.441     0.022     0.000     0.625    35.951
+  100-149       50     1.004     0.804     1.000     0.195     0.586     0.014     0.000     0.650    36.120
+  150-199       50     1.057     0.858     1.000     0.142     0.671     0.011     0.000     0.610    35.608
+  200-249       50     1.119     0.919     1.000     0.080     0.789     0.007     0.000     0.529    35.419
+  250-299       50     1.143     0.943     1.000     0.057     0.841     0.005     0.000     0.537    35.684
+  300-349       50     1.161     0.961     1.000     0.039     0.863     0.004     0.000     0.482    35.883
+  350-399       50     1.173     0.973     1.000     0.026     0.899     0.003     0.000     0.349    35.611
+  400-449       50     1.176     0.976     1.000     0.024     0.908     0.003     0.000     0.361    36.065
+  450-499       50     1.183     0.983     1.000     0.017     0.932     0.002     0.000     0.303    35.944
+  500-549        1     1.169     0.969     1.000     0.031     1.000     0.003     0.000     0.000    35.000
+
+eval checkpoints:
+        steps    n eval_accu eval_form eval_hack
+------------------------------------------------
+    0-0          1     0.636     1.000     0.364
+   25-25         1     0.658     1.000     0.342
+   50-50         1     0.694     1.000     0.306
+   75-75         1     0.764     1.000     0.236
+  100-100        1     0.822     1.000     0.178
+  125-125        1     0.804     1.000     0.196
+  150-150        1     0.852     1.000     0.148
+  175-175        1     0.860     1.000     0.140
+  200-200        1     0.922     1.000     0.078
+  225-225        1     0.946     1.000     0.054
+  250-250        1     0.928     1.000     0.072
+  275-275        1     0.942     1.000     0.058
+  300-300        1     0.940     1.000     0.060
+  325-325        1     0.956     1.000     0.044
+  350-350        1     0.952     1.000     0.048
+  375-375        1     0.960     1.000     0.040
+  400-400        1     0.966     1.000     0.034
+  425-425        1     0.954     1.000     0.046
+  450-450        1     0.974     1.000     0.026
+  475-475        1     0.970     1.000     0.030
+  500-500        1     0.978     1.000     0.022
+
+=== /root/autodl-tmp/results/posttrain_v1/grpo_kl_s3/grpo_metrics.jsonl  (501 records)
+        steps    n reward_me  accuracy format_ra hack_rate silent_gr   entropy        kl grad_norm completio
+------------------------------------------------------------------------------------------------------------
+    0-49        50     0.815     0.615     0.999     0.384     0.377     0.029     0.003     0.459    36.144
+   50-99        50     0.908     0.708     1.000     0.292     0.453     0.022     0.010     0.601    35.989
+  100-149       50     1.020     0.820     0.999     0.179     0.584     0.014     0.015     0.586    36.124
+  150-199       50     1.078     0.878     1.000     0.122     0.701     0.010     0.021     0.591    35.595
+  200-249       50     1.116     0.916     1.000     0.084     0.761     0.007     0.017     0.509    35.460
+  250-299       50     1.142     0.942     1.000     0.058     0.816     0.006     0.015     0.488    35.680
+  300-349       50     1.162     0.962     1.000     0.037     0.868     0.004     0.017     0.414    35.885
+  350-399       50     1.171     0.971     1.000     0.029     0.887     0.003     0.017     0.361    35.608
+  400-449       50     1.175     0.975     1.000     0.025     0.907     0.003     0.017     0.285    36.044
+  450-499       50     1.179     0.979     1.000     0.021     0.919     0.003     0.014     0.277    35.944
+  500-549        1     1.137     0.938     1.000     0.062     0.719     0.003     0.035     0.553    35.023
+
+eval checkpoints:
+        steps    n eval_accu eval_form eval_hack
+------------------------------------------------
+    0-0          1     0.636     1.000     0.364
+   25-25         1     0.658     1.000     0.342
+   50-50         1     0.694     1.000     0.306
+   75-75         1     0.732     1.000     0.268
+  100-100        1     0.824     1.000     0.176
+  125-125        1     0.830     1.000     0.170
+  150-150        1     0.880     1.000     0.120
+  175-175        1     0.910     1.000     0.090
+  200-200        1     0.920     1.000     0.080
+  225-225        1     0.924     1.000     0.076
+  250-250        1     0.918     1.000     0.082
+  275-275        1     0.938     1.000     0.062
+  300-300        1     0.948     1.000     0.052
+  325-325        1     0.960     1.000     0.040
+  350-350        1     0.962     1.000     0.038
+  375-375        1     0.974     1.000     0.026
+  400-400        1     0.964     1.000     0.036
+  425-425        1     0.966     1.000     0.034
+  450-450        1     0.966     1.000     0.034
+  475-475        1     0.970     1.000     0.030
+  500-500        1     0.974     1.000     0.026
+
+=== /root/autodl-tmp/results/posttrain_v1/dr_grpo_s3/grpo_metrics.jsonl  (501 records)
+        steps    n reward_me  accuracy format_ra hack_rate silent_gr   entropy        kl grad_norm completio
+------------------------------------------------------------------------------------------------------------
+    0-49        50     0.817     0.618     0.999     0.382     0.376     0.029     0.000     0.067    36.137
+   50-99        50     0.906     0.706     0.999     0.293     0.459     0.022     0.000     0.092    35.953
+  100-149       50     1.009     0.809     1.000     0.191     0.613     0.013     0.000     0.097    36.106
+  150-199       50     1.077     0.877     1.000     0.122     0.706     0.010     0.000     0.085    35.606
+  200-249       50     1.124     0.924     1.000     0.076     0.801     0.007     0.000     0.073    35.403
+  250-299       50     1.149     0.949     1.000     0.051     0.851     0.004     0.000     0.060    35.683
+  300-349       50     1.158     0.959     1.000     0.041     0.873     0.004     0.000     0.062    35.884
+  350-399       50     1.165     0.965     1.000     0.034     0.902     0.003     0.000     0.057    35.614
+  400-449       50     1.173     0.973     1.000     0.027     0.911     0.003     0.000     0.052    36.050
+  450-499       50     1.183     0.983     1.000     0.017     0.932     0.003     0.000     0.038    35.939
+  500-549        1     1.180     0.980     1.000     0.020     0.906     0.003     0.000     0.070    35.000
+
+eval checkpoints:
+        steps    n eval_accu eval_form eval_hack
+------------------------------------------------
+    0-0          1     0.636     1.000     0.364
+   25-25         1     0.668     1.000     0.332
+   50-50         1     0.696     1.000     0.304
+   75-75         1     0.766     1.000     0.234
+  100-100        1     0.786     1.000     0.214
+  125-125        1     0.810     1.000     0.190
+  150-150        1     0.860     1.000     0.140
+  175-175        1     0.884     1.000     0.116
+  200-200        1     0.930     1.000     0.070
+  225-225        1     0.934     1.000     0.066
+  250-250        1     0.930     1.000     0.070
+  275-275        1     0.954     1.000     0.046
+  300-300        1     0.954     1.000     0.046
+  325-325        1     0.948     1.000     0.052
+  350-350        1     0.966     1.000     0.034
+  375-375        1     0.964     1.000     0.036
+  400-400        1     0.968     1.000     0.032
+  425-425        1     0.968     1.000     0.032
+  450-450        1     0.964     1.000     0.036
+  475-475        1     0.972     1.000     0.028
+  500-500        1     0.978     1.000     0.022
+
+=== /root/autodl-tmp/results/posttrain_v1/dapo_lite_s3/grpo_metrics.jsonl  (501 records)
+        steps    n reward_me  accuracy format_ra hack_rate silent_gr   entropy        kl grad_norm completio
+------------------------------------------------------------------------------------------------------------
+    0-49        50     0.818     0.618     0.999     0.381     0.371     0.034     0.000     0.648    36.140
+   50-99        50     0.908     0.708     0.999     0.292     0.456     0.029     0.000     1.014    35.950
+  100-149       50     1.022     0.822     1.000     0.178     0.601     0.022     0.000     1.452    36.120
+  150-199       50     1.085     0.885     1.000     0.115     0.723     0.020     0.000     2.189    35.611
+  200-249       50     1.136     0.936     1.000     0.064     0.811     0.017     0.000     2.590    35.415
+  250-299       50     1.157     0.957     1.000     0.043     0.856     0.014     0.000     3.224    35.686
+  300-349       50     1.169     0.969     1.000     0.031     0.897     0.012     0.000     4.020    35.872
+  350-399       50     1.177     0.977     1.000     0.023     0.913     0.011     0.000     3.883    35.612
+  400-449       50     1.182     0.982     1.000     0.018     0.927     0.010     0.000     5.249    36.047
+  450-499       50     1.184     0.984     1.000     0.016     0.941     0.008     0.000     4.988    35.945
+  500-549        1     1.157     0.957     1.000     0.043     0.938     0.011     0.000     6.646    35.000
+
+eval checkpoints:
+        steps    n eval_accu eval_form eval_hack
+------------------------------------------------
+    0-0          1     0.636     1.000     0.364
+   25-25         1     0.664     1.000     0.336
+   50-50         1     0.718     1.000     0.282
+   75-75         1     0.748     1.000     0.252
+  100-100        1     0.768     1.000     0.232
+  125-125        1     0.860     1.000     0.140
+  150-150        1     0.874     1.000     0.126
+  175-175        1     0.910     1.000     0.090
+  200-200        1     0.906     1.000     0.094
+  225-225        1     0.936     1.000     0.064
+  250-250        1     0.932     1.000     0.068
+  275-275        1     0.946     1.000     0.054
+  300-300        1     0.946     1.000     0.054
+  325-325        1     0.964     1.000     0.036
+  350-350        1     0.962     1.000     0.038
+  375-375        1     0.968     1.000     0.032
+  400-400        1     0.972     1.000     0.028
+  425-425        1     0.974     1.000     0.026
+  450-450        1     0.982     1.000     0.018
+  475-475        1     0.970     1.000     0.030
+  500-500        1     0.978     1.000     0.022
+    dapo_lite_s1: dev 0.982  test 0.950  format 1.000  length 33.1
+    dapo_lite_s2: dev 0.972  test 0.954  format 1.000  length 32.2
+    dapo_lite_s3: dev 0.978  test 0.944  format 1.000  length 32.2
+      dr_grpo_s1: dev 0.962  test 0.948  format 1.000  length 32.2
+      dr_grpo_s2: dev 0.968  test 0.954  format 1.000  length 32.8
+      dr_grpo_s3: dev 0.978  test 0.962  format 1.000  length 32.2
+      grpo_kl_s1: dev 0.976  test 0.946  format 1.000  length 32.2
+      grpo_kl_s2: dev 0.966  test 0.938  format 1.000  length 32.2
+      grpo_kl_s3: dev 0.974  test 0.942  format 1.000  length 32.2
+         grpo_s1: dev 0.972  test 0.954  format 1.000  length 32.2
+         grpo_s2: dev 0.968  test 0.944  format 1.000  length 33.2
+         grpo_s3: dev 0.978  test 0.944  format 1.000  length 32.2
+             sft: dev 0.636  test 0.628  format 1.000  length 32.3
