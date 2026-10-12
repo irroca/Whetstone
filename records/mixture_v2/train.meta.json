@@ -1,0 +1,49 @@
+{
+  "format": "whetstone-tokens/1",
+  "dtype": "uint16",
+  "num_tokens": 9914070642,
+  "num_docs": 8393795,
+  "doc_template": "bos + text + eos",
+  "tokenizer": {
+    "path": "tokenizer/v1_32k",
+    "vocab_size": 32768,
+    "bos_token_id": 1,
+    "eos_token_id": 2,
+    "fingerprint": "00853aafd17a84f5716c704484c56273"
+  },
+  "sources": {
+    "books": {
+      "docs": 5947,
+      "tokens": 563749001
+    },
+    "code": {
+      "docs": 1827516,
+      "tokens": 2270824249
+    },
+    "en_web": {
+      "docs": 2922982,
+      "tokens": 3173726124
+    },
+    "math": {
+      "docs": 1131679,
+      "tokens": 1584175787
+    },
+    "synthetic_textbook": {
+      "docs": 429671,
+      "tokens": 337376687
+    },
+    "zh_web": {
+      "docs": 2076000,
+      "tokens": 1984218794
+    }
+  },
+  "skipped": {},
+  "inputs": [
+    {
+      "path": "datasets/mixture_v2/train.jsonl",
+      "bytes": 38317984339,
+      "records_read": 8393795
+    }
+  ],
+  "seconds": 1379.1
+}

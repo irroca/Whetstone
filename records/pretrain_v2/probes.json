@@ -1,0 +1,79 @@
+{
+  "checkpoint": "/root/autodl-tmp/results/pretrain_v2/pretrain_final.pth",
+  "holdout": "/root/autodl-tmp/mixture_v2/holdout.jsonl",
+  "tokenizer": "tokenizer/v1_32k",
+  "max_seq_len": 2048,
+  "dtype": "float32",
+  "bpb": {
+    "books": {
+      "bpb": 1.2233671947714606,
+      "bits_per_token": 4.59475265629556,
+      "tokens": 502606,
+      "bytes": 1887700,
+      "docs": 4
+    },
+    "code": {
+      "bpb": 0.5934418752712537,
+      "bits_per_token": 1.9665115941988534,
+      "tokens": 501238,
+      "bytes": 1660972,
+      "docs": 375
+    },
+    "en_web": {
+      "bpb": 1.0056448250208747,
+      "bits_per_token": 4.148585190502769,
+      "tokens": 508202,
+      "bytes": 2096485,
+      "docs": 393
+    },
+    "math": {
+      "bpb": 0.8811787384843753,
+      "bits_per_token": 2.843720556104777,
+      "tokens": 501422,
+      "bytes": 1618178,
+      "docs": 333
+    },
+    "synthetic_textbook": {
+      "bpb": 0.6756202141180065,
+      "bits_per_token": 3.2206578504803844,
+      "tokens": 499487,
+      "bytes": 2381037,
+      "docs": 639
+    },
+    "zh_web": {
+      "bpb": 1.2973339127340482,
+      "bits_per_token": 5.0893209562452375,
+      "tokens": 500386,
+      "bytes": 1962968,
+      "docs": 548
+    }
+  },
+  "language_confusion": {
+    "zh": {
+      "prompts": 100,
+      "scored": 100,
+      "confused": 0.02,
+      "examples": [
+        "。\n据菲律宾《菲律宾时报》报道，菲律宾总统府发言人阿莱拉•阿基里奥(Ali Abdul-Aziz Ali)表示，将购买5架“小型”歼击机，",
+        "巴士公司，所以這裡的車站非常的方便，所以為本來是必須停車的地方，所以為了方便，我們找了一個自動巴士站，讓大家坐著自動車站，巴士站的車",
+        "界处。\n谢尔以东的阿尔勒河为交通枢纽，一直沿大西洋沿岸向南行进，到达中部的格拉夫（格拉夫）河，然后经伊尔库克（圣托"
+      ]
+    },
+    "en": {
+      "prompts": 100,
+      "scored": 100,
+      "confused": 0.0,
+      "examples": [
+        "\nThe port of Liverpool, Liverpool, England, is the world’s largest port, a port that is 1,340 kilometres (840 miles) from the city of Liverpool. It is the",
+        " to roll back. The resulting financial crisis raised the price of stocks and made the market a more favorable position for investors.\nIn 1931, the American Bank of Commerce began to examine the financial implications of the stock market",
+        " a spill, and it is nowhere near as important as the law.\nRoads, airports, and railways are being scrambled for more than a decade, according to a report by the National Transportation Association."
+      ]
+    }
+  },
+  "arithmetic": {
+    "add_1digit": 0.22,
+    "add_2digit": 0.02,
+    "items": 200
+  },
+  "seconds": 115.5
+}

@@ -1,0 +1,75 @@
+{
+  "arm": "zh30_v48k",
+  "bpb": {
+    "books": {
+      "bpb": 1.529554221904386,
+      "bits_per_token": 5.796114894330008,
+      "tokens": 198195,
+      "bytes": 751043,
+      "docs": 2
+    },
+    "code": {
+      "bpb": 0.8949831423465996,
+      "bits_per_token": 3.046615115354654,
+      "tokens": 500810,
+      "bytes": 1704809,
+      "docs": 392
+    },
+    "en_web": {
+      "bpb": 1.2560098673859514,
+      "bits_per_token": 5.386804684234479,
+      "tokens": 500212,
+      "bytes": 2145321,
+      "docs": 410
+    },
+    "math": {
+      "bpb": 1.202790626068151,
+      "bits_per_token": 3.9596294541349604,
+      "tokens": 468015,
+      "bytes": 1540722,
+      "docs": 320
+    },
+    "synthetic_textbook": {
+      "bpb": 0.9377485621535863,
+      "bits_per_token": 4.726081598377217,
+      "tokens": 83280,
+      "bytes": 419716,
+      "docs": 116
+    },
+    "zh_web": {
+      "bpb": 1.578631084368815,
+      "bits_per_token": 6.533532960186632,
+      "tokens": 499736,
+      "bytes": 2068274,
+      "docs": 566
+    }
+  },
+  "language_confusion": {
+    "zh": {
+      "prompts": 100,
+      "scored": 99,
+      "confused": 0.020202020202020204,
+      "examples": [
+        "帮助两国合作，以及加强双边关系。\n“我们将携带着24架战机，从朝鲜和朝鲜进入一个重要的阶段，将进一步提升菲律宾的实力。”",
+        "站，在當時是占領國後，因此該站已經發生了馬上戰爭的變化，因此其車站已經由原來駐到香港，也將成為「阿爾巴馬斯」的車站",
+        "语地区主要分布于罗马的阿拉伯语地区，如卡萨诸塞、利加那和塞都答都和巴哈迪和卡萨诸塞的边界。\n1910年，罗马人在罗马帝国进行"
+      ]
+    },
+    "en": {
+      "prompts": 100,
+      "scored": 100,
+      "confused": 0.0,
+      "examples": [
+        " alternative to transportation.\nMay 2007\nFamous and renowned scientists of the United States\nThe atomic bombing process of the nuclear power plant is now more than 70,000 miles long.\nHowever",
+        " down.\nThe roaring boom started on 1929, when the first settlement was settled on the 1930s. The company had a choice for a few years, and it was so, in fact,",
+        " domestic violence. The Clean Water Act (1968) has to pay the government for that little slip-up that occurred last year. The Clean Water Act has to pay the government for that little slip-up that occurred last year"
+      ]
+    }
+  },
+  "arithmetic": {
+    "add_1digit": 0.08,
+    "add_2digit": 0.02,
+    "items": 200
+  },
+  "seconds": 84.2
+}

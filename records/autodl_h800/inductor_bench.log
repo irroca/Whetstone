@@ -1,0 +1,7 @@
+=== coordinate_descent_tuning 14:01:03
+    cudnn    32    True    344,794     1.520    24.6   244.8  32.4%
+wrote /root/autodl-tmp/results/bench_ablation/coord_descent.json
+=== max_autotune + coordinate_descent_tuning 14:02:45
+dtypes: torch.bfloat16, torch.bfloat16
+wrote /root/autodl-tmp/results/bench_ablation/max_autotune.json
+INDUCTOR DONE 14:05:36

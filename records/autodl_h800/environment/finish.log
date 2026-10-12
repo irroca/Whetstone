@@ -1,0 +1,15 @@
+all 46 parts match
+train.bin: OK
+train.idx: OK
+train.meta.json: OK
+val.bin: OK
+val.idx: OK
+val.meta.json: OK
+holdout.bin: OK
+holdout.idx: OK
+holdout.meta.json: OK
+holdout.jsonl: OK
+manifest.json: OK
+/dev/md0         50G   19G   32G  38% /root/autodl-tmp
+FINISH EXIT=0
+EXIT=0

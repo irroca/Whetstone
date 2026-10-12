@@ -1,0 +1,55 @@
+{
+  "fingerprint": {
+    "source": {
+      "name": "synthetic_textbook",
+      "weight": 0.034,
+      "text_field": "text",
+      "jsonl": null,
+      "hf": {
+        "path": "HuggingFaceTB/smollm-corpus",
+        "name": "cosmopedia-v2",
+        "split": "train",
+        "columns": [
+          "text"
+        ]
+      },
+      "filters": {
+        "min_chars": 200,
+        "max_chars": 100000,
+        "min_cjk_ratio": null,
+        "min_latin_ratio": 0.5,
+        "max_digit_ratio": 0.5,
+        "max_symbol_ratio": null,
+        "max_repetition": 0.3,
+        "max_duplicate_lines": 0.5,
+        "min_mean_word_length": null,
+        "max_mean_word_length": null,
+        "blocklist": []
+      },
+      "cleaners": [],
+      "where": {},
+      "max_records": null
+    },
+    "target_tokens": 340000000,
+    "tokenizer": "00853aafd17a84f5716c704484c56273"
+  },
+  "bytes": 1655389513,
+  "report": {
+    "name": "synthetic_textbook",
+    "target_tokens": 340000000,
+    "tokens": 340000777,
+    "documents": 434097,
+    "records_read": 438592,
+    "fill": 1.0000022852941177,
+    "keep_rate": 0.9897512950532613,
+    "tokens_per_doc": 783.2368733255471,
+    "rejected": {
+      "too_short": 301,
+      "repetitive": 3418,
+      "low_latin_ratio": 15,
+      "duplicate_lines": 8
+    },
+    "exact_duplicates": 753,
+    "exhausted": false
+  }
+}

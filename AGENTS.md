@@ -102,6 +102,22 @@ rather than duplicating commands here.
   which is git-ignored along with `results*/` and `*.pth`. Build real data with
   `datatools.prepare`, or generate synthetic task data with `envs.generate_data`; the committed
   `tests/fixtures/*.jsonl` are enough for a CPU smoke of every stage.
+  - **Small run records are committed under `records/`** (the formal pretrain, the H800 benchmarks,
+    the ablation, the corpus build reports), laid out like `results/` so `analyze_runs.py` reads
+    them; `records/README.md` says what each file is. Records written on a machine that must not be
+    named publicly are redacted (absolute paths made relative, hostname `redacted`).
+  - **Weights, tokenized corpora and raw records live in two private artifact repos** with the same
+    content: ModelScope `irroca/whetstone-artifacts` (folders) and GitHub `irroca/whetstone-artifacts`
+    (releases). `docs/artifacts.md` lists every file: what it is, what reads it, when it is needed.
+    `scripts/fetch_artifacts.sh <group>` downloads, checks each file against the group's
+    `SHA256SUMS` and puts it back under `results/` / `datasets/`. It defaults to ModelScope because
+    GitHub release downloads run at 70–150 KB/s from China and drop. The GitHub path resumes with
+    `curl -C - --fail`: `gh release download` restarts a file from zero, and `gh api` appends an
+    error response to the partial file. `SHA256SUMS` and `README.md` are always fetched whole, since
+    a stale shorter copy would be "resumed". Every file that `SHA256SUMS` lists and the requested
+    patterns match must be present: neither store reports a requested file it lacks. A new artifact gets a group
+    `<stage>-v<N>` with its own `README.md` and `SHA256SUMS`, a section in `docs/artifacts.md`, and a
+    branch in the fetch script; an unlabeled `.pth` in a bucket is how runs get mixed up.
 - **`tokenizer/zh_6400/` is a legacy tokenizer**, committed so the CPU tests and smoke runs work
   (vocab 6400, bos `<s>`, eos `</s>`, pad `<unk>`). It was trained on Chinese only and compresses
   code at 2.23 chars/token against 4.00 for English prose. **The formal tokenizer is

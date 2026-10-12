@@ -1,0 +1,198 @@
++ export PATH=/root/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin
++ PATH=/root/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin
++ cd /root
++ '[' '!' -d /root/Whetstone/.git ']'
++ '[' -d /root/Whetstone/.git ']'
++ cd /root/Whetstone
++ git log --oneline -1
+35dd14e docs: pre-GPU check of the pretraining plan (#15)
++ pip install -r requirements.txt
+Looking in indexes: http://mirrors.aliyun.com/pypi/simple
+Requirement already satisfied: torch>=2.2 in /root/miniconda3/lib/python3.12/site-packages (from -r requirements.txt (line 7)) (2.8.0+cu128)
+Collecting transformers>=4.40 (from -r requirements.txt (line 8))
+  Downloading http://mirrors.aliyun.com/pypi/packages/b9/59/1e7f1212c215c73690ae6cab4678efe1555ff985953e145d88cc212859b0/transformers-5.19.0-py3-none-any.whl.metadata (32 kB)
+Collecting tokenizers>=0.19 (from -r requirements.txt (line 9))
+  Downloading http://mirrors.aliyun.com/pypi/packages/3a/40/6706b82693715581457c6d5423eaa7faae576bb0526c5738a57085eb4449/tokenizers-0.23.3-cp310-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (9.8 kB)
+Requirement already satisfied: numpy>=1.26 in /root/miniconda3/lib/python3.12/site-packages (from -r requirements.txt (line 10)) (2.3.2)
+Collecting scikit-learn>=1.3 (from -r requirements.txt (line 11))
+  Downloading http://mirrors.aliyun.com/pypi/packages/8e/57/a50162f3d29feb979ab6347c6debda506dfb525bcff3c50dd17606651c7e/scikit_learn-1.9.1-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl.metadata (9.3 kB)
+Requirement already satisfied: tqdm>=4.66 in /root/miniconda3/lib/python3.12/site-packages (from -r requirements.txt (line 12)) (4.66.2)
+Collecting datasets>=3.0 (from -r requirements.txt (line 16))
+  Downloading http://mirrors.aliyun.com/pypi/packages/24/cc/7f624629846c709ef1c68aa61bfb8d0ae2638cbe265104a1c2f7a630949e/datasets-5.1.0-py3-none-any.whl.metadata (24 kB)
+Collecting pytest>=8.0 (from -r requirements.txt (line 18))
+  Downloading http://mirrors.aliyun.com/pypi/packages/24/25/1de2678b631f5a49215c6c96fff41ba892b0a34df68d6d80292b1b48aa7f/pytest-9.1.1-py3-none-any.whl (386 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 386.5/386.5 kB 25.5 kB/s eta 0:00:00
+Collecting colorama>=0.4 (from -r requirements.txt (line 21))
+  Downloading http://mirrors.aliyun.com/pypi/packages/d1/d6/3965ed04c63042e047cb6a3e6ed1a63a35087b6a609aa3a15ed8ac56c221/colorama-0.4.6-py2.py3-none-any.whl (25 kB)
+Requirement already satisfied: filelock in /root/miniconda3/lib/python3.12/site-packages (from torch>=2.2->-r requirements.txt (line 7)) (3.18.0)
+Requirement already satisfied: typing-extensions>=4.10.0 in /root/miniconda3/lib/python3.12/site-packages (from torch>=2.2->-r requirements.txt (line 7)) (4.14.1)
+Requirement already satisfied: setuptools in /root/miniconda3/lib/python3.12/site-packages (from torch>=2.2->-r requirements.txt (line 7)) (69.5.1)
+Requirement already satisfied: sympy>=1.13.3 in /root/miniconda3/lib/python3.12/site-packages (from torch>=2.2->-r requirements.txt (line 7)) (1.14.0)
+Requirement already satisfied: networkx in /root/miniconda3/lib/python3.12/site-packages (from torch>=2.2->-r requirements.txt (line 7)) (3.5)
+Requirement already satisfied: jinja2 in /root/miniconda3/lib/python3.12/site-packages (from torch>=2.2->-r requirements.txt (line 7)) (3.1.6)
+Requirement already satisfied: fsspec in /root/miniconda3/lib/python3.12/site-packages (from torch>=2.2->-r requirements.txt (line 7)) (2025.7.0)
+Requirement already satisfied: nvidia-cuda-nvrtc-cu12==12.8.93 in /root/miniconda3/lib/python3.12/site-packages (from torch>=2.2->-r requirements.txt (line 7)) (12.8.93)
+Requirement already satisfied: nvidia-cuda-runtime-cu12==12.8.90 in /root/miniconda3/lib/python3.12/site-packages (from torch>=2.2->-r requirements.txt (line 7)) (12.8.90)
+Requirement already satisfied: nvidia-cuda-cupti-cu12==12.8.90 in /root/miniconda3/lib/python3.12/site-packages (from torch>=2.2->-r requirements.txt (line 7)) (12.8.90)
+Requirement already satisfied: nvidia-cudnn-cu12==9.10.2.21 in /root/miniconda3/lib/python3.12/site-packages (from torch>=2.2->-r requirements.txt (line 7)) (9.10.2.21)
+Requirement already satisfied: nvidia-cublas-cu12==12.8.4.1 in /root/miniconda3/lib/python3.12/site-packages (from torch>=2.2->-r requirements.txt (line 7)) (12.8.4.1)
+Requirement already satisfied: nvidia-cufft-cu12==11.3.3.83 in /root/miniconda3/lib/python3.12/site-packages (from torch>=2.2->-r requirements.txt (line 7)) (11.3.3.83)
+Requirement already satisfied: nvidia-curand-cu12==10.3.9.90 in /root/miniconda3/lib/python3.12/site-packages (from torch>=2.2->-r requirements.txt (line 7)) (10.3.9.90)
+Requirement already satisfied: nvidia-cusolver-cu12==11.7.3.90 in /root/miniconda3/lib/python3.12/site-packages (from torch>=2.2->-r requirements.txt (line 7)) (11.7.3.90)
+Requirement already satisfied: nvidia-cusparse-cu12==12.5.8.93 in /root/miniconda3/lib/python3.12/site-packages (from torch>=2.2->-r requirements.txt (line 7)) (12.5.8.93)
+Requirement already satisfied: nvidia-cusparselt-cu12==0.7.1 in /root/miniconda3/lib/python3.12/site-packages (from torch>=2.2->-r requirements.txt (line 7)) (0.7.1)
+Requirement already satisfied: nvidia-nccl-cu12==2.27.3 in /root/miniconda3/lib/python3.12/site-packages (from torch>=2.2->-r requirements.txt (line 7)) (2.27.3)
+Requirement already satisfied: nvidia-nvtx-cu12==12.8.90 in /root/miniconda3/lib/python3.12/site-packages (from torch>=2.2->-r requirements.txt (line 7)) (12.8.90)
+Requirement already satisfied: nvidia-nvjitlink-cu12==12.8.93 in /root/miniconda3/lib/python3.12/site-packages (from torch>=2.2->-r requirements.txt (line 7)) (12.8.93)
+Requirement already satisfied: nvidia-cufile-cu12==1.13.1.3 in /root/miniconda3/lib/python3.12/site-packages (from torch>=2.2->-r requirements.txt (line 7)) (1.13.1.3)
+Requirement already satisfied: triton==3.4.0 in /root/miniconda3/lib/python3.12/site-packages (from torch>=2.2->-r requirements.txt (line 7)) (3.4.0)
+Collecting huggingface-hub<3.0,>=1.31.0 (from transformers>=4.40->-r requirements.txt (line 8))
+  Downloading http://mirrors.aliyun.com/pypi/packages/eb/b0/0f7b430fd100b3a3b037fdbb314878200241082e607b3383c63d91a13a72/huggingface_hub-2.2.0-py3-none-any.whl.metadata (16 kB)
+Requirement already satisfied: packaging>=20.0 in /root/miniconda3/lib/python3.12/site-packages (from transformers>=4.40->-r requirements.txt (line 8)) (23.2)
+Requirement already satisfied: pyyaml>=5.1 in /root/miniconda3/lib/python3.12/site-packages (from transformers>=4.40->-r requirements.txt (line 8)) (6.0.2)
+Collecting regex>=2025.10.22 (from transformers>=4.40->-r requirements.txt (line 8))
+  Downloading http://mirrors.aliyun.com/pypi/packages/26/83/d2fbd2e4e3afb1167daa825187d196f313cbaa1a4768f311fb041bb0e3d2/regex-2026.9.29-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (40 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 40.6/40.6 kB 49.8 kB/s eta 0:00:00
+Collecting typer (from transformers>=4.40->-r requirements.txt (line 8))
+  Downloading http://mirrors.aliyun.com/pypi/packages/07/ea/2e31b67051e91a133189e9c000c222502ddc6969856416de0d095de4c0b0/typer-0.27.3-py3-none-any.whl.metadata (16 kB)
+Collecting safetensors>=0.8.0 (from transformers>=4.40->-r requirements.txt (line 8))
+  Downloading http://mirrors.aliyun.com/pypi/packages/28/50/f203ff3a3ddfe19308efc83c5a3a29ed02bf786732ec35e68bf9162f3365/safetensors-0.8.0-cp310-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (4.2 kB)
+Collecting scipy>=1.10.0 (from scikit-learn>=1.3->-r requirements.txt (line 11))
+  Downloading http://mirrors.aliyun.com/pypi/packages/df/64/ff35eb9e54894cf471ff4716abd3c81eb0a0626869217ce3e6ba4ccf17d7/scipy-1.18.1-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl (35.3 MB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 35.3/35.3 MB 173.5 kB/s eta 0:00:00
+Collecting joblib>=1.4.0 (from scikit-learn>=1.3->-r requirements.txt (line 11))
+  Downloading http://mirrors.aliyun.com/pypi/packages/18/53/84099323c2ec4be98d935f63c033ac4151ee83836ca1050ede3b3aadf155/joblib-1.6.0-py3-none-any.whl (306 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 306.1/306.1 kB 182.6 kB/s eta 0:00:00
+Collecting narwhals>=2.0.1 (from scikit-learn>=1.3->-r requirements.txt (line 11))
+  Downloading http://mirrors.aliyun.com/pypi/packages/40/b5/1b84b2c784db76d69442334bc8b8748c840f13ca53be086f4f250ad4a0bc/narwhals-2.26.0-py3-none-any.whl.metadata (15 kB)
+Collecting threadpoolctl>=3.5.0 (from scikit-learn>=1.3->-r requirements.txt (line 11))
+  Downloading http://mirrors.aliyun.com/pypi/packages/43/3f/f88a53f60a472b46f4023f56d204dd7de33d34c5d2acbfa0d70a674e639e/threadpoolctl-3.7.0-py3-none-any.whl (26 kB)
+Collecting pyarrow>=24.0.0 (from datasets>=3.0->-r requirements.txt (line 16))
+  Downloading http://mirrors.aliyun.com/pypi/packages/88/e4/9cd356d906e71bd79b0c3fc5c9a54e01a0020dcf14c152ccfbcb503c7298/pyarrow-26.0.0-cp312-cp312-manylinux_2_28_x86_64.whl.metadata (3.0 kB)
+Collecting dill<0.4.2,>=0.3.0 (from datasets>=3.0->-r requirements.txt (line 16))
+  Downloading http://mirrors.aliyun.com/pypi/packages/1e/77/dc8c558f7593132cf8fefec57c4f60c83b16941c574ac5f619abb3ae7933/dill-0.4.1-py3-none-any.whl (120 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 120.0/120.0 kB 181.2 kB/s eta 0:00:00
+Collecting pandas (from datasets>=3.0->-r requirements.txt (line 16))
+  Downloading http://mirrors.aliyun.com/pypi/packages/cb/67/0c0f18e38d7f2d2af8c24b3315bc4046e73bbdd4a5540405506671ad0c0d/pandas-3.0.6-cp312-cp312-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl.metadata (79 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 79.5/79.5 kB 172.2 kB/s eta 0:00:00
+Collecting tqdm>=4.66 (from -r requirements.txt (line 12))
+  Downloading http://mirrors.aliyun.com/pypi/packages/a7/03/921a3d3c75785aca9ebfbfcabfbc3a1be12e2ab5265deb026d55a5a3f83e/tqdm-4.70.1-py3-none-any.whl (80 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 80.2/80.2 kB 184.9 kB/s eta 0:00:00
+Collecting xxhash (from datasets>=3.0->-r requirements.txt (line 16))
+  Downloading http://mirrors.aliyun.com/pypi/packages/83/97/31bd8b8279e6935a0719f6910ced15e9d5a2cd554b253f6027ce1b5a1c2c/xxhash-4.0.1-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (261 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 261.8/261.8 kB 202.6 kB/s eta 0:00:00
+Collecting multiprocess<0.70.20 (from datasets>=3.0->-r requirements.txt (line 16))
+  Downloading http://mirrors.aliyun.com/pypi/packages/71/70/38998b950a97ea279e6bd657575d22d1a2047256caf707d9a10fbce4f065/multiprocess-0.70.19-py312-none-any.whl (150 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 150.3/150.3 kB 227.2 kB/s eta 0:00:00
+Collecting iniconfig>=1.0.1 (from pytest>=8.0->-r requirements.txt (line 18))
+  Downloading http://mirrors.aliyun.com/pypi/packages/56/43/4ca9e49d27a1fcf6bece6f6aec0ea46bb9112489b93d4b688fb415457bdb/iniconfig-2.3.1-py3-none-any.whl.metadata (2.8 kB)
+Collecting pluggy<2,>=1.5 (from pytest>=8.0->-r requirements.txt (line 18))
+  Downloading http://mirrors.aliyun.com/pypi/packages/54/20/4d324d65cc6d9205fabedc306948156824eb9f0ee1633355a8f7ec5c66bf/pluggy-1.6.0-py3-none-any.whl (20 kB)
+Requirement already satisfied: pygments>=2.7.2 in /root/miniconda3/lib/python3.12/site-packages (from pytest>=8.0->-r requirements.txt (line 18)) (2.19.2)
+Collecting aiohttp!=4.0.0a0,!=4.0.0a1 (from fsspec[http]<=2026.7.0,>=2023.1.0->datasets>=3.0->-r requirements.txt (line 16))
+  Downloading http://mirrors.aliyun.com/pypi/packages/11/6c/a7a42701d9ea319140a3d44a24ec72a00b0b46d1b899b26d8a705e65bdd8/aiohttp-3.14.4-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (8.3 kB)
+Collecting click<9.0.0,>=8.4.2 (from huggingface-hub<3.0,>=1.31.0->transformers>=4.40->-r requirements.txt (line 8))
+  Downloading http://mirrors.aliyun.com/pypi/packages/58/50/6c0d534c5f134586a8e1ba4e330569e32f057e33372ae556463212fb4cd3/click-8.5.0-py3-none-any.whl (125 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 125.3/125.3 kB 189.9 kB/s eta 0:00:00
+Collecting hf-xet<2.0.0,>=1.6.0 (from huggingface-hub<3.0,>=1.31.0->transformers>=4.40->-r requirements.txt (line 8))
+  Downloading http://mirrors.aliyun.com/pypi/packages/a3/4c/2bf3b66c215d409655f28de1622393dde04c9461280d48c7924bb3b2decd/hf_xet-1.7.0-cp38-abi3-manylinux2014_x86_64.manylinux_2_17_x86_64.whl.metadata (4.9 kB)
+Collecting httpx2<3,>=2.0.0 (from huggingface-hub<3.0,>=1.31.0->transformers>=4.40->-r requirements.txt (line 8))
+  Downloading http://mirrors.aliyun.com/pypi/packages/d8/9c/6fe8931fd9f381042a9e4c7d5a7b4cbf7016b252bec0c99a49fce42c3326/httpx2-2.13.1-py3-none-any.whl.metadata (9.8 kB)
+Collecting cloudpickle>=3.0 (from joblib>=1.4.0->scikit-learn>=1.3->-r requirements.txt (line 11))
+  Downloading http://mirrors.aliyun.com/pypi/packages/88/39/799be3f2f0f38cc727ee3b4f1445fe6d5e4133064ec2e4115069418a5bb6/cloudpickle-3.1.2-py3-none-any.whl (22 kB)
+Requirement already satisfied: mpmath<1.4,>=1.1.0 in /root/miniconda3/lib/python3.12/site-packages (from sympy>=1.13.3->torch>=2.2->-r requirements.txt (line 7)) (1.3.0)
+Requirement already satisfied: MarkupSafe>=2.0 in /root/miniconda3/lib/python3.12/site-packages (from jinja2->torch>=2.2->-r requirements.txt (line 7)) (3.0.2)
+Requirement already satisfied: python-dateutil>=2.8.2 in /root/miniconda3/lib/python3.12/site-packages (from pandas->datasets>=3.0->-r requirements.txt (line 16)) (2.9.0.post0)
+Collecting shellingham>=1.3.0 (from typer->transformers>=4.40->-r requirements.txt (line 8))
+  Downloading http://mirrors.aliyun.com/pypi/packages/e0/f9/0595336914c5619e5f28a1fb793285925a8cd4b432c9da0a987836c7f822/shellingham-1.5.4-py2.py3-none-any.whl (9.8 kB)
+Collecting rich>=13.8.0 (from typer->transformers>=4.40->-r requirements.txt (line 8))
+  Downloading http://mirrors.aliyun.com/pypi/packages/82/3b/64d4899d73f91ba49a8c18a8ff3f0ea8f1c1d75481760df8c68ef5235bf5/rich-15.0.0-py3-none-any.whl (310 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 310.7/310.7 kB 186.6 kB/s eta 0:00:00
+Collecting annotated-doc>=0.0.2 (from typer->transformers>=4.40->-r requirements.txt (line 8))
+  Downloading http://mirrors.aliyun.com/pypi/packages/3e/30/e900b21425a860e195f32e37657aa1f7c7f2b1bfb26f03ca209b90933c06/annotated_doc-0.0.5-py3-none-any.whl (5.3 kB)
+Collecting aiohappyeyeballs>=2.5.0 (from aiohttp!=4.0.0a0,!=4.0.0a1->fsspec[http]<=2026.7.0,>=2023.1.0->datasets>=3.0->-r requirements.txt (line 16))
+  Downloading http://mirrors.aliyun.com/pypi/packages/71/43/1947f06babed6b3f1d7f38b0c767f52df66bfb2bc10b468c4a7de9eceff2/aiohappyeyeballs-2.7.1-py3-none-any.whl (15 kB)
+Collecting aiosignal>=1.4.0 (from aiohttp!=4.0.0a0,!=4.0.0a1->fsspec[http]<=2026.7.0,>=2023.1.0->datasets>=3.0->-r requirements.txt (line 16))
+  Downloading http://mirrors.aliyun.com/pypi/packages/fb/76/641ae371508676492379f16e2fa48f4e2c11741bd63c48be4b12a6b09cba/aiosignal-1.4.0-py3-none-any.whl (7.5 kB)
+Requirement already satisfied: attrs>=17.3.0 in /root/miniconda3/lib/python3.12/site-packages (from aiohttp!=4.0.0a0,!=4.0.0a1->fsspec[http]<=2026.7.0,>=2023.1.0->datasets>=3.0->-r requirements.txt (line 16)) (25.3.0)
+Collecting frozenlist>=1.1.1 (from aiohttp!=4.0.0a0,!=4.0.0a1->fsspec[http]<=2026.7.0,>=2023.1.0->datasets>=3.0->-r requirements.txt (line 16))
+  Downloading http://mirrors.aliyun.com/pypi/packages/6a/bd/d91c5e39f490a49df14320f4e8c80161cfcce09f1e2cde1edd16a551abb3/frozenlist-1.8.0-cp312-cp312-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl (242 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 242.4/242.4 kB 230.3 kB/s eta 0:00:00
+Collecting multidict<7.0,>=4.5 (from aiohttp!=4.0.0a0,!=4.0.0a1->fsspec[http]<=2026.7.0,>=2023.1.0->datasets>=3.0->-r requirements.txt (line 16))
+  Downloading http://mirrors.aliyun.com/pypi/packages/ed/5b/db08419c1e1f7c9d60cfd2787b2b517d7ae4ebbda8281b48a33eb5141467/multidict-6.9.1-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (5.3 kB)
+Collecting propcache>=0.2.0 (from aiohttp!=4.0.0a0,!=4.0.0a1->fsspec[http]<=2026.7.0,>=2023.1.0->datasets>=3.0->-r requirements.txt (line 16))
+  Downloading http://mirrors.aliyun.com/pypi/packages/85/9f/83a07b6ec0e043c050cfdd35fb0cf1b7897b91d554d6eea293740309afe7/propcache-0.5.4-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (250 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 250.4/250.4 kB 198.2 kB/s eta 0:00:00
+Collecting yarl<2.0,>=1.25.1 (from aiohttp!=4.0.0a0,!=4.0.0a1->fsspec[http]<=2026.7.0,>=2023.1.0->datasets>=3.0->-r requirements.txt (line 16))
+  Downloading http://mirrors.aliyun.com/pypi/packages/bc/7b/ca212cbe170ac8b96e45317ecbcf9c3c3ecf0cdec98d5b088a9c4088929b/yarl-1.25.1-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (117 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 117.0/117.0 kB 257.5 kB/s eta 0:00:00
+Requirement already satisfied: anyio>=4.10 in /root/miniconda3/lib/python3.12/site-packages (from httpx2<3,>=2.0.0->huggingface-hub<3.0,>=1.31.0->transformers>=4.40->-r requirements.txt (line 8)) (4.10.0)
+Collecting httpcore2==2.13.1 (from httpx2<3,>=2.0.0->huggingface-hub<3.0,>=1.31.0->transformers>=4.40->-r requirements.txt (line 8))
+  Downloading http://mirrors.aliyun.com/pypi/packages/09/ba/a4568248771ce81957bfb7cc600264a40fbcda092391ee1c415c50be4bea/httpcore2-2.13.1-py3-none-any.whl.metadata (26 kB)
+Collecting idna>=3.18 (from httpx2<3,>=2.0.0->huggingface-hub<3.0,>=1.31.0->transformers>=4.40->-r requirements.txt (line 8))
+  Downloading http://mirrors.aliyun.com/pypi/packages/58/a2/bb081bab032533a855d44de1d56f8e8426114ff1ba5d1f07a438a0a654f8/idna-3.20-py3-none-any.whl (69 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 69.6/69.6 kB 233.9 kB/s eta 0:00:00
+Collecting truststore>=0.10 (from httpx2<3,>=2.0.0->huggingface-hub<3.0,>=1.31.0->transformers>=4.40->-r requirements.txt (line 8))
+  Downloading http://mirrors.aliyun.com/pypi/packages/19/97/56608b2249fe206a67cd573bc93cd9896e1efb9e98bce9c163bcdc704b88/truststore-0.10.4-py3-none-any.whl (18 kB)
+Requirement already satisfied: h11>=0.16 in /root/miniconda3/lib/python3.12/site-packages (from httpcore2==2.13.1->httpx2<3,>=2.0.0->huggingface-hub<3.0,>=1.31.0->transformers>=4.40->-r requirements.txt (line 8)) (0.16.0)
+Requirement already satisfied: six>=1.5 in /root/miniconda3/lib/python3.12/site-packages (from python-dateutil>=2.8.2->pandas->datasets>=3.0->-r requirements.txt (line 16)) (1.17.0)
+Collecting markdown-it-py>=2.2.0 (from rich>=13.8.0->typer->transformers>=4.40->-r requirements.txt (line 8))
+  Downloading http://mirrors.aliyun.com/pypi/packages/b3/81/4da04ced5a082363ecfa159c010d200ecbd959ae410c10c0264a38cac0f5/markdown_it_py-4.2.0-py3-none-any.whl (91 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 91.7/91.7 kB 203.7 kB/s eta 0:00:00
+Requirement already satisfied: sniffio>=1.1 in /root/miniconda3/lib/python3.12/site-packages (from anyio>=4.10->httpx2<3,>=2.0.0->huggingface-hub<3.0,>=1.31.0->transformers>=4.40->-r requirements.txt (line 8)) (1.3.1)
+Collecting mdurl~=0.1 (from markdown-it-py>=2.2.0->rich>=13.8.0->typer->transformers>=4.40->-r requirements.txt (line 8))
+  Downloading http://mirrors.aliyun.com/pypi/packages/b3/38/89ba8ad64ae25be8de66a6d463314cf1eb366222074cfda9ee839c56a4b4/mdurl-0.1.2-py3-none-any.whl (10.0 kB)
+Downloading http://mirrors.aliyun.com/pypi/packages/b9/59/1e7f1212c215c73690ae6cab4678efe1555ff985953e145d88cc212859b0/transformers-5.19.0-py3-none-any.whl (12.6 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 12.6/12.6 MB 220.4 kB/s eta 0:00:00
+Downloading http://mirrors.aliyun.com/pypi/packages/3a/40/6706b82693715581457c6d5423eaa7faae576bb0526c5738a57085eb4449/tokenizers-0.23.3-cp310-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (3.4 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 3.4/3.4 MB 215.3 kB/s eta 0:00:00
+Downloading http://mirrors.aliyun.com/pypi/packages/8e/57/a50162f3d29feb979ab6347c6debda506dfb525bcff3c50dd17606651c7e/scikit_learn-1.9.1-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl (9.2 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 9.2/9.2 MB 145.8 kB/s eta 0:00:00
+Downloading http://mirrors.aliyun.com/pypi/packages/24/cc/7f624629846c709ef1c68aa61bfb8d0ae2638cbe265104a1c2f7a630949e/datasets-5.1.0-py3-none-any.whl (604 kB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 604.4/604.4 kB 172.5 kB/s eta 0:00:00
+Downloading http://mirrors.aliyun.com/pypi/packages/eb/b0/0f7b430fd100b3a3b037fdbb314878200241082e607b3383c63d91a13a72/huggingface_hub-2.2.0-py3-none-any.whl (839 kB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 839.9/839.9 kB 171.0 kB/s eta 0:00:00
+Downloading http://mirrors.aliyun.com/pypi/packages/56/43/4ca9e49d27a1fcf6bece6f6aec0ea46bb9112489b93d4b688fb415457bdb/iniconfig-2.3.1-py3-none-any.whl (7.6 kB)
+Downloading http://mirrors.aliyun.com/pypi/packages/40/b5/1b84b2c784db76d69442334bc8b8748c840f13ca53be086f4f250ad4a0bc/narwhals-2.26.0-py3-none-any.whl (474 kB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 474.0/474.0 kB 164.0 kB/s eta 0:00:00
+Downloading http://mirrors.aliyun.com/pypi/packages/88/e4/9cd356d906e71bd79b0c3fc5c9a54e01a0020dcf14c152ccfbcb503c7298/pyarrow-26.0.0-cp312-cp312-manylinux_2_28_x86_64.whl (53.9 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 53.9/53.9 MB 207.1 kB/s eta 0:00:00
+Downloading http://mirrors.aliyun.com/pypi/packages/26/83/d2fbd2e4e3afb1167daa825187d196f313cbaa1a4768f311fb041bb0e3d2/regex-2026.9.29-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (807 kB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 807.8/807.8 kB 204.7 kB/s eta 0:00:00
+Downloading http://mirrors.aliyun.com/pypi/packages/28/50/f203ff3a3ddfe19308efc83c5a3a29ed02bf786732ec35e68bf9162f3365/safetensors-0.8.0-cp310-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (516 kB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 516.0/516.0 kB 208.7 kB/s eta 0:00:00
+Downloading http://mirrors.aliyun.com/pypi/packages/cb/67/0c0f18e38d7f2d2af8c24b3315bc4046e73bbdd4a5540405506671ad0c0d/pandas-3.0.6-cp312-cp312-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl (10.8 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 10.8/10.8 MB 213.6 kB/s eta 0:00:00
+Downloading http://mirrors.aliyun.com/pypi/packages/07/ea/2e31b67051e91a133189e9c000c222502ddc6969856416de0d095de4c0b0/typer-0.27.3-py3-none-any.whl (123 kB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 123.3/123.3 kB 272.1 kB/s eta 0:00:00
+Downloading http://mirrors.aliyun.com/pypi/packages/11/6c/a7a42701d9ea319140a3d44a24ec72a00b0b46d1b899b26d8a705e65bdd8/aiohttp-3.14.4-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (1.9 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.9/1.9 MB 210.1 kB/s eta 0:00:00
+Downloading http://mirrors.aliyun.com/pypi/packages/a3/4c/2bf3b66c215d409655f28de1622393dde04c9461280d48c7924bb3b2decd/hf_xet-1.7.0-cp38-abi3-manylinux2014_x86_64.manylinux_2_17_x86_64.whl (4.2 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 4.2/4.2 MB 216.9 kB/s eta 0:00:00
+Downloading http://mirrors.aliyun.com/pypi/packages/d8/9c/6fe8931fd9f381042a9e4c7d5a7b4cbf7016b252bec0c99a49fce42c3326/httpx2-2.13.1-py3-none-any.whl (95 kB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 95.6/95.6 kB 187.4 kB/s eta 0:00:00
+Downloading http://mirrors.aliyun.com/pypi/packages/09/ba/a4568248771ce81957bfb7cc600264a40fbcda092391ee1c415c50be4bea/httpcore2-2.13.1-py3-none-any.whl (83 kB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 83.4/83.4 kB 274.9 kB/s eta 0:00:00
+Downloading http://mirrors.aliyun.com/pypi/packages/ed/5b/db08419c1e1f7c9d60cfd2787b2b517d7ae4ebbda8281b48a33eb5141467/multidict-6.9.1-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (336 kB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 336.9/336.9 kB 216.9 kB/s eta 0:00:00
+Installing collected packages: xxhash, truststore, tqdm, threadpoolctl, shellingham, scipy, safetensors, regex, pyarrow, propcache, pluggy, narwhals, multidict, mdurl, iniconfig, idna, hf-xet, frozenlist, dill, colorama, cloudpickle, click, annotated-doc, aiohappyeyeballs, yarl, pytest, pandas, multiprocess, markdown-it-py, joblib, httpcore2, aiosignal, scikit-learn, rich, httpx2, aiohttp, typer, huggingface-hub, tokenizers, datasets, transformers
+  Attempting uninstall: truststore
+    Found existing installation: truststore 0.8.0
+    Uninstalling truststore-0.8.0:
+      Successfully uninstalled truststore-0.8.0
+  Attempting uninstall: tqdm
+    Found existing installation: tqdm 4.66.2
+    Uninstalling tqdm-4.66.2:
+      Successfully uninstalled tqdm-4.66.2
+  Attempting uninstall: pluggy
+    Found existing installation: pluggy 1.0.0
+    Uninstalling pluggy-1.0.0:
+      Successfully uninstalled pluggy-1.0.0
+  Attempting uninstall: idna
+    Found existing installation: idna 3.7
+    Uninstalling idna-3.7:
+      Successfully uninstalled idna-3.7
+Successfully installed aiohappyeyeballs-2.7.1 aiohttp-3.14.4 aiosignal-1.4.0 annotated-doc-0.0.5 click-8.5.0 cloudpickle-3.1.2 colorama-0.4.6 datasets-5.1.0 dill-0.4.1 frozenlist-1.8.0 hf-xet-1.7.0 httpcore2-2.13.1 httpx2-2.13.1 huggingface-hub-2.2.0 idna-3.20 iniconfig-2.3.1 joblib-1.6.0 markdown-it-py-4.2.0 mdurl-0.1.2 multidict-6.9.1 multiprocess-0.70.19 narwhals-2.26.0 pandas-3.0.6 pluggy-1.6.0 propcache-0.5.4 pyarrow-26.0.0 pytest-9.1.1 regex-2026.9.29 rich-15.0.0 safetensors-0.8.0 scikit-learn-1.9.1 scipy-1.18.1 shellingham-1.5.4 threadpoolctl-3.7.0 tokenizers-0.23.3 tqdm-4.70.1 transformers-5.19.0 truststore-0.10.4 typer-0.27.3 xxhash-4.0.1 yarl-1.25.1
+WARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv
++ echo 'SETUP EXIT=0'
+SETUP EXIT=0

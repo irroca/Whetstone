@@ -1,0 +1,27 @@
+{
+  "run_id": "pretrain_20261004-112628_0a2f97",
+  "stage": "pretrain",
+  "status": "completed",
+  "finished_at": "2026-10-04T14:39:21",
+  "duration_s": 11573.5,
+  "logged_points": 387,
+  "tokens": 300112855,
+  "tokens_per_s": 25931.0,
+  "last": {
+    "epoch": 1,
+    "loss": 3.1122426986694336,
+    "lr": 0.00010000013020711574,
+    "grad_norm": 0.2881695330142975,
+    "val_epoch": 1,
+    "val_loss": 3.2368807141328277,
+    "val_ppl": 25.45419886175471,
+    "val_tokens": 327040,
+    "val_batches": 20
+  },
+  "best": {
+    "loss": 2.8115217685699463,
+    "val_loss": 3.2368807141328277,
+    "val_ppl": 25.45419886175471
+  },
+  "steps": 18354
+}

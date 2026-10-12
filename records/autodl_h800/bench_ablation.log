@@ -1,0 +1,38 @@
+=== ecaf51d AutoDL 启动脚本 + 无卡模式准备完成（数据已上传并在实例上校验） (#16) 13:51:57
+bench: dim=768 layers=12 heads=12 kv_heads=3 hidden=2048 vocab=32768 seq=2048 -> 99.503M params
+device: NVIDIA H800 PCIe  torch 2.8.0+cu128  dtype bfloat16  0.710 GFLOP/token at seq 2048
+flash attention: ok
+batch compile      tok/s  update s  mem GB  TFLOPS    MFU
+   32    True    270,547     1.937    42.2   192.1  25.4%
+wrote /root/autodl-tmp/results/bench_ablation/ecaf51d.json
+=== 46c459d perf: compile the pretraining loss together with the forward 13:52:35
+bench: dim=768 layers=12 heads=12 kv_heads=3 hidden=2048 vocab=32768 seq=2048 -> 99.503M params
+device: NVIDIA H800 PCIe  torch 2.8.0+cu128  dtype bfloat16  0.710 GFLOP/token at seq 2048
+flash attention: ok
+batch compile      tok/s  update s  mem GB  TFLOPS    MFU
+   32    True    297,306     1.763    26.3   211.1  27.9%
+wrote /root/autodl-tmp/results/bench_ablation/46c459d.json
+=== ffbb829 perf: real-valued RoPE, so Inductor fuses it 13:53:32
+bench: dim=768 layers=12 heads=12 kv_heads=3 hidden=2048 vocab=32768 seq=2048 -> 99.503M params
+device: NVIDIA H800 PCIe  torch 2.8.0+cu128  dtype bfloat16  0.710 GFLOP/token at seq 2048
+flash attention: ok
+batch compile      tok/s  update s  mem GB  TFLOPS    MFU
+   32    True    312,217     1.678    26.3   221.7  29.3%
+wrote /root/autodl-tmp/results/bench_ablation/ffbb829.json
+=== c122a93 perf: SDPA reads the kv heads directly (enable_gqa) 13:54:36
+bench: dim=768 layers=12 heads=12 kv_heads=3 hidden=2048 vocab=32768 seq=2048 -> 99.503M params
+device: NVIDIA H800 PCIe  torch 2.8.0+cu128  dtype bfloat16  0.710 GFLOP/token at seq 2048
+flash attention: ok
+batch compile      tok/s  update s  mem GB  TFLOPS    MFU
+   32    True    312,790     1.675    24.6   222.1  29.4%
+wrote /root/autodl-tmp/results/bench_ablation/c122a93.json
+=== e223385 final grid 13:55:40
+bench: dim=768 layers=12 heads=12 kv_heads=3 hidden=2048 vocab=32768 seq=2048 -> 99.503M params
+device: NVIDIA H800 PCIe  torch 2.8.0+cu128  dtype bfloat16  0.710 GFLOP/token at seq 2048
+attention kernels: {'flash': 'ok', 'cudnn': 'ok'}
+attention batch compile      tok/s  update s  mem GB  TFLOPS    MFU
+    cudnn    16    True    334,417     0.784    13.2   237.5  31.4%
+    cudnn    32    True    342,222     1.531    24.6   243.0  32.1%
+    cudnn    64    True    345,305     3.035    47.4   245.2  32.4%
+wrote /root/autodl-tmp/results/bench_ablation/final.json
+ABLATION DONE 13:58:42 at e223385 dirty=0
