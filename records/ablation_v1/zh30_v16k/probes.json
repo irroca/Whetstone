@@ -1,0 +1,75 @@
+{
+  "arm": "zh30_v16k",
+  "bpb": {
+    "books": {
+      "bpb": 1.568163420854186,
+      "bits_per_token": 5.395185297568418,
+      "tokens": 218298,
+      "bytes": 751043,
+      "docs": 2
+    },
+    "code": {
+      "bpb": 0.9167817901344825,
+      "bits_per_token": 2.8419823547924374,
+      "tokens": 500735,
+      "bytes": 1552256,
+      "docs": 355
+    },
+    "en_web": {
+      "bpb": 1.2931258282886324,
+      "bits_per_token": 4.882331981527366,
+      "tokens": 499859,
+      "bytes": 1887270,
+      "docs": 347
+    },
+    "math": {
+      "bpb": 1.2376169793912113,
+      "bits_per_token": 3.7810097120780064,
+      "tokens": 500612,
+      "bytes": 1529406,
+      "docs": 318
+    },
+    "synthetic_textbook": {
+      "bpb": 0.998255660848173,
+      "bits_per_token": 4.345809844815963,
+      "tokens": 96411,
+      "bytes": 419716,
+      "docs": 116
+    },
+    "zh_web": {
+      "bpb": 1.616250595131706,
+      "bits_per_token": 5.707484496102093,
+      "tokens": 501619,
+      "bytes": 1771373,
+      "docs": 502
+    }
+  },
+  "language_confusion": {
+    "zh": {
+      "prompts": 100,
+      "scored": 100,
+      "confused": 0.01,
+      "examples": [
+        "的国产战斗机。\n- 1991年，菲律宾总统府(Soya Zoology) 宣布，将收购10架日本制造的国产战斗机，包括：在",
+        "當時的車站，連接著也沒有車站。\n“很奇怪，當然我可以把車站建成這樣的車站，而且當然是我覺得他們已做得很好，我",
+        "之间。在西部，德语与德语之间，是上瓦莱州的一大门口，它也被称为“法语与德语”。\n二战后，塔拉蒂州和加里西亚的法"
+      ]
+    },
+    "en": {
+      "prompts": 100,
+      "scored": 99,
+      "confused": 0.0,
+      "examples": [
+        " of sized municipal-oriented celery\nSkip to navigation menu\n24 August 2007\nSkip to navigation menu\n25 August 20",
+        " to spread out to the United States.\nA recent study found that the birds were nearly 30% of the original number of horses that were to be eaten. In 1929, the plant was 14",
+        " the smallholders in the WHO to avoid damages that could cause damages.\nWHO has to pay the government for that little slip-up that happened last year. The Clean Water Act is a UN-enabled resource"
+      ]
+    }
+  },
+  "arithmetic": {
+    "add_1digit": 0.06,
+    "add_2digit": 0.0,
+    "items": 200
+  },
+  "seconds": 61.4
+}

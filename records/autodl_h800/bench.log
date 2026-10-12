@@ -1,0 +1,14 @@
+/root/miniconda3/lib/python3.12/site-packages/torch/_inductor/lowering.py:1890: UserWarning: Torchinductor does not support code generation for complex operators. Performance may be worse than eager.
+  warnings.warn(
+bench: dim=768 layers=12 heads=12 kv_heads=3 hidden=2048 vocab=32768 seq=2048 -> 99.503M params
+device: NVIDIA H800 PCIe  torch 2.8.0+cu128  dtype bfloat16  0.710 GFLOP/token at seq 2048
+flash attention: ok
+batch compile      tok/s  update s  mem GB  TFLOPS    MFU
+   16   False    173,737     1.508    27.6   123.4  16.3%
+   32   False    176,979     2.961    53.4   125.7  16.6%
+   64   False        OOM
+   16    True    263,339     0.995    22.0   187.0  24.7%
+   32    True    269,107     1.947    42.2   191.1  25.3%
+   64    True        OOM
+wrote /root/autodl-tmp/results/bench.json
+BENCH EXIT=0

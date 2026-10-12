@@ -1,0 +1,75 @@
+{
+  "arm": "zh30_v32k",
+  "bpb": {
+    "books": {
+      "bpb": 1.5459781816663931,
+      "bits_per_token": 5.674374045153102,
+      "tokens": 204621,
+      "bytes": 751043,
+      "docs": 2
+    },
+    "code": {
+      "bpb": 0.9009382283165087,
+      "bits_per_token": 2.985474307541184,
+      "tokens": 501238,
+      "bytes": 1660972,
+      "docs": 375
+    },
+    "en_web": {
+      "bpb": 1.270746310352689,
+      "bits_per_token": 5.242207977260533,
+      "tokens": 508202,
+      "bytes": 2096485,
+      "docs": 393
+    },
+    "math": {
+      "bpb": 1.2119352270515507,
+      "bits_per_token": 3.91126858361748,
+      "tokens": 477404,
+      "bytes": 1540722,
+      "docs": 320
+    },
+    "synthetic_textbook": {
+      "bpb": 0.9571794545770679,
+      "bits_per_token": 4.628488351773873,
+      "tokens": 86798,
+      "bytes": 419716,
+      "docs": 116
+    },
+    "zh_web": {
+      "bpb": 1.5840646212024485,
+      "bits_per_token": 6.221478096789569,
+      "tokens": 502157,
+      "bytes": 1972242,
+      "docs": 548
+    }
+  },
+  "language_confusion": {
+    "zh": {
+      "prompts": 100,
+      "scored": 98,
+      "confused": 0.030612244897959183,
+      "examples": [
+        "，该战机于2010年5月7日开始正式宣布，将携带着12架韩国制造的F-50战机。\n报道称，2010年6月23日，越南海军",
+        "馬克林，因此該車架不會被截斷，而動車隻在這裡面需要先達到。\n從圓鏡上取決於兩個月後，沒有一個月，不過這段路",
+        "界处。\n他已决定加入印度和台湾的旅游联盟，到如今，他已不再关注海峡，只是希望与世界其他地区保持联系，并希望他能够成为世界最大、最富有的旅游景点。"
+      ]
+    },
+    "en": {
+      "prompts": 100,
+      "scored": 100,
+      "confused": 0.0,
+      "examples": [
+        "\nTwenty years ago, the researchers said, they found that hydrogen is safe and safe.\nScientists have developed a new kind of hydrogen technology that has been shown to be effective in the use of hydrogen.\n\"We can work together",
+        " to increase.\nThe story of the 1929 Hire by Catherine and John F. Kennedy, a senior organization of the Hire, is a story that left the nation to question the success of the world's worst",
+        " contract.\nThe Clean Water Act, which is the first to cover the most important health benefits of the Clean Water Act, will have its members to report a health benefit. They will take the time to re-examine the Clean Water"
+      ]
+    }
+  },
+  "arithmetic": {
+    "add_1digit": 0.05,
+    "add_2digit": 0.01,
+    "items": 200
+  },
+  "seconds": 71.7
+}

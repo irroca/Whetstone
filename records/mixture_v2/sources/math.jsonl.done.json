@@ -1,0 +1,57 @@
+{
+  "fingerprint": {
+    "source": {
+      "name": "math",
+      "weight": 0.16,
+      "text_field": "text",
+      "jsonl": null,
+      "hf": {
+        "path": "HuggingFaceTB/finemath",
+        "name": "finemath-4plus",
+        "split": "train",
+        "columns": [
+          "text"
+        ]
+      },
+      "filters": {
+        "min_chars": 100,
+        "max_chars": 100000,
+        "min_cjk_ratio": null,
+        "min_latin_ratio": null,
+        "max_digit_ratio": 0.4,
+        "max_symbol_ratio": 0.5,
+        "max_repetition": 0.4,
+        "max_duplicate_lines": 0.4,
+        "min_mean_word_length": null,
+        "max_mean_word_length": null,
+        "blocklist": []
+      },
+      "cleaners": [],
+      "where": {},
+      "max_records": null
+    },
+    "target_tokens": 1600000000,
+    "tokenizer": "00853aafd17a84f5716c704484c56273"
+  },
+  "bytes": 5283720769,
+  "report": {
+    "name": "math",
+    "target_tokens": 1600000000,
+    "tokens": 1600000518,
+    "documents": 1143976,
+    "records_read": 1268042,
+    "fill": 1.00000032375,
+    "keep_rate": 0.9021593921967884,
+    "tokens_per_doc": 1398.631193311748,
+    "rejected": {
+      "repetitive": 86089,
+      "duplicate_lines": 33630,
+      "high_digit_ratio": 2567,
+      "too_long": 1307,
+      "high_symbol_ratio": 343,
+      "too_short": 129
+    },
+    "exact_duplicates": 1,
+    "exhausted": false
+  }
+}

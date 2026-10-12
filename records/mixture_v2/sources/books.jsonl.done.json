@@ -1,0 +1,56 @@
+{
+  "fingerprint": {
+    "source": {
+      "name": "books",
+      "weight": 0.057,
+      "text_field": "text",
+      "jsonl": null,
+      "hf": {
+        "path": "common-pile/project_gutenberg",
+        "split": "train"
+      },
+      "filters": {
+        "min_chars": 1000,
+        "max_chars": 2000000,
+        "min_cjk_ratio": null,
+        "min_latin_ratio": 0.5,
+        "max_digit_ratio": 0.2,
+        "max_symbol_ratio": 0.2,
+        "max_repetition": 0.4,
+        "max_duplicate_lines": 0.3,
+        "min_mean_word_length": null,
+        "max_mean_word_length": null,
+        "blocklist": []
+      },
+      "cleaners": [],
+      "where": {
+        "metadata.language": "en"
+      },
+      "max_records": null
+    },
+    "target_tokens": 570000000,
+    "tokenizer": "00853aafd17a84f5716c704484c56273"
+  },
+  "bytes": 2128250955,
+  "report": {
+    "name": "books",
+    "target_tokens": 570000000,
+    "tokens": 570032710,
+    "documents": 6009,
+    "records_read": 7355,
+    "fill": 1.0000573859649122,
+    "keep_rate": 0.816995241332427,
+    "tokens_per_doc": 94863.15693126977,
+    "rejected": {
+      "too_long": 31,
+      "where:metadata.language": 1136,
+      "repetitive": 148,
+      "low_latin_ratio": 9,
+      "too_short": 7,
+      "high_symbol_ratio": 1,
+      "duplicate_lines": 13
+    },
+    "exact_duplicates": 1,
+    "exhausted": false
+  }
+}

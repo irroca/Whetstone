@@ -1,0 +1,183 @@
+{
+  "mixture": "v2-bilingual-verifiable",
+  "tokenizer": "./tokenizer/v1_32k",
+  "total_tokens_requested": 10000000000,
+  "total_tokens_collected": 10000044339,
+  "seed": 0,
+  "val_fraction": 0.005,
+  "holdout_fraction": 0.005,
+  "sources": [
+    {
+      "name": "zh_web",
+      "target_tokens": 2000000000,
+      "tokens": 2000000403,
+      "documents": 2096970,
+      "records_read": 2348635,
+      "fill": 1.0000002015,
+      "keep_rate": 0.8928462702803969,
+      "tokens_per_doc": 953.7572797894104,
+      "rejected": {
+        "too_short": 164268,
+        "low_cjk_ratio": 86808,
+        "too_long": 193,
+        "duplicate_lines": 337,
+        "high_digit_ratio": 12,
+        "high_symbol_ratio": 23
+      },
+      "exact_duplicates": 24,
+      "exhausted": false
+    },
+    {
+      "name": "en_web",
+      "target_tokens": 3200000000,
+      "tokens": 3200000528,
+      "documents": 2952799,
+      "records_read": 3000943,
+      "fill": 1.000000165,
+      "keep_rate": 0.9839570428362018,
+      "tokens_per_doc": 1083.7176956508044,
+      "rejected": {
+        "repetitive": 9549,
+        "too_long": 2574,
+        "short_words": 62,
+        "low_latin_ratio": 50,
+        "duplicate_lines": 33,
+        "too_short": 9,
+        "high_symbol_ratio": 10,
+        "high_digit_ratio": 1
+      },
+      "exact_duplicates": 35856,
+      "exhausted": false
+    },
+    {
+      "name": "code",
+      "target_tokens": 2290000000,
+      "tokens": 2290009403,
+      "documents": 1846350,
+      "records_read": 1944661,
+      "fill": 1.0000041061135372,
+      "keep_rate": 0.9494456874488664,
+      "tokens_per_doc": 1240.2899791480488,
+      "rejected": {
+        "duplicate_lines": 19566,
+        "too_short": 65753,
+        "too_long": 9842,
+        "high_digit_ratio": 2694,
+        "high_symbol_ratio": 185
+      },
+      "exact_duplicates": 271,
+      "exhausted": false
+    },
+    {
+      "name": "math",
+      "target_tokens": 1600000000,
+      "tokens": 1600000518,
+      "documents": 1143976,
+      "records_read": 1268042,
+      "fill": 1.00000032375,
+      "keep_rate": 0.9021593921967884,
+      "tokens_per_doc": 1398.631193311748,
+      "rejected": {
+        "repetitive": 86089,
+        "duplicate_lines": 33630,
+        "high_digit_ratio": 2567,
+        "too_long": 1307,
+        "high_symbol_ratio": 343,
+        "too_short": 129
+      },
+      "exact_duplicates": 1,
+      "exhausted": false
+    },
+    {
+      "name": "books",
+      "target_tokens": 570000000,
+      "tokens": 570032710,
+      "documents": 6009,
+      "records_read": 7355,
+      "fill": 1.0000573859649122,
+      "keep_rate": 0.816995241332427,
+      "tokens_per_doc": 94863.15693126977,
+      "rejected": {
+        "too_long": 31,
+        "where:metadata.language": 1136,
+        "repetitive": 148,
+        "low_latin_ratio": 9,
+        "too_short": 7,
+        "high_symbol_ratio": 1,
+        "duplicate_lines": 13
+      },
+      "exact_duplicates": 1,
+      "exhausted": false
+    },
+    {
+      "name": "synthetic_textbook",
+      "target_tokens": 340000000,
+      "tokens": 340000777,
+      "documents": 434097,
+      "records_read": 438592,
+      "fill": 1.0000022852941177,
+      "keep_rate": 0.9897512950532613,
+      "tokens_per_doc": 783.2368733255471,
+      "rejected": {
+        "too_short": 301,
+        "repetitive": 3418,
+        "low_latin_ratio": 15,
+        "duplicate_lines": 8
+      },
+      "exact_duplicates": 753,
+      "exhausted": false
+    }
+  ],
+  "split": {
+    "counts": {
+      "train": 8393795,
+      "holdout": 42680,
+      "val": 42451
+    },
+    "contaminated_removed": 1275,
+    "lcs_rescued": 6424,
+    "eval_items": 45756,
+    "top_matches": [
+      {
+        "eval_item": "x^8 + x^7 + x^6 + x^5 + x^4 + x^3 + x^2 + x + 1",
+        "documents": 141
+      },
+      {
+        "eval_item": "def kth_element(arr, n, k):\n  for i in range(n):\n    for j in range(0, n-i-1):\n      if arr[j] > arr[j+1]:\n        arr[j], arr[j+1] == arr[j+1], arr[j]\n  return",
+        "documents": 99
+      },
+      {
+        "eval_item": "def find_longest_repeating_subseq(str): \n\tn = len(str) \n\tdp = [[0 for k in range(n+1)] for l in range(n+1)] \n\tfor i in range(1, n+1): \n\t\tfor j in range(1, n+1):",
+        "documents": 54
+      },
+      {
+        "eval_item": "def get_total_number_of_sequences(m,n): \n\tT=[[0 for i in range(n+1)] for i in range(m+1)] \n\tfor i in range(m+1): \n\t\tfor j in range(n+1): \n\t\t\tif i==0 or j==0: \n\t",
+        "documents": 40
+      },
+      {
+        "eval_item": "Determine the modulo 4 remainder of the following sum: $$ 1 + 2 + 3 + 4 + 5 + 6 + 7 + 8 + 9 + 10 + 11 + 12. $$",
+        "documents": 23
+      },
+      {
+        "eval_item": "    if n == 0:\n        return 0\n    if n == 1:\n        return 1\n    return fib(n - 1) + fib(n - 2)\n",
+        "documents": 22
+      },
+      {
+        "eval_item": "def get_Inv_Count(arr,n): \n    inv_count = 0\n    for i in range(n): \n        for j in range(i + 1,n): \n            if (arr[i] > arr[j]): \n                inv_co",
+        "documents": 20
+      },
+      {
+        "eval_item": "I am three years younger than my brother, and I am 2 years older than my sister. My mom's age is one less than three times my brother's age. When you add all ou",
+        "documents": 17
+      },
+      {
+        "eval_item": "def find_even_Pair(A,N): \n    evenPair = 0\n    for i in range(0,N): \n        for j in range(i+1,N): \n            if ((A[i] ^ A[j]) % 2 == 0): \n                e",
+        "documents": 16
+      },
+      {
+        "eval_item": "$$M={{(a+b)}^{2}}$$，$$N=a+{{b}^{2}}$$．  $$M-N={{(a+b)}^{2}}-(a+{{b}^{2}})={{a}^{2}}+2ab+{{b}^{2}}-a-{{b}^{2}}={{a}^{2}}+2ab-a$$．  ∵$$a=7$$，$$b=-5$$，  ∴$$M-N={{7",
+        "documents": 14
+      }
+    ]
+  }
+}

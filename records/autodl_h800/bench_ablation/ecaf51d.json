@@ -1,0 +1,29 @@
+{
+  "device": "NVIDIA H800 PCIe",
+  "torch": "2.8.0+cu128",
+  "dtype": "bfloat16",
+  "max_seq_len": 2048,
+  "accumulation_steps": 8,
+  "config": {
+    "dim": 768,
+    "n_layers": 12,
+    "n_heads": 12,
+    "n_kv_heads": 3,
+    "hidden_dim": 2048,
+    "vocab_size": 32768
+  },
+  "flops_per_token": 710092800,
+  "flash_attention": "ok",
+  "rows": [
+    {
+      "batch_size": 32,
+      "compile": true,
+      "status": "ok",
+      "tokens_per_s": 270546.86162016273,
+      "update_s": 1.9369361627846957,
+      "peak_memory_gb": 42.227487087249756,
+      "tflops": 192.1133784990739,
+      "mfu": 0.2541182255278755
+    }
+  ]
+}

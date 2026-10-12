@@ -1,0 +1,99 @@
+{
+  "run_id": "pretrain_20261011-141555_c21027",
+  "stage": "pretrain",
+  "started_at": "2026-10-11T14:15:55",
+  "command": "pretrain.py --dim 768 --n_layers 12 --n_heads 12 --n_kv_heads 3 --tokenizer_path tokenizer/v1_32k --max_seq_len 2048 --data_path /root/autodl-tmp/mixture_v2/train.bin --val_data_path /root/autodl-tmp/mixture_v2/val.bin --epochs 1 --batch_size 32 --accumulation_steps 8 --learning_rate 6e-4 --log_step 10 --val_every 500 --val_batches 50 --save_step 500 --num_workers 2 --dtype bfloat16 --compile True --attention_backend cudnn --save_dir /root/autodl-tmp/results/pretrain_v2",
+  "args": {
+    "save_dir": "/root/autodl-tmp/results/pretrain_v2",
+    "epochs": 1,
+    "batch_size": 32,
+    "learning_rate": 0.0006,
+    "weight_decay": 0.1,
+    "adam_beta1": 0.9,
+    "adam_beta2": 0.95,
+    "max_steps": 0,
+    "device": "cuda",
+    "use_wandb": false,
+    "wandb_project": "Whetstone-Pretrain",
+    "dtype": "bfloat16",
+    "num_workers": 2,
+    "accumulation_steps": 8,
+    "grad_clip": 1.0,
+    "log_step": 10,
+    "save_step": 500,
+    "max_seq_len": 2048,
+    "data_path": "/root/autodl-tmp/mixture_v2/train.bin",
+    "val_data_path": "/root/autodl-tmp/mixture_v2/val.bin",
+    "val_every": 500,
+    "val_batches": 50,
+    "resume_from": null,
+    "seed": 1337,
+    "tokenizer_path": "tokenizer/v1_32k",
+    "dim": 768,
+    "n_layers": 12,
+    "n_heads": 12,
+    "n_kv_heads": 3,
+    "hidden_dim": null,
+    "multiple_of": null,
+    "norm_eps": null,
+    "rope_theta": null,
+    "dropout": null,
+    "compile": true,
+    "attention_backend": "cudnn",
+    "total_steps": 18919
+  },
+  "env": {
+    "python": "3.12.3",
+    "torch": "2.8.0+cu128",
+    "platform": "Linux-5.15.0-78-generic-x86_64-with-glibc2.35",
+    "machine": "x86_64",
+    "hostname": "autodl-container-c95a4e90fc-978fe393",
+    "device": "cuda",
+    "accelerator": "NVIDIA H800 PCIe"
+  },
+  "git": {
+    "commit": "e223385cce1c4e5edf902cc7b8c6c8f9a0cf64ef",
+    "branch": "throughput",
+    "dirty": false
+  },
+  "data": [
+    {
+      "path": "/root/autodl-tmp/mixture_v2/train.bin",
+      "bytes": 19828141284,
+      "modified": "2026-10-10T17:14:18",
+      "head_sha": "cf7c6b6b638998dc6c3ac56c07f26aff"
+    },
+    {
+      "path": "/root/autodl-tmp/mixture_v2/val.bin",
+      "bytes": 100657236,
+      "modified": "2026-10-10T15:59:13",
+      "head_sha": "3a344d1a8791816e8116f4b5dc3ef26e"
+    }
+  ],
+  "extra": {},
+  "model": {
+    "dim": 768,
+    "n_layers": 12,
+    "n_heads": 12,
+    "n_kv_heads": 3,
+    "hidden_dim": 2048,
+    "vocab_size": 32768,
+    "max_seq_len": 2048,
+    "dropout": 0.0,
+    "rope_theta": 1000000.0,
+    "params": 99502848
+  },
+  "dataset_manifest": {
+    "path": "/root/autodl-tmp/mixture_v2/manifest.json",
+    "mixture": "v2-bilingual-verifiable",
+    "tokens": 10000044339,
+    "sources": [
+      "zh_web",
+      "en_web",
+      "code",
+      "math",
+      "books",
+      "synthetic_textbook"
+    ]
+  }
+}

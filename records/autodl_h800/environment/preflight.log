@@ -1,0 +1,36 @@
+train: 9,914,070,642 tokens, 4,843,219 windows of 2048
+  first: '<s>登录（或注册），检查了我们刚刚推出了新的功能！\n目前发现（第名单）：\n只提供给注册用户。\n这个站点被设计主要作为提示系统供合格的医师和其他医疗专家使用。 通过'
+  last:  'oks (traditional Korean attire), colorful masks used in ancient rituals, and delicate pottery glazed with meticulous care, she finally began to appreciate the beauty of her ancestry.\n\nA gentle tap on her'
+val: 50,328,618 tokens, 24,586 windows of 2048
+  first: '<s>由本·阿弗莱克,凯特·贝金赛尔,乔什·哈奈特领衔主演\n珍珠港/Pearl Harbor1080p高清电影下载\n雷夫与'
+  last:  " play, laugh, and build friendships. As they interact, they learn about each other's customs and languages. Playgrounds become places where diverse communities mix and new shared experiences take place. Over time, these social interactions help integrate immigrants"
+pretrain: dim=64 layers=2 heads=4 kv_heads=1 hidden=192 vocab=32768 seq=512 -> 2.192M params
+run: /root/autodl-tmp/results/preflight/runs/pretrain_20261010-175039_4641ce
+Epoch[1/1] (2/98490) loss=10.5652 lr=0.0006000 global_step=1
+Epoch[1/1] (4/98490) loss=10.5247 lr=0.0004650 global_step=2
+  val: loss=10.5358 ppl=37640.7968 tokens=1022 batches=2
+Epoch[1/1] (6/98490) loss=10.4887 lr=0.0001950 global_step=3
+Epoch[1/1] (8/98490) loss=10.4945 lr=0.0000600 global_step=4
+  val: loss=10.5282 ppl=37354.9941 tokens=1022 batches=2
+Training completed!
+holdout head: {'zh_web': 3, 'en_web': 3, 'code': 3, 'math': 3, 'books': 3, 'synthetic_textbook': 3}
+bpb                books: 4.1234  (273 tokens, 1 docs)
+bpb                 code: 4.2038  (280 tokens, 1 docs)
+bpb               en_web: 3.0387  (203 tokens, 1 docs)
+bpb                 math: 3.5593  (241 tokens, 1 docs)
+bpb   synthetic_textbook: 3.5572  (234 tokens, 1 docs)
+bpb               zh_web: 3.7189  (281 tokens, 1 docs)
+language confusion: zh->other 100.0%, en->zh 0.0%
+arithmetic: add_1digit 0.0%, add_2digit 0.0%
+wrote /root/autodl-tmp/results/preflight/probes.json
+total 34316
+drwxr-xr-x 3 root root      180 Oct 10 17:51 .
+drwxr-xr-x 3 root root       31 Oct 10 17:50 ..
+-rw-r--r-- 1 root root    20116 Oct 10 17:50 holdout_head.jsonl
+-rw-r--r-- 1 root root 26330544 Oct 10 17:50 latest_checkpoint.pth
+-rw-r--r-- 1 root root      220 Oct 10 17:50 pretrain_final.config.json
+-rw-r--r-- 1 root root  8774375 Oct 10 17:50 pretrain_final.pth
+-rw-r--r-- 1 root root     2716 Oct 10 17:51 probes.json
+drwxr-xr-x 3 root root       53 Oct 10 17:50 runs
+PREFLIGHT EXIT=0
+EXIT=0

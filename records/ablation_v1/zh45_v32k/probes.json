@@ -1,0 +1,75 @@
+{
+  "arm": "zh45_v32k",
+  "bpb": {
+    "books": {
+      "bpb": 1.5688888507728955,
+      "bits_per_token": 5.758465598110789,
+      "tokens": 204621,
+      "bytes": 751043,
+      "docs": 2
+    },
+    "code": {
+      "bpb": 0.9252417924775268,
+      "bits_per_token": 3.066009980358597,
+      "tokens": 501238,
+      "bytes": 1660972,
+      "docs": 375
+    },
+    "en_web": {
+      "bpb": 1.294624553284744,
+      "bits_per_token": 5.340712859440078,
+      "tokens": 508202,
+      "bytes": 2096485,
+      "docs": 393
+    },
+    "math": {
+      "bpb": 1.2411222110997615,
+      "bits_per_token": 4.005463497017299,
+      "tokens": 477404,
+      "bytes": 1540722,
+      "docs": 320
+    },
+    "synthetic_textbook": {
+      "bpb": 0.9875830137456467,
+      "bits_per_token": 4.775506258177237,
+      "tokens": 86798,
+      "bytes": 419716,
+      "docs": 116
+    },
+    "zh_web": {
+      "bpb": 1.5343859696294178,
+      "bits_per_token": 6.02636317628523,
+      "tokens": 502157,
+      "bytes": 1972242,
+      "docs": 548
+    }
+  },
+  "language_confusion": {
+    "zh": {
+      "prompts": 100,
+      "scored": 99,
+      "confused": 0.020202020202020204,
+      "examples": [
+        "。\n据法国《侨报》报道，该战机已开始升级，其中包括4架韩国空军战斗机，而2016年则已经购买了2架韩式战机，但是该战机将购买4架韩国战斗机",
+        "，所以我們自己能用這個形容詞去辨別時，便可以得到對方允許的答案。\n當然，鈴鹿賽道稻生車站的出現，是因為其原因，我們已經",
+        "界处。该州已拥有超过5000所大学，拥有超过500所大学。\n谢尔大学位于1984年，是世界首府，也是世界第一所大学。198"
+      ]
+    },
+    "en": {
+      "prompts": 100,
+      "scored": 100,
+      "confused": 0.0,
+      "examples": [
+        "\nTwenty years ago, the technology that has evolved to be used to monitor and monitor vehicle storage, and has emerged as a vital tool for the development of the technology.\nThe goal of the invention is to provide the mass storage of",
+        " to decline.\nThe winners of the West were in a series of agroforested swamps, and the stormy conditions of the wild were not over.\nIn 1918, the Wild Bank became a major",
+        " being.\nThe Food Safety Act, which is now signed by the Congress, is under way for the government to do so. The legislation is not allowed.\nThe Presidential Government and the Congress have been inaugurated a bill of"
+      ]
+    }
+  },
+  "arithmetic": {
+    "add_1digit": 0.09,
+    "add_2digit": 0.03,
+    "items": 200
+  },
+  "seconds": 71.6
+}

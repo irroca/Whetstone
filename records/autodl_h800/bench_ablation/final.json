@@ -1,0 +1,55 @@
+{
+  "device": "NVIDIA H800 PCIe",
+  "torch": "2.8.0+cu128",
+  "dtype": "bfloat16",
+  "max_seq_len": 2048,
+  "accumulation_steps": 8,
+  "config": {
+    "dim": 768,
+    "n_layers": 12,
+    "n_heads": 12,
+    "n_kv_heads": 3,
+    "hidden_dim": 2048,
+    "vocab_size": 32768
+  },
+  "flops_per_token": 710092800,
+  "attention_kernels": {
+    "flash": "ok",
+    "cudnn": "ok"
+  },
+  "rows": [
+    {
+      "batch_size": 16,
+      "compile": true,
+      "attention": "cudnn",
+      "status": "ok",
+      "tokens_per_s": 334416.60158717784,
+      "update_s": 0.783501772210002,
+      "peak_memory_gb": 13.202310562133789,
+      "tflops": 237.46682098752356,
+      "mfu": 0.31410955157079834
+    },
+    {
+      "batch_size": 32,
+      "compile": true,
+      "attention": "cudnn",
+      "status": "ok",
+      "tokens_per_s": 342222.4839529124,
+      "update_s": 1.5312611665576696,
+      "peak_memory_gb": 24.594088554382324,
+      "tflops": 243.00972185307862,
+      "mfu": 0.32144143102259076
+    },
+    {
+      "batch_size": 64,
+      "compile": true,
+      "attention": "cudnn",
+      "status": "ok",
+      "tokens_per_s": 345305.25605415204,
+      "update_s": 3.035181137919426,
+      "peak_memory_gb": 47.38526773452759,
+      "tflops": 245.1987761262098,
+      "mfu": 0.32433700545794947
+    }
+  ]
+}

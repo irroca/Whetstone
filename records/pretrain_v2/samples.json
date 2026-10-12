@@ -1,0 +1,44 @@
+[
+ {
+  "kind": "zh",
+  "prompt": "人工智能的发展可以分为三个阶段：",
+  "temperature": 0.7,
+  "continuation": "\n第一阶段：大数据时代。由于大数据带给人的感觉是可视的，因此大数据处理是人工智能发展的重要方向。\n第二阶段：机器学习时代。随着大数据的发展，机器学习已经不再仅仅是一个人工智能领域，而是与大数据相关联"
+ },
+ {
+  "kind": "zh",
+  "prompt": "长江是中国第一大河，",
+  "temperature": 0.7,
+  "continuation": "是中国五大河之一，也是中国历史上的三大河之一。长江的支流是长江中下游，长江下游和长江东流交汇处，长江中下游和长江东下游交汇处汇合，长江下游和长江中下游交汇"
+ },
+ {
+  "kind": "en",
+  "prompt": "The theory of evolution by natural selection explains",
+  "temperature": 0.7,
+  "continuation": " the pattern of evolution in plants and animals.\nThe plant genome is composed of millions of genetic sequences that, in the process of natural selection, have the capacity to generate a single generation of new species. The variation in the genome in plants is driven by the natural selection process.\nThe variation in"
+ },
+ {
+  "kind": "code",
+  "prompt": "def is_prime(n):\n    \"\"\"Return True if n is a prime number.\"\"\"\n",
+  "temperature": 0.0,
+  "continuation": "#    if n == 1:\n#        return True\n    return False\n#    elif n == 2:\n#        return False\n#    elif n == 3:\n#        return False\n#    elif n == 4:\n#        return False\n#"
+ },
+ {
+  "kind": "math",
+  "prompt": "Problem: Solve for x: 2x + 3 = 11.\nSolution:",
+  "temperature": 0.0,
+  "continuation": "\n\nWe know that,\n\nx = 2\n\nTherefore,\n\nx = 2\n\nx = 2\n\nx = 2\n\nx = 2\n\nx = 2\n\nx = 2\n\nx = 2\n\n"
+ },
+ {
+  "kind": "arith",
+  "prompt": "3 + 4 = 7\n5 + 2 = 7\n1 + 8 = 9\n6 + 3 = 9\n2 + 5 =",
+  "temperature": 0.0,
+  "continuation": " 9\n3 + "
+ },
+ {
+  "kind": "arith",
+  "prompt": "23 + 14 = 37\n51 + 26 = 77\n12 + 45 = 57\n34 + 22 = 56\n41 + 35 =",
+  "temperature": 0.0,
+  "continuation": " 56\n10"
+ }
+]

@@ -1,0 +1,57 @@
+{
+  "fingerprint": {
+    "source": {
+      "name": "zh_web",
+      "weight": 0.2,
+      "text_field": "text",
+      "jsonl": null,
+      "hf": {
+        "path": "epfml/FineWeb2-HQ",
+        "name": "cmn_Hani",
+        "split": "train",
+        "columns": [
+          "text"
+        ]
+      },
+      "filters": {
+        "min_chars": 200,
+        "max_chars": 100000,
+        "min_cjk_ratio": 0.5,
+        "min_latin_ratio": null,
+        "max_digit_ratio": 0.3,
+        "max_symbol_ratio": 0.3,
+        "max_repetition": 0.3,
+        "max_duplicate_lines": 0.3,
+        "min_mean_word_length": null,
+        "max_mean_word_length": null,
+        "blocklist": []
+      },
+      "cleaners": [],
+      "where": {},
+      "max_records": null
+    },
+    "target_tokens": 2000000000,
+    "tokenizer": "00853aafd17a84f5716c704484c56273"
+  },
+  "bytes": 8007144878,
+  "report": {
+    "name": "zh_web",
+    "target_tokens": 2000000000,
+    "tokens": 2000000403,
+    "documents": 2096970,
+    "records_read": 2348635,
+    "fill": 1.0000002015,
+    "keep_rate": 0.8928462702803969,
+    "tokens_per_doc": 953.7572797894104,
+    "rejected": {
+      "too_short": 164268,
+      "low_cjk_ratio": 86808,
+      "too_long": 193,
+      "duplicate_lines": 337,
+      "high_digit_ratio": 12,
+      "high_symbol_ratio": 23
+    },
+    "exact_duplicates": 24,
+    "exhausted": false
+  }
+}

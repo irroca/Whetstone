@@ -1,0 +1,75 @@
+{
+  "arm": "zh00_v32k",
+  "bpb": {
+    "books": {
+      "bpb": 1.5013463509689997,
+      "bits_per_token": 5.510556919723833,
+      "tokens": 204621,
+      "bytes": 751043,
+      "docs": 2
+    },
+    "code": {
+      "bpb": 0.8642912504463289,
+      "bits_per_token": 2.8640357810787287,
+      "tokens": 501238,
+      "bytes": 1660972,
+      "docs": 375
+    },
+    "en_web": {
+      "bpb": 1.2345551796534284,
+      "bits_per_token": 5.092908756391588,
+      "tokens": 508202,
+      "bytes": 2096485,
+      "docs": 393
+    },
+    "math": {
+      "bpb": 1.1665708298946083,
+      "bits_per_token": 3.764864438037554,
+      "tokens": 477404,
+      "bytes": 1540722,
+      "docs": 320
+    },
+    "synthetic_textbook": {
+      "bpb": 0.9118515881739339,
+      "bits_per_token": 4.409303223369327,
+      "tokens": 86798,
+      "bytes": 419716,
+      "docs": 116
+    },
+    "zh_web": {
+      "bpb": 2.9135101279566844,
+      "bits_per_token": 11.442929286620613,
+      "tokens": 502157,
+      "bytes": 1972242,
+      "docs": 548
+    }
+  },
+  "language_confusion": {
+    "zh": {
+      "prompts": 100,
+      "scored": 98,
+      "confused": 0.3877551020408163,
+      "examples": [
+        "的。\n\n## 10th Edition\n\n### 数学代写|组合学代写\n\n• 数学代写|组合学代写|组合学代写|组合学代写|组合学代",
+        "者，存在的読便會臺北南用時。\n\n## 2010-11-10 15:11\n\n### 2010-11-11",
+        "数组。\n\n# 数学代写|风险和利率理论代写风险和利率理论代写风险和利率理论代写风险和利率理论代写风险和利率理论代写风险和利率理论代写风险"
+      ]
+    },
+    "en": {
+      "prompts": 100,
+      "scored": 100,
+      "confused": 0.0,
+      "examples": [
+        "\nBoston University, 10th Edition, 2007\nBrown, A. J. (2015). Insects and invertebrates. Research in the International Journal of the American Science.",
+        " to decline.\nThe winners of the Greens had a history of falling prices and the cost of their living expenses. The Greens were more likely to have a higher quality of life than the other ones. They were more likely to",
+        " a person who was burned in a fire.\n“The fire, which is the name of the fire, has to be shut down for it,” said Tomasco, a registered fire worker.\nThe law requires that a person or"
+      ]
+    }
+  },
+  "arithmetic": {
+    "add_1digit": 0.04,
+    "add_2digit": 0.02,
+    "items": 200
+  },
+  "seconds": 71.3
+}

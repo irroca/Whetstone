@@ -1,0 +1,75 @@
+{
+  "arm": "zh15_v32k",
+  "bpb": {
+    "books": {
+      "bpb": 1.522025171307788,
+      "bits_per_token": 5.586456672260007,
+      "tokens": 204621,
+      "bytes": 751043,
+      "docs": 2
+    },
+    "code": {
+      "bpb": 0.8808369940738028,
+      "bits_per_token": 2.918864060028873,
+      "tokens": 501238,
+      "bytes": 1660972,
+      "docs": 375
+    },
+    "en_web": {
+      "bpb": 1.250744060908202,
+      "bits_per_token": 5.159692725595593,
+      "tokens": 508202,
+      "bytes": 2096485,
+      "docs": 393
+    },
+    "math": {
+      "bpb": 1.1876450567456778,
+      "bits_per_token": 3.832877116905837,
+      "tokens": 477404,
+      "bytes": 1540722,
+      "docs": 320
+    },
+    "synthetic_textbook": {
+      "bpb": 0.9328666049877733,
+      "bits_per_token": 4.510922371241828,
+      "tokens": 86798,
+      "bytes": 419716,
+      "docs": 116
+    },
+    "zh_web": {
+      "bpb": 1.6652295977020328,
+      "bits_per_token": 6.540256836469576,
+      "tokens": 502157,
+      "bytes": 1972242,
+      "docs": 548
+    }
+  },
+  "language_confusion": {
+    "zh": {
+      "prompts": 100,
+      "scored": 99,
+      "confused": 0.010101010101010102,
+      "examples": [
+        "。\n“美国目前没有投资，但是我们的行动是，中国的工作，我们必须立即采取行动。”菲律宾总统府周三在联合声明中说，在菲律宾一处核武、核武、核武等军事行动中，",
+        "馬加里隊，該隊上連續四分鐘後，將所有小時日都無法再進入日本。\n日本戰場中，日本軍方軍已經撤回日本。日本軍方軍在日軍",
+        "界处。\n他当年还经常在阿拉巴马州旅游，以到如今，他习惯于斯堪的阿拉巴马州，1914年，他从1920年，从1921年"
+      ]
+    },
+    "en": {
+      "prompts": 100,
+      "scored": 100,
+      "confused": 0.0,
+      "examples": [
+        "\nBunny, 10 May 2010\nWhen we talk about the safe storage of hydrogen, we might think of the number of different types of batteries in our head.\nFuel is the most efficient and",
+        " to decline.\nThe loaring twenties were invaluable for the prospect of the British settlement.\nThe rise in the Indian trade in the United States and other countries increased the production of the Indian stock market in the late ",
+        " being a “clean” and “clean” law.\nBP doesn’t have to pay the government for that little slip-up that happened last year. The Clean Water Act imposes punitive damages for any act of being a"
+      ]
+    }
+  },
+  "arithmetic": {
+    "add_1digit": 0.05,
+    "add_2digit": 0.01,
+    "items": 200
+  },
+  "seconds": 70.2
+}

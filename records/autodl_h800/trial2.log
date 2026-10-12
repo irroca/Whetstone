@@ -1,0 +1,27 @@
+pretrain: dim=768 layers=12 heads=12 kv_heads=3 hidden=2048 vocab=32768 seq=2048 -> 99.503M params
+run: /root/autodl-tmp/results/pretrain_v2_trial/runs/pretrain_20261011-140924_373182
+Epoch[1/1] (8/151351) loss=10.5704 lr=0.0000300 global_step=1
+Epoch[1/1] (80/151351) loss=9.4564 lr=0.0003000 global_step=10
+Epoch[1/1] (160/151351) loss=7.9621 lr=0.0006000 global_step=20
+Epoch[1/1] (240/151351) loss=7.3360 lr=0.0005959 global_step=30
+Epoch[1/1] (320/151351) loss=7.1622 lr=0.0005837 global_step=40
+Epoch[1/1] (400/151351) loss=7.0264 lr=0.0005638 global_step=50
+Epoch[1/1] (480/151351) loss=6.9221 lr=0.0005368 global_step=60
+Epoch[1/1] (560/151351) loss=6.7339 lr=0.0005036 global_step=70
+Epoch[1/1] (640/151351) loss=6.5944 lr=0.0004650 global_step=80
+Epoch[1/1] (720/151351) loss=6.4369 lr=0.0004223 global_step=90
+Epoch[1/1] (800/151351) loss=6.3052 lr=0.0003769 global_step=100
+  val: loss=6.2998 ppl=544.4654 tokens=3275200 batches=50
+Epoch[1/1] (880/151351) loss=6.2529 lr=0.0003300 global_step=110
+Epoch[1/1] (960/151351) loss=6.1546 lr=0.0002831 global_step=120
+Epoch[1/1] (1040/151351) loss=6.0890 lr=0.0002377 global_step=130
+Epoch[1/1] (1120/151351) loss=6.0332 lr=0.0001950 global_step=140
+Epoch[1/1] (1200/151351) loss=5.9724 lr=0.0001564 global_step=150
+Epoch[1/1] (1280/151351) loss=5.9521 lr=0.0001232 global_step=160
+Epoch[1/1] (1360/151351) loss=5.8952 lr=0.0000962 global_step=170
+Epoch[1/1] (1440/151351) loss=5.8663 lr=0.0000763 global_step=180
+Epoch[1/1] (1520/151351) loss=5.8169 lr=0.0000641 global_step=190
+Epoch[1/1] (1600/151351) loss=5.7896 lr=0.0000600 global_step=200
+  val: loss=5.8311 ppl=340.7249 tokens=3275200 batches=50
+Training completed!
+TRIAL EXIT=0

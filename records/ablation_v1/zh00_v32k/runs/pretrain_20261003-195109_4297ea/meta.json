@@ -1,0 +1,80 @@
+{
+  "run_id": "pretrain_20261003-195109_4297ea",
+  "stage": "pretrain",
+  "started_at": "2026-10-03T19:51:09",
+  "command": "pretrain.py --data_path datasets/ablation_v1/arms/zh00_v32k/train.bin --val_data_path datasets/ablation_v1/val_v32k.bin --tokenizer_path datasets/ablation_v1/tokenizers/v32k --save_dir results/ablation_v1/zh00_v32k --max_seq_len 512 --batch_size 32 --learning_rate 0.001 --dtype bfloat16 --epochs 1 --val_every 1000 --val_batches 20 --save_step 1000 --log_step 50 --seed 1337 --dim 512 --n_layers 8 --n_heads 8 --n_kv_heads 8",
+  "args": {
+    "save_dir": "results/ablation_v1/zh00_v32k",
+    "epochs": 1,
+    "batch_size": 32,
+    "learning_rate": 0.001,
+    "device": "mps",
+    "use_wandb": false,
+    "wandb_project": "Whetstone-Pretrain",
+    "dtype": "bfloat16",
+    "num_workers": 0,
+    "accumulation_steps": 1,
+    "grad_clip": 1.0,
+    "log_step": 50,
+    "save_step": 1000,
+    "max_seq_len": 512,
+    "data_path": "datasets/ablation_v1/arms/zh00_v32k/train.bin",
+    "val_data_path": "datasets/ablation_v1/val_v32k.bin",
+    "val_every": 1000,
+    "val_batches": 20,
+    "resume_from": null,
+    "seed": 1337,
+    "tokenizer_path": "datasets/ablation_v1/tokenizers/v32k",
+    "dim": 512,
+    "n_layers": 8,
+    "n_heads": 8,
+    "n_kv_heads": 8,
+    "hidden_dim": null,
+    "multiple_of": null,
+    "norm_eps": null,
+    "rope_theta": null,
+    "dropout": null,
+    "total_steps": 18352
+  },
+  "env": {
+    "python": "3.12.13",
+    "torch": "2.14.0",
+    "platform": "macOS-26.5.2-arm64-arm-64bit",
+    "machine": "arm64",
+    "hostname": "redacted",
+    "device": "mps",
+    "accelerator": "arm"
+  },
+  "git": {
+    "commit": "eea8acb7bd68ba30208d425a15233ac40fb7f4f6",
+    "branch": "HEAD",
+    "dirty": false
+  },
+  "data": [
+    {
+      "path": "datasets/ablation_v1/arms/zh00_v32k/train.bin",
+      "bytes": 600157728,
+      "modified": "2026-10-03T19:18:37",
+      "head_sha": "5bb6eb7889b697bebdd681e92bdc2b78"
+    },
+    {
+      "path": "datasets/ablation_v1/val_v32k.bin",
+      "bytes": 5758480,
+      "modified": "2026-10-03T19:17:34",
+      "head_sha": "3a344d1a8791816e8116f4b5dc3ef26e"
+    }
+  ],
+  "extra": {},
+  "model": {
+    "dim": 512,
+    "n_layers": 8,
+    "n_heads": 8,
+    "n_kv_heads": 8,
+    "hidden_dim": 1408,
+    "vocab_size": 32768,
+    "max_seq_len": 512,
+    "dropout": 0.0,
+    "rope_theta": 1000000.0,
+    "params": 42476032
+  }
+}

@@ -1,0 +1,59 @@
+{
+  "fingerprint": {
+    "source": {
+      "name": "en_web",
+      "weight": 0.32,
+      "text_field": "text",
+      "jsonl": null,
+      "hf": {
+        "path": "HuggingFaceFW/fineweb-edu",
+        "name": "sample-10BT",
+        "split": "train",
+        "columns": [
+          "text"
+        ]
+      },
+      "filters": {
+        "min_chars": 200,
+        "max_chars": 100000,
+        "min_cjk_ratio": null,
+        "min_latin_ratio": 0.5,
+        "max_digit_ratio": 0.3,
+        "max_symbol_ratio": 0.3,
+        "max_repetition": 0.3,
+        "max_duplicate_lines": 0.3,
+        "min_mean_word_length": 3.0,
+        "max_mean_word_length": 10.0,
+        "blocklist": []
+      },
+      "cleaners": [],
+      "where": {},
+      "max_records": null
+    },
+    "target_tokens": 3200000000,
+    "tokenizer": "00853aafd17a84f5716c704484c56273"
+  },
+  "bytes": 13649199216,
+  "report": {
+    "name": "en_web",
+    "target_tokens": 3200000000,
+    "tokens": 3200000528,
+    "documents": 2952799,
+    "records_read": 3000943,
+    "fill": 1.000000165,
+    "keep_rate": 0.9839570428362018,
+    "tokens_per_doc": 1083.7176956508044,
+    "rejected": {
+      "repetitive": 9549,
+      "too_long": 2574,
+      "short_words": 62,
+      "low_latin_ratio": 50,
+      "duplicate_lines": 33,
+      "too_short": 9,
+      "high_symbol_ratio": 10,
+      "high_digit_ratio": 1
+    },
+    "exact_duplicates": 35856,
+    "exhausted": false
+  }
+}

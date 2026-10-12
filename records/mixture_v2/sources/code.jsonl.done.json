@@ -1,0 +1,58 @@
+{
+  "fingerprint": {
+    "source": {
+      "name": "code",
+      "weight": 0.229,
+      "text_field": "content",
+      "jsonl": null,
+      "hf": {
+        "path": "bigcode/starcoderdata",
+        "data_dir": "python",
+        "split": "train",
+        "columns": [
+          "content"
+        ]
+      },
+      "filters": {
+        "min_chars": 100,
+        "max_chars": 60000,
+        "min_cjk_ratio": null,
+        "min_latin_ratio": null,
+        "max_digit_ratio": 0.3,
+        "max_symbol_ratio": 0.6,
+        "max_repetition": null,
+        "max_duplicate_lines": 0.5,
+        "min_mean_word_length": null,
+        "max_mean_word_length": null,
+        "blocklist": []
+      },
+      "cleaners": [
+        "starcoder_metadata"
+      ],
+      "where": {},
+      "max_records": null
+    },
+    "target_tokens": 2290000000,
+    "tokenizer": "00853aafd17a84f5716c704484c56273"
+  },
+  "bytes": 7991303827,
+  "report": {
+    "name": "code",
+    "target_tokens": 2290000000,
+    "tokens": 2290009403,
+    "documents": 1846350,
+    "records_read": 1944661,
+    "fill": 1.0000041061135372,
+    "keep_rate": 0.9494456874488664,
+    "tokens_per_doc": 1240.2899791480488,
+    "rejected": {
+      "duplicate_lines": 19566,
+      "too_short": 65753,
+      "too_long": 9842,
+      "high_digit_ratio": 2694,
+      "high_symbol_ratio": 185
+    },
+    "exact_duplicates": 271,
+    "exhausted": false
+  }
+}
