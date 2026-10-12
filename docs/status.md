@@ -156,7 +156,7 @@ HF_HUB_OFFLINE=1 python3 -m pytest tests/ -q      # Mac 上 522 passed、1 skipp
 | [#18](https://github.com/irroca/Whetstone/pull/18) | nvidia-smi 的 100% 和 45GB 说明了什么、没说明什么；正式预训练中途检查 | 已合并（squash）|
 | [#19](https://github.com/irroca/Whetstone/pull/19) | 预训练收尾：`records/`、私有仓库里的权重和语料（`docs/artifacts.md`）、`fetch_artifacts.sh` | 已合并（squash）|
 | [#20](https://github.com/irroca/Whetstone/pull/20) | 交接文档：GitHub 上的产物也齐了 | 已合并（squash）|
-| #21 | 后训练的本地准备：repetition penalty、system prompt、评测集隔离、rollout 分桶、`eval_env.py`、4090 启动脚本 | 待合并 |
+| [#21](https://github.com/irroca/Whetstone/pull/21) | 后训练的本地准备：repetition penalty、system prompt、评测集隔离、rollout 分桶、`eval_env.py`、4090 启动脚本 | 待合并 |
 
 **教训**：stacked PR 要么严格按自下而上的顺序合，要么在合之前把上层 PR 的 base 直接改成 `main`。
 `squash` 合并会切断祖先关系，所以一旦顺序错了，后续那个 PR 的内容不会自动跟过来，
@@ -785,7 +785,7 @@ SFT / KD / DPO 的数据要基于新语料和可验证任务重做（`envs.gener
 - **repetition penalty 已修**：以前不分 logit 正负一律除以系数，负 logit 的 token 反而被抬高；现在和 HF 一样
   正值除、负值乘，单测覆盖两种符号（旧代码在负值那一例上失败）。`chat.py` 默认 1.2，probes 不开
 
-**本机准备（10-12）**，都在 PR #21：
+**本机准备（10-12）**，都在 [PR #21](https://github.com/irroca/Whetstone/pull/21)：
 
 1. **SFT / DPO 样本带上环境的 system prompt**。`generate_data` 以前只写 user / assistant 两轮，chat template
    于是补上默认的「你是 Whetstone…」；GRPO rollout 用的却是环境自己的「你是一个只会做算术的助手…」，冷启动
