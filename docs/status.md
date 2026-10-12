@@ -180,6 +180,7 @@ HF_HUB_OFFLINE=1 python3 -m pytest tests/ -q      # Mac 上 522 passed、1 skipp
 | [#20](https://github.com/irroca/Whetstone/pull/20) | 交接文档：GitHub 上的产物也齐了 | 已合并（squash）|
 | [#21](https://github.com/irroca/Whetstone/pull/21) | 后训练的本地准备：repetition penalty、system prompt、评测集隔离、rollout 分桶、`eval_env.py`、4090 启动脚本 | 已合并（squash）|
 | [#22](https://github.com/irroca/Whetstone/pull/22) | 第一轮后训练的结果和存档：记录、实验分析、`posttrain-v1` 产物组、换到新电脑的交接 | 已合并（squash）|
+| [#23](https://github.com/irroca/Whetstone/pull/23) | 可续传的 GitHub 上传脚本 `scripts/upload_github_release.sh`；记下 `posttrain-v1` 在 GitHub 上还差 10 份权重 | 待合并 |
 
 **教训**：stacked PR 要么严格按自下而上的顺序合，要么在合之前把上层 PR 的 base 直接改成 `main`。
 `squash` 合并会切断祖先关系，所以一旦顺序错了，后续那个 PR 的内容不会自动跟过来，
