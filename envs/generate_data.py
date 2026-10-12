@@ -113,6 +113,8 @@ def main() -> None:
     parser.add_argument("--ops", type=str, default="+,-")
     parser.add_argument("--min_digits", type=int, default=1)
     parser.add_argument("--max_digits", type=int, default=2)
+    parser.add_argument("--families", default="", help="pyfunc: comma-separated families to draw from; empty = all")
+    parser.add_argument("--exclude_families", default="", help="pyfunc: comma-separated families never drawn")
     parser.add_argument(
         "--exclude", nargs="*", default=[],
         help="Task JSONL files ({question, answer} rows, e.g. the eval split) whose questions must not be drawn",
@@ -126,6 +128,11 @@ def main() -> None:
             ops=tuple(op.strip() for op in args.ops.split(",") if op.strip()),
             min_digits=args.min_digits,
             max_digits=args.max_digits,
+        )
+    if args.env == "pyfunc":
+        kwargs.update(
+            families=[f for f in args.families.split(",") if f] or None,
+            exclude_families=[f for f in args.exclude_families.split(",") if f],
         )
     env = make_env(args.env, **kwargs)
     exclude = {task.question for path in args.exclude for task in load_tasks(path)}
