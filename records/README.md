@@ -1,6 +1,6 @@
 # records：重要运行的原始记录
 
-每次重要运行留下的文本记录都在这里，共 9.2 MB，`git clone` 就有，复盘不需要下载任何大文件。
+每次重要运行留下的文本记录都在这里，共 11 MB，`git clone` 就有，复盘不需要下载任何大文件。
 权重和语料在私有仓库里，每个文件的说明和取回方法见 [`docs/artifacts.md`](../docs/artifacts.md)。
 
 目录结构和 `results/` 一致，每个运行都有 `runs/<运行 ID>/{meta.json, metrics.jsonl, summary.json}`，可以直接用 `analyze_runs.py` 读：
@@ -14,8 +14,8 @@ python analyze_runs.py compare records/posttrain_v1/*_s1 --metric accuracy --spl
 python analyze_grpo.py records/posttrain_v1/grpo_s1/grpo_metrics.jsonl records/posttrain_v1/dapo_lite_s1/grpo_metrics.jsonl --window 50
 ```
 
-**脱敏**：消融（`ablation_v1/`）和 Mac 上的后训练冒烟（`posttrain_mac_smoke/`）跑在一台不便公开的电脑上，记录里的绝对路径改成了相对仓库根目录的路径，
-主机名换成了 `redacted`，其余内容原样保留；未改动的原件在私有仓库的 `ablation_v1-records.tar.gz` 和 `posttrain_v1-records.tar.gz` 里。
+**脱敏**：消融（`ablation_v1/`）、Mac 上的后训练冒烟（`posttrain_mac_smoke/`）和 `posttrain_v2/` 跑在一台不便公开的电脑上，记录里的绝对路径改成了相对仓库根目录的路径，
+主机名换成了 `redacted`，其余内容原样保留（以后的记录用 `python3 scripts/redact_records.py <目录>` 做这一步，它还会检查有没有漏网的）；未改动的原件在私有仓库的 `ablation_v1-records.tar.gz` 和 `posttrain_v1-records.tar.gz` 里。
 其他目录的记录是在 AutoDL 实例上写的，没有改动。
 
 ## pretrain_v2/：正式预训练（2026-10-11，H800 PCIe）
@@ -120,3 +120,16 @@ transformers 5.19.0、Ubuntu 22.04、RTX 4090 24GB）。AutoDL 面板的监控�
 | `grpo_smoke/` | 流程冒烟：30 步、每步 8 题 × 8 条，rollout 分桶之前，每步平均 5.6 秒 |
 | `grpo_timing_b8/` | 同样 8 × 8，分桶之后：8 步，每步平均 3.2 秒 |
 | `grpo_timing_b32/` | 每步 32 × 8 的两次：训练侧不分块的那次（`runs/*_0dd6ae`）把内存换页换满，7 步里每步 22–153 秒，中途停掉，所以没有 `summary.json`；`--micro_batch_size 32` 的那次（`runs/*_26bf7a`）4 步，每步 8.5–9.2 秒 |
+
+## posttrain_v2/：DPO-only 基线（2026-10-12，Mac，已脱敏）
+
+从 `posttrain-v1` 的 SFT 权重出发，只做 DPO，结果和分析在 `docs/experiments.md` 的 “DPO alone does not move accuracy” 一段。
+
+| 文件 | 是什么 |
+|---|---|
+| `dpo/<跑次>/` | 6 个 DPO 跑次，每个有 `train.log`、`runs/<运行 ID>/`、`dev.json`（`eval_env.py` 的打分）；其中三个（`dpo_e1_lr1e5`、`dpo_e1_lr1e6`、`dpo_onpolicy_lr1e-6`）还有 `test.json`。`dpo_e1_lr1e5` 是 lr 1e-5 跑满一个 epoch，格式被打坏；`dpo_s20_lr1e5` / `dpo_s40_lr1e5` 是同样设置只更新 20 / 40 步；`dpo_e1_lr1e6` 用手工损坏的对；`dpo_onpolicy_lr1e-6` / `dpo_onpolicy_lr5e-6` 用 on-policy 的对 |
+| `onpolicy_pairs.jsonl`、`.stats.json` | 训练用的 2022 对：`mine_pairs.py` 对 SFT 策略在 `grpo_prompts.jsonl` 的前 3000 道题上各采 8 条（温度 1.0），每个有对有错的题组取一对（对的作 chosen，错的作 rejected）。MPS 上采样不逐位可复现，重新挖出来的对会有出入，所以存了这份 |
+| `heldout_pairs.jsonl` | 500 对手工损坏的留出对：`generate_data --split preference --n 1500 --seed 77`，去掉 dev / test 的题和训练对里出现过的 prompt、再去重后取前 500 |
+| `onpolicy_heldout_pairs.jsonl`、`.stats.json` | 548 对 on-policy 的留出对：同样的挖法，题取 `grpo_prompts.jsonl` 的第 3001–3800 道，`--seed 5` |
+| `pref_accuracy.py` | 给定检查点和一份偏好对，算 DPO 自己的准确率（对 SFT 参考的隐式奖励差）和不需要参考的原始排序准确率（chosen 的序列对数概率是否更高）：`PYTHONPATH=. python3 records/posttrain_v2/pref_accuracy.py --pairs <对> <检查点>...` |
+| `pref_accuracy.json`、`pref_accuracy_onpolicy.json` | 上面的输出：各个 DPO 检查点在两份留出对上的结果（SFT 作参考行） |

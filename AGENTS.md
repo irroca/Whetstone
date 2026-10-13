@@ -400,6 +400,13 @@ rather than duplicating commands here.
   - **`eval_env.py` scores any checkpoint on a task file** the way GRPO's `eval_accuracy` does
     (greedy, same parsing), broken down by `--group_by` metadata (default `op,n_digits`). Use it
     for SFT-only / DPO-only baselines and the final test numbers.
+  - **DPO needs on-policy pairs.** `envs.generate_data --split preference` pairs a gold completion with a hand-corrupted
+    one, and the SFT policy already ranks 100% of those correctly (by 51 nats), so DPO on them either does nothing
+    (lr 1e-6) or widens margins until the format breaks (lr 1e-5: dev 0.000). `mine_pairs.py` samples the policy and pairs a
+    correct completion with a wrong one from mixed groups; it is the only pair source that gave DPO anything to learn.
+    Watch ranking accuracy, not loss. Numbers in `docs/experiments.md`, records in `records/posttrain_v2/`.
+  - **Redact records before committing runs from a machine that must not be named:** `python3 scripts/redact_records.py
+    <dir>` (hostname and absolute paths; exits 1 if any identifier is left).
   - **Training is not bitwise reproducible on MPS**: two identical SFT runs (same seed and data)
     scored 0.618 and 0.650 on the 500-item dev set. Compare GRPO variants from one SFT checkpoint
     and over several seeds; `scripts/autodl/posttrain.sh` does both.

@@ -1,0 +1,11 @@
+policy: dim=768 layers=12 heads=12 kv_heads=3 hidden=2048 vocab=32768 seq=128 -> 99.503M params
+DPO: beta=0.1 steps=127
+run: results/posttrain_v2/dpo_onpolicy_lr1e-6/runs/dpo_20261012-225723_f28417
+Epoch[1/1] (1/127) dpo_loss=0.6931 lr=0.0000001 global_step=1
+Epoch[1/1] (25/127) dpo_loss=0.6904 lr=0.0000010 global_step=25
+Epoch[1/1] (50/127) dpo_loss=0.6799 lr=0.0000008 global_step=50
+Epoch[1/1] (75/127) dpo_loss=0.6744 lr=0.0000005 global_step=75
+Epoch[1/1] (100/127) dpo_loss=0.6713 lr=0.0000002 global_step=100
+Epoch[1/1] (125/127) dpo_loss=0.6652 lr=0.0000001 global_step=125
+Epoch[1/1] (127/127) dpo_loss=0.6790 lr=0.0000001 global_step=127
+Saved results/posttrain_v2/dpo_onpolicy_lr1e-6/dpo_final.pth; run -> results/posttrain_v2/dpo_onpolicy_lr1e-6/runs/dpo_20261012-225723_f28417

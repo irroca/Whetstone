@@ -1,0 +1,18 @@
+policy: dim=768 layers=12 heads=12 kv_heads=3 hidden=2048 vocab=32768 seq=128 -> 99.503M params
+DPO: beta=0.1 steps=125
+run: results/posttrain_v2/dpo_e1_lr1e6/runs/dpo_20261012-223757_dad94f
+Epoch[1/1] (1/125) dpo_loss=0.6931 lr=0.0000001 global_step=1
+Epoch[1/1] (10/125) dpo_loss=0.6242 lr=0.0000008 global_step=10
+Epoch[1/1] (20/125) dpo_loss=0.4124 lr=0.0000010 global_step=20
+Epoch[1/1] (30/125) dpo_loss=0.2632 lr=0.0000009 global_step=30
+Epoch[1/1] (40/125) dpo_loss=0.2126 lr=0.0000009 global_step=40
+Epoch[1/1] (50/125) dpo_loss=0.1565 lr=0.0000008 global_step=50
+Epoch[1/1] (60/125) dpo_loss=0.1613 lr=0.0000007 global_step=60
+Epoch[1/1] (70/125) dpo_loss=0.1673 lr=0.0000005 global_step=70
+Epoch[1/1] (80/125) dpo_loss=0.1570 lr=0.0000004 global_step=80
+Epoch[1/1] (90/125) dpo_loss=0.1235 lr=0.0000003 global_step=90
+Epoch[1/1] (100/125) dpo_loss=0.1201 lr=0.0000002 global_step=100
+Epoch[1/1] (110/125) dpo_loss=0.1449 lr=0.0000001 global_step=110
+Epoch[1/1] (120/125) dpo_loss=0.1394 lr=0.0000001 global_step=120
+Epoch[1/1] (125/125) dpo_loss=0.1309 lr=0.0000001 global_step=125
+Saved results/posttrain_v2/dpo_e1_lr1e6/dpo_final.pth; run -> results/posttrain_v2/dpo_e1_lr1e6/runs/dpo_20261012-223757_dad94f

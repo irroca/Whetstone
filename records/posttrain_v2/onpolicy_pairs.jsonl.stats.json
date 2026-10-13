@@ -1,0 +1,13 @@
+{
+  "prompts": 3000,
+  "samples": 24000,
+  "sample_accuracy": 0.5821666666666667,
+  "mixed_groups": 2022,
+  "mixed_group_frac": 0.674,
+  "pairs": 2022,
+  "policy_path": "results/posttrain_v1/sft/sft_final.pth",
+  "data_path": "datasets/arith_v1/grpo_prompts.jsonl",
+  "group_size": 8,
+  "temperature": 1.0,
+  "seed": 1
+}

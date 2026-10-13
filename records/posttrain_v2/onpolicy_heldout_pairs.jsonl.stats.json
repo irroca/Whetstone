@@ -1,0 +1,13 @@
+{
+  "prompts": 800,
+  "samples": 6400,
+  "sample_accuracy": 0.5884375,
+  "mixed_groups": 548,
+  "mixed_group_frac": 0.685,
+  "pairs": 548,
+  "policy_path": "results/posttrain_v1/sft/sft_final.pth",
+  "data_path": "datasets/arith_v1/onpolicy_heldout_prompts.jsonl",
+  "group_size": 8,
+  "temperature": 1.0,
+  "seed": 5
+}

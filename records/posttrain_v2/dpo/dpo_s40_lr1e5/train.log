@@ -1,0 +1,9 @@
+policy: dim=768 layers=12 heads=12 kv_heads=3 hidden=2048 vocab=32768 seq=128 -> 99.503M params
+DPO: beta=0.1 steps=40
+run: results/posttrain_v2/dpo_s40_lr1e5/runs/dpo_20261012-230408_e0e9f4
+Epoch[1/1] (1/125) dpo_loss=0.6931 lr=0.0000025 global_step=1
+Epoch[1/1] (10/125) dpo_loss=0.2596 lr=0.0000094 global_step=10
+Epoch[1/1] (20/125) dpo_loss=0.1401 lr=0.0000063 global_step=20
+Epoch[1/1] (30/125) dpo_loss=0.0851 lr=0.0000026 global_step=30
+Epoch[1/1] (40/125) dpo_loss=0.0750 lr=0.0000010 global_step=40
+Saved results/posttrain_v2/dpo_s40_lr1e5/dpo_final.pth; run -> results/posttrain_v2/dpo_s40_lr1e5/runs/dpo_20261012-230408_e0e9f4

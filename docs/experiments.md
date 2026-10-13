@@ -185,7 +185,8 @@ the 13 checkpoints in the `posttrain-v1` artifact group (`docs/artifacts.md`).
 | Run | Change | test acc, seeds 1 / 2 / 3 | test mean | dev mean | format | hack (test) | silent, steps 301–500 | entropy, steps 301–500 | minutes / run |
 |-----|--------|------|------|------|------|------|------|------|------|
 | SFT only | baseline, no RL | 0.628 | — | 0.636 | 1.000 | 0.372 | — | — | 13 s |
-| DPO only | offline pairs from the same env | not run yet | | | | | — | | |
+| DPO only | 2000 hand-corrupted pairs (`envs.generate_data --split preference`), lr 1e-6 | 0.626 (1 seed) | — | 0.634 | 0.998 | 0.372 | — | — | 2 |
+| DPO only, on-policy | 2022 pairs mined from the SFT policy (`mine_pairs.py`), lr 1e-6 | 0.576 (1 seed) | — | 0.648 | 1.000 | 0.424 | — | — | 2 |
 | GRPO | default (`seq_mean`, std-norm, no KL) | 0.954 / 0.944 / 0.944 | 0.947 | 0.973 | 1.000 | 0.053 | 0.90 | 0.0040 | 19.6 |
 | GRPO + KL | `--kl_coeff 0.02` | 0.946 / 0.938 / 0.942 | 0.942 | 0.972 | 1.000 | 0.058 | 0.89 | 0.0033 | 19.8 |
 | Dr. GRPO | `--normalize_advantage_std False --aggregation dr_grpo` | 0.948 / 0.954 / 0.962 | **0.955** | 0.969 | 1.000 | 0.045 | 0.91 | 0.0031 | 18.8 |
@@ -287,6 +288,35 @@ the GPU. The memory PyTorch's caching allocator reserved levelled off within eac
 minutes, at 15.2–22.9 GiB of the 24 GiB depending on the run, and no run ran out.
 `records/posttrain_v1/summarize.py` recomputes these and every other number in this section from
 the committed records.
+
+**DPO alone does not move accuracy, and the reason is in the pairs.** Two offline DPO runs from the
+SFT policy (one epoch, batch 16, beta 0.1, one seed each; `records/posttrain_v2/`), scored like the
+GRPO runs, with the setting chosen on dev and test read once:
+
+| Pairs | lr | dev | test | what happened |
+|-------|----|-----|------|---------------|
+| hand-corrupted | 1e-5 | 0.000 | 0.002 | the loss reaches 0 by step 60 and the policy stops closing its tags: it emits `<answer151>151</answer1EDIT>…` until the token limit (88.6 tokens on average) |
+| hand-corrupted | 1e-5, stopped at 20 / 40 updates | 0.610 / 0.518 | not read | the 40-update policy writes 60 tokens instead of 36 |
+| hand-corrupted | 1e-6 | 0.634 | 0.626 | indistinguishable from SFT (0.636 / 0.628) |
+| on-policy | 5e-6 | 0.546 | not read | worse than SFT |
+| on-policy | 1e-6 | **0.648** | **0.576** | dev is within a standard error of SFT (about 2 points), test is 5 points under it |
+
+The hand-corrupted pairs (the gold completion against an off-by-one or off-by-ten answer, a
+missing-tag answer, or an empty `<think>`) are ranked correctly by the SFT policy itself: on 500
+held-out pairs the chosen completion has the higher sequence log-probability in 100% of them, by 51
+nats on average, so there is no ordering left for DPO to teach and it only widens a margin that was
+already decisive (to 92 nats at lr 1e-6, 193 at lr 1e-5, where it also destroys the format). The
+on-policy pairs put what the policy actually gets wrong on the rejected side: sampling the SFT policy
+8 times on 3000 prompts, 58% of the samples are correct, 67% of the prompts have both outcomes, and one
+pair per such prompt gives 2022 pairs, all of them wrong arithmetic in the right format. Here the SFT
+policy ranks only 82% of 548 held-out on-policy pairs correctly. The 1e-6 model reaches 85%, the 5e-6
+model's DPO accuracy (the margin against the SFT reference) rises to 73%, and neither moves greedy
+accuracy: ranking two sampled completions of one prompt is a smaller thing than producing the right
+one first. DPO's offline signal is also a single pass over pairs drawn from the SFT policy, while GRPO
+resamples from the current policy every step and was 0.948 on the same test set. Two caveats: one seed
+per setting, so the 1–2 point differences among the lr 1e-6 runs and SFT are not resolved; and dev
+and test disagree on the on-policy run (+1.2 against −5.2 points), which is what selecting on a
+500-item dev set costs.
 
 ## Mac smoke on the 100M model (dev set only)
 
