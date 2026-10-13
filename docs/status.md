@@ -34,7 +34,10 @@
 `posttrain-v1` 组，记录在 `records/posttrain_v1/`，分析在 `docs/experiments.md`。
 DPO-only 基线也做了：手工损坏的偏好对对 SFT 策略太容易（它已经把 100% 的对排对），DPO 学不到东西；用策略自己采样的错误答案做
 on-policy 对，排序准确率从 82% 升到 85%，贪心准确率不动（test 0.576，SFT 是 0.628）。
-**下一步**（步骤 7 末尾）：换更难的题，让九成题组零方差的局面变成有用的信号；代码环境（§5 阶段 B）。
+更难的题也做了（10-13，Mac，每个变体一个种子）：三位数加减法上 SFT 起点 test 0.290，GRPO 300 步到 0.54–0.59；Dr. GRPO 和
+DAPO-lite 比 GRPO 高约 4 点，但 GRPO 自己两个种子就差 3.2 点（0.544 / 0.512），所以变体排序还不能下结论。代码环境
+`pyfunc` 写好了，冷启动的发现是 SFT 把每个模板族背成一个模板；GRPO 那一步的结果见 `docs/experiments.md` 的 Harder tasks 一节。
+**下一步**（步骤 7 末尾）：补种子，把变体之间的差距和种子噪声分开；代码环境的 RL 结果；KD。
 
 基座模型的起点：4-shot 一位数加法 22%、两位数 2%。目标能力是两位数算术 + 简单 Python，算术这一半
 这一轮已经做到。除了正式预训练和这一轮后训练的结果，仓库里其余数字都是 29M 玩具规模的**实现验证**，
@@ -183,7 +186,10 @@ HF_HUB_OFFLINE=1 python3 -m pytest tests/ -q      # Mac 上 522 passed、1 skipp
 | [#21](https://github.com/irroca/Whetstone/pull/21) | 后训练的本地准备：repetition penalty、system prompt、评测集隔离、rollout 分桶、`eval_env.py`、4090 启动脚本 | 已合并（squash）|
 | [#22](https://github.com/irroca/Whetstone/pull/22) | 第一轮后训练的结果和存档：记录、实验分析、`posttrain-v1` 产物组、换到新电脑的交接 | 已合并（squash）|
 | [#23](https://github.com/irroca/Whetstone/pull/23) | 可续传的 GitHub 上传脚本 `scripts/upload_github_release.sh`；记下 `posttrain-v1` 在 GitHub 上还差 10 份权重 | 已合并（squash）|
-| [#24](https://github.com/irroca/Whetstone/pull/24) | `posttrain-v1` 的 GitHub Release 已传完并核对；#23 标成已合并 | 待合并 |
+| [#24](https://github.com/irroca/Whetstone/pull/24) | `posttrain-v1` 的 GitHub Release 已传完并核对；#23 标成已合并 | 已合并（squash）|
+| [#25](https://github.com/irroca/Whetstone/pull/25) | DPO-only 基线：`mine_pairs.py`、`scripts/redact_records.py`、`records/posttrain_v2/` | 已合并（squash）|
+| [#26](https://github.com/irroca/Whetstone/pull/26) | `eval_env.py` 逐题输出、`paired.py`、`entropy_all`；三位数加减法的 GRPO 网格和 `records/posttrain_v3/` | 已合并（squash）|
+| [#27](https://github.com/irroca/Whetstone/pull/27) | 代码环境 `envs/pyfunc.py` + 沙箱 `envs/sandbox.py`、`TaskEnv.score_many` | 已合并（squash）|
 
 **教训**：stacked PR 要么严格按自下而上的顺序合，要么在合之前把上层 PR 的 base 直接改成 `main`。
 `squash` 合并会切断祖先关系，所以一旦顺序错了，后续那个 PR 的内容不会自动跟过来，
@@ -891,16 +897,19 @@ python3 pretrain.py --dim 768 --n_layers 12 --n_heads 12 --n_kv_heads 3 \
    （dev 0.000），lr 1e-6 与 SFT 无差别（test 0.626）；原因是 SFT 策略已经把留出的 500 对全部排对（对数概率差 51 nats），
    DPO 只是拉大一个已经够大的差。换成 `mine_pairs.py` 从 SFT 策略自己的采样里挖的 2022 对（对的作 chosen、错的作 rejected），
    lr 1e-6 的 dev 0.648、test 0.576：排序准确率 0.821 → 0.849，生成准确率没有跟着动。分析在 `docs/experiments.md`
-2. **换更难的题**：后期九成题组零方差，信号所剩无几。`generate_data --max_digits 3` 环境已支持；也可以按策略
-   自己的解题率选题；乘法要在 `envs/arithmetic.py` 里加运算符。造新数据时给每种题型的 held-out 份额设上限
-   （这一轮 dev / test 拿走了 155 道一位数题里的 134 道），或者把一位数单独报成泛化指标
-3. **让变体之间分得出高低**：`--ppo_epochs 2` 以上（截断才会起作用）、回答长度有变化的任务（Dr. GRPO 和
-   DAPO 针对的长度偏差才存在），并且在过滤之前记录整批的熵
-4. **`eval_env.py` 输出逐题对错**（现在只留 5 个例子），变体之间就能做配对检验（McNemar），比现在两个独立的
-   500 题比例灵敏得多
+2. ~~**换更难的题**~~ ✅ 已做（10-13）：`MAX_DIGITS=3 bash scripts/arith_data.sh datasets/arith_v2`，SFT 起点 test 0.290（三位数
+   0.038），开局 72% 的题组零方差（第一轮末尾是 90%）。GRPO 300 步到 0.54–0.59，曲线还在升。还没做：按策略自己的解题率选题、乘法
+3. **让变体之间分得出高低**：做了一半。`--ppo_epochs 2` 让截断第一次触发（`clip_frac` 0.1%–1%），但准确率上没有明显收益；
+   过滤前整批的熵现在记成 `entropy_all`（DAPO-lite 的两种熵差不超过 0.003）；回答长度有变化的任务还没有。**缺的是种子**：
+   `dr_grpo`、`dapo_lite` 各补 2 个种子、`grpo` 补第 3 个，跑 600 步（曲线还在升），再用 `paired.py` 和 Welch t 一起看。
+   Mac 上每个 300 步的跑次 45–70 分钟；长时间连跑会把内存换页换满（25GB swap，一步几分钟），一次排两三个跑次、中间留空
+4. ~~**`eval_env.py` 输出逐题对错**~~ ✅ 已做：结果 JSON 有 `per_item`，`python3 paired.py A.json B.json` 做配对 McNemar 精确检验
 5. **KD**：老师用 dev 上最好的 `dapo_lite_s1`，学生用同词表的小模型（`ablation-v1` 里词表 32k 的 42.5M
    消融模型），看蒸馏能把多少准确率带到小模型上
-6. **代码环境**（§5 阶段 B）
+6. **代码环境**（§5 阶段 B）：环境和沙箱已合并（#27）。冷启动要小心：SFT 在所有族上训到 loss 0 时，见过的族 1.000、没见过的
+   0.000，RL 没有可改善的；只在一部分族上 SFT，其余族是 0%，GRPO 的 `grad_norm` 恰好为 0；每个其余族给 3 条示例才有信号
+   （采样准确率约 0.3）。`scripts/mac_pyfunc_v2.sh` 跑这个设置（SFT 12 族 + 10 族各 3 条，GRPO 在那 10 族上，4 个族谁都没见过
+   用来测迁移）。结果和是否完成见 `docs/experiments.md`
 
 ---
 
@@ -920,7 +929,7 @@ Fellows 那类岗位明确在做的「creating RL environments」。
 要点：沙箱执行（子进程 + 超时 + 资源限制）、测试用例来源（`PRIME-RL/Eurus-2-RL-Data` 已经带
 测试用例，`fetch_evals` 里已注册）、部分通过的奖励整形（pass@k 还是通过率）。
 
-**环境和沙箱已写好**（`envs/pyfunc.py`、`envs/sandbox.py`，未训练过）：26 个模板族、隐藏用例由参考解生成、
+**环境和沙箱已写好并合并**（`envs/pyfunc.py`、`envs/sandbox.py`；训练见 §4 步骤 7 的下一步第 6 条）：26 个模板族、隐藏用例由参考解生成、
 全过才算对、部分得分默认关；沙箱的限制和它**不是**安全边界见 `envs/sandbox.py` 的文档。还没做的是用它训练：
 `generate_data --env pyfunc` 造 SFT 数据，SFT 之后看 GRPO 在见过的和没见过的模板族上各提升多少。100M 模型离 HumanEval
 很远，所以环境是模板化的，HumanEval/MBPP 仍然只用来去污染。
