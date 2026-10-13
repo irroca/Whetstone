@@ -525,12 +525,45 @@ module docstring; the environment and sandbox are in their own PR). Three result
    with silent fraction 0.53–0.75. The 12 SFT-only families stay at 1.000 and the 4 untrained families are at
    0.023 (one family, `is_prime`, at 0.14).
 
-The GRPO run on that policy (`scripts/mac_pyfunc_v2.sh`) **was not completed**: the Mac ran out of memory (25 of
-26.6 GB of swap in use), steps took minutes and I stopped it, so there is no number for what RL adds on
-the 10 families or for transfer to the 4 untrained ones. Two things for whoever reruns it: all-or-nothing
-per-family behaviour means test accuracy on the RL families will move in steps of whole families, so report
-it per family (`eval_env.py --group_by family` and `summarize.py` do), and the SFT stage should stop earlier
-or mix in more families so that SFT does not collapse each family to one template.
+### GRPO on the code environment: it fixes whole families, and it can forget the ones it was not shown
+
+`scripts/mac_pyfunc_v2.sh`, one seed each, from the SFT policy above (family set A = 12 SFT-only families,
+B = 10 families with 3 SFT examples that RL trains on, C = 4 families no stage sees), 200 steps, 32 prompts × 8
+samples, `--learning_rate 1e-5`, `--max_new_tokens 96`; 300 test items per set, greedy
+(`records/posttrain_v3/pyfunc/`, recomputed by `summarize.py`). An earlier attempt had been stopped for memory
+swap; this one ran to the end (1–1.5 h per run).
+
+| | dev B | test B | test A | test C | A format |
+|---|---|---|---|---|---|
+| SFT (3 examples per B family) | 0.397 | 0.410 | 1.000 | 0.023 | 1.000 |
+| GRPO | 0.737 | **0.743** | 0.850 | 0.020 | 0.973 |
+| DAPO-lite | 0.697 | 0.703 | 0.980 | 0.023 | 1.000 |
+
+1. **RL does move a code task, and it does it one family at a time.** Paired against SFT on test B, GRPO gains
+   100 items and loses none, DAPO-lite gains 88 and loses none (p < 1e-26 for both). Per family, three
+   families go from 0.00 to 1.00 under both variants (`long_words`, `rotate_left`, `title_case`), `every_kth`
+   from 0.00 to 0.40 under GRPO only, and two stay at 0: `prefix_sums` (0.00) and `has_duplicate` (0.04). The ones that
+   never move are the families where no sample is ever correct, so the group reward is flat: zero reward is
+   absorbing here too. Sampled training accuracy over steps 1–50 / 151–200 went 0.590 → 0.753 (GRPO) and
+   0.571 → 0.729 (DAPO-lite).
+2. **No transfer to families nothing trained on.** Test C stays at 0.020 / 0.023 (SFT 0.023, paired: +6 −7 and
+   +7 −7); `fib`, `gcd` and `second_largest` are 0.00 throughout, `is_prime` 0.12–0.14.
+3. **GRPO forgot some of the families that only SFT had seen.** Test A fell from 1.000 to 0.850 (−45 items, p 6e-14,
+   and format 0.973): `count_greater` and `count_vowels` went to 0.00. DAPO-lite lost 6 (`repeat_join` 0.78). The A
+   families are not in the RL prompts, so nothing in the loss anchors them. The runs show it happens and which
+   families it hit; they do not show why GRPO lost more than DAPO-lite, and with one seed each I would not
+   claim it does.
+4. **DAPO-lite stopped updating almost at once.** Its silent-group fraction went 0.83 → 0.98 → 0.99 over the
+   windows, so the filter left no group on most steps (`grad_norm` exactly 0), and its dev accuracy on 150 items
+   was 0.373 at the start, 0.687 at step 25 (both variants), then 0.693 at every evaluation from step 50 to 200. GRPO's
+   silent fraction was just as high (0.82 → 0.99) and it too sat at 0.687–0.693 until step 100, then one more family
+   flipped and it ended at 0.747 (steps 125–200). The filter did what it is meant to; on a pool where 10
+   families are solved or hopeless and few are in between, there is simply little to train on.
+
+Limits: one seed per variant, 200 steps, MPS (not reproducible bit for bit), and 26 templated families, so this
+says what RL does to a policy whose SFT left some templates right and some wrong, not that it learned to program.
+If it is rerun, mix some set-A prompts into the RL pool (or add a small KL term) to see whether the forgetting
+goes away, and give the SFT more than 3 examples on the B families that never move.
 
 ### What this changes in the plan
 

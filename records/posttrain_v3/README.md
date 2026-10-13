@@ -10,7 +10,8 @@
 | `arith/<变体>_s<种子>/` | `scripts/mac_posttrain_v3.sh` 的 GRPO 跑次（5 个变体种子 1，`grpo` 另有种子 2；`dapo_lite` 种子 2 跑到第 60 步因内存换页停掉，没有记录）（300 步，lr 2e-5，32 题 × 8 条）：`dev.json`、`test.json`、`grpo_metrics.jsonl`（含新的 `entropy_all`）、`runs/` |
 | `pyfunc/sft_all_families/` | 在 22 个模板族上 SFT：见过的族 1.000，没见过的 0.000 |
 | `pyfunc/sft_A_only.train.log` | 只在 12 个族上 SFT 的训练日志（loss 0.0000）；它在另外 10 个族上 0.000 的打分只在对话里看过，没存文件 |
-| `pyfunc/sft_ab30/` | 12 个族 + 另外 10 个族各 3 条的 SFT：`dev_B` / `test_B` / `test_A` / `test_C` 的打分（逐族、逐题）。**没有 GRPO 跑次**：那一次因为内存换页停掉了 |
+| `pyfunc/sft_ab30/` | 12 个族 + 另外 10 个族各 3 条的 SFT：`dev_B` / `test_B` / `test_A` / `test_C` 的打分（逐族、逐题）。GRPO 跑次见下面两行 |
+| `pyfunc/grpo_s1/`、`pyfunc/dapo_lite_s1/` | 从 `sft_ab30` 出发的 GRPO / DAPO-lite（种子 1，200 步，`scripts/mac_pyfunc_v2.sh`，第一次因内存换页停掉后重跑完成）：`dev_B` / `test_B` / `test_A` / `test_C` 的逐族逐题打分、`grpo_metrics.jsonl`、`runs/` |
 | `summarize.py` | 重算脚本 |
 
 数据用 `MAX_DIGITS=3 bash scripts/arith_data.sh datasets/arith_v2`（算术）和 `scripts/mac_pyfunc_v2.sh`（代码，依赖 `pyfunc-env`
