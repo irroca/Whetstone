@@ -455,11 +455,15 @@ GRPO from that policy, 300 steps, 32 prompts × 8 samples, `--learning_rate 2e-5
    and the gain is where the policy was weak: 3d went from 0.04 to 0.27–0.38. Training-sample accuracy was still
    rising at the end in all five runs (plain GRPO: 0.429 over steps 101–200, 0.532 over 201–300), while the
    dev curve was slowing (0.532 at step 250, 0.540 at 300), so these are not clearly converged numbers.
-2. **Dr. GRPO and DAPO-lite are ahead of plain GRPO by about 4 points on test, and equal to each other.**
-   Paired on the 500 test items, Dr. GRPO vs GRPO is 39 vs 17 (p < 0.01) and DAPO-lite vs GRPO 37 vs 16
-   (p = 0.01); Dr. GRPO vs DAPO-lite is 16 vs 17. **This p-value counts items, not runs**: two runs of the
-   same variant differ by seed and MPS noise as well, which one run cannot show. The second seed of
-   `grpo` and `dapo_lite` that was meant to put a number on that did not finish before this was written.
+2. **Dr. GRPO and DAPO-lite are ahead of plain GRPO by about 4 points on test, and equal to each other, but the
+   one repeated run says that is about the size of the seed noise.** Paired on the 500 test items,
+   Dr. GRPO vs GRPO is 39 vs 17 (p < 0.01) and DAPO-lite vs GRPO 37 vs 16 (p = 0.01); Dr. GRPO vs DAPO-lite is
+   16 vs 17. But those p-values count items, not runs, and the only variant run twice, plain GRPO, scored
+   **0.544 (seed 1) and 0.512 (seed 2)**: 3.2 points between two seeds of the *same* variant, with 3d at 0.334
+   and 0.247. Seed 2 of GRPO is below every seed-1 variant (DAPO-lite vs it: 52 vs 15), so the order "GRPO <
+   Dr. GRPO ≈ DAPO-lite" is consistent with both GRPO seeds, but one seed of each of the other variants cannot
+   separate a 4-point gain from a 3-point seed effect. The second DAPO-lite seed was started and stopped at
+   step 60 (the Mac was swapping), so there is no DAPO-lite pair.
 3. **`--ppo_epochs 2` gave a different profile, not a better one.** `grpo_p2` is best on 1d and 2d (0.920,
    0.902) and worst on 3d (0.272); paired with `grpo` it is a tie (35 vs 36). With a second pass the
    ratio leaves 1 and **clipping finally fires**: `clip_frac` is 0.001–0.002 for GRPO and 0.003–0.010 for
@@ -501,6 +505,8 @@ or mix in more families so that SFT does not collapse each family to one templat
 ### What this changes in the plan
 
 The step 3 question from the first round ("can the variants be separated?") now has a partial answer: on
-a task where the SFT policy is weak, the zero-variance-aware variants lead by 4 points and are 30% faster,
+a task where the SFT policy is weak, the zero-variance-aware variants lead by about 4 points (the size of one repeated
+seed's spread) and DAPO-lite is 30% faster,
 and `--ppo_epochs 2` exercises the clip but does not obviously help. The honest next experiment is two more
-seeds of `grpo`, `dr_grpo` and `dapo_lite` at 600 steps, since the curves are still rising.
+seeds of `dr_grpo` and `dapo_lite` (and a third of `grpo`) at 600 steps: the curves are still rising and one repeat already
+shows 3 points of seed spread.
