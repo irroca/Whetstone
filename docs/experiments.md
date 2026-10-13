@@ -540,3 +540,50 @@ seed's spread) and DAPO-lite is 30% faster,
 and `--ppo_epochs 2` exercises the clip but does not obviously help. The honest next experiment is two more
 seeds of `dr_grpo` and `dapo_lite` (and a third of `grpo`) at 600 steps: the curves are still rising and one repeat already
 shows 3 points of seed spread.
+
+## Distillation: the 100M RL policy as teacher for a 42.5M student, against RL on the student
+
+Mac (MPS, bf16), `scripts/mac_kd_v1.sh` and `scripts/mac_student_rl.sh`; records in `records/kd_v1/`, recomputed by
+`records/kd_v1/summarize.py`. Teacher: `posttrain_v1/dapo_lite_s1` (test 0.950 on `arith_v1`). Student: the data
+ablation's `zh30_v32k` (dim 512, 8 layers, 42.5M parameters, same 32k vocabulary, pretrained on 0.3B tokens, no
+arithmetic SFT). All arms train on the same 4000-row `arith_v1/sft.jsonl` for 3 epochs (375 updates, batch 32, lr 1e-4),
+three seeds each, and are scored greedy on the 500-item dev and test sets like every other run.
+
+| Student trained with | dev mean | test mean | test, seeds 1 / 2 / 3 |
+|---|---|---|---|
+| plain SFT (cross-entropy) | 0.492 | **0.475** | 0.492 / 0.490 / 0.442 |
+| KD, 0.5 CE + 0.5 KL, T = 1 | 0.469 | 0.445 | 0.462 / 0.450 / 0.424 |
+| KD, KL only, T = 1 | 0.473 | 0.451 | 0.456 / 0.462 / 0.434 |
+| KD, 0.5 CE + 0.5 KL, T = 2 | 0.414 | 0.388 | 0.368 / 0.394 / 0.402 |
+| KD, KL only, T = 2 | 0.417 | 0.384 | 0.354 / 0.410 / 0.388 |
+
+1. **Logit distillation from this teacher did not beat SFT on the gold completions.** At T = 2 it is 8–9 points
+   worse, more than the 1.5–2.8 point seed standard deviation; at T = 1 it is 2.4–3.0 points worse, which three seeds
+   cannot separate from SFT. Format stays at 1.000 throughout.
+2. **Why, as far as I can tell.** The RL policy is nearly deterministic (token entropy about 0.003), so on a gold prefix its
+   distribution is close to one-hot on the gold token and carries little the cross-entropy does not already say.
+   Temperature 2 then flattens it over the 32k vocabulary, and the student is asked to reproduce that spread; the
+   T = 1 arms losing less fits this. I did not test the mechanism (e.g. by measuring how much teacher mass sits outside
+   the gold token, or by distilling on prompts the student fails), so read it as a hypothesis.
+3. **RL on the student does help.** GRPO from `sft_s1` (test 0.492, dev 0.508), 300 steps, lr 2e-5, 32 prompts × 8,
+   one seed each:
+
+   | | dev | test | paired vs `sft_s1` on test | 1d + | 2d + | 1d − | 2d − (test) |
+   |---|---|---|---|---|---|---|---|
+   | SFT (`sft_s1`) | 0.508 | 0.492 | | 0.27 | 0.55 | 0.39 | 0.51 |
+   | GRPO | 0.534 | 0.538 | +57 −34, p 0.021 | 0.33 | 0.63 | 0.39 | 0.53 |
+   | DAPO-lite | 0.556 | **0.556** | +64 −32, p 0.0014 | 0.35 | 0.65 | 0.41 | 0.54 |
+
+   Dev dipped first (DAPO-lite 0.468 at step 50, GRPO 0.452) and then climbed to 0.566 / 0.538 by steps 275 / 250–300; it
+   was still rising at step 300, so these are not converged. The silent-group fraction stays near 0.27 (the 100M model's
+   was 0.9 at the end of its run), so a student this weak still has plenty of signal. Paired p-values count items, not
+   seeds, and there is one seed per variant (see the seed-noise warning in the harder-tasks section), so the DAPO-lite
+   over GRPO gap (2 points) means nothing yet; the gap over SFT is the result.
+4. **Net:** on this task and budget, RL moved the small student by +4.6 to +6.4 test points where logit KD moved it by
+   −3 to −9, and the student is still far from the teacher's 0.950. The comparison is not budget-matched (300 GRPO steps are
+   about 77k sampled completions; KD used the 4000 gold rows), and the student's own ceiling is unknown.
+
+Next if this is pursued: more RL steps (and seeds) on the student; distilling on the student's own samples or on the
+teacher's sampled completions (sequence-level KD) rather than on gold prefixes; and the same KD on a student with more
+pretraining than 0.3B tokens, since a 42.5M model that has seen little text may be limited by that rather than by the
+teacher signal.
