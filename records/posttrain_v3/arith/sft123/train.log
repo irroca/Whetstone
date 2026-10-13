@@ -1,0 +1,18 @@
+Loading pretrained weights from results/pretrain_v2/pretrain_final.pth
+sft: dim=768 layers=12 heads=12 kv_heads=3 hidden=2048 vocab=32768 seq=192 -> 99.503M params
+run: results/posttrain_v3/sft123/runs/sft_20261012-232052_895b98
+Epoch[1/1] (1/125) loss=2.7308 lr=0.0000083 global_step=1
+Epoch[1/1] (10/125) loss=0.8569 lr=0.0000833 global_step=10
+Epoch[1/1] (20/125) loss=0.2089 lr=0.0000989 global_step=20
+Epoch[1/1] (30/125) loss=0.1471 lr=0.0000945 global_step=30
+Epoch[1/1] (40/125) loss=0.1246 lr=0.0000870 global_step=40
+Epoch[1/1] (50/125) loss=0.1018 lr=0.0000771 global_step=50
+Epoch[1/1] (60/125) loss=0.0795 lr=0.0000655 global_step=60
+Epoch[1/1] (70/125) loss=0.0794 lr=0.0000531 global_step=70
+Epoch[1/1] (80/125) loss=0.0625 lr=0.0000409 global_step=80
+Epoch[1/1] (90/125) loss=0.0557 lr=0.0000297 global_step=90
+Epoch[1/1] (100/125) loss=0.0461 lr=0.0000204 global_step=100
+Epoch[1/1] (110/125) loss=0.0432 lr=0.0000139 global_step=110
+Epoch[1/1] (120/125) loss=0.0397 lr=0.0000104 global_step=120
+Epoch[1/1] (125/125) loss=0.0357 lr=0.0000100 global_step=125
+SFT Training completed!

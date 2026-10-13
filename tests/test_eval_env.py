@@ -51,6 +51,9 @@ def test_evaluate_tasks_breaks_accuracy_down_by_task_metadata():
     assert result["items"] == len(tasks)
     assert result["accuracy"] == sums / len(tasks)
     assert result["format_rate"] == 1.0
+    # per-item rows follow the task order even though rollouts are bucketed by prompt length
+    assert [row["question"] for row in result["per_item"]] == [t.question for t in tasks]
+    assert [row["correct"] for row in result["per_item"]] == [t.meta["op"] == "+" for t in tasks]
     assert result["by_group"] == {
         "op=+": {"items": sums, "accuracy": 1.0},
         "op=-": {"items": len(tasks) - sums, "accuracy": 0.0},
@@ -75,4 +78,5 @@ def test_the_cli_scores_a_checkpoint_on_a_task_file(tmp_path):
     result = json.loads(out.read_text("utf-8"))
     assert result["items"] == 5
     assert sum(row["items"] for row in result["by_group"].values()) == 5
-    assert {"accuracy", "format_rate", "hack_rate", "examples", "seconds"} <= set(result)
+    assert {"accuracy", "format_rate", "hack_rate", "examples", "per_item", "seconds"} <= set(result)
+    assert len(result["per_item"]) == 5

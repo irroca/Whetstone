@@ -22,7 +22,7 @@ from typing import Sequence
 
 def evaluate_tasks(model, tokenizer, env, tasks, *, max_new_tokens: int, device: str,
                    group_by: Sequence[str] = ()) -> dict:
-    """Greedy rollout per task: GRPO's eval statistics, per-group accuracy and a few examples."""
+    """Greedy rollout per task: GRPO's eval statistics, per-group accuracy, per-item outcomes and a few examples."""
     from rollout import rollout_stats, run_rollouts
 
     rollouts = run_rollouts(
@@ -40,6 +40,13 @@ def evaluate_tasks(model, tokenizer, env, tasks, *, max_new_tokens: int, device:
         "items": len(rollouts),
         **stats,
         "by_group": {key: {"items": n, "accuracy": right / n} for key, (n, right) in sorted(counts.items())},
+        # One row per task, in the task file's order, so two checkpoints' files pair item by item
+        # (``paired.py``). The group means above cannot tell a real gap from noise on 500 items.
+        "per_item": [
+            {"question": r.task.question, "correct": bool(r.rewards[0].correct),
+             "format_ok": bool(r.rewards[0].format_ok), "completion": r.texts[0]}
+            for r in rollouts
+        ],
         "examples": [
             {"question": r.task.question, "answer": r.task.answer, "completion": r.texts[0],
              "correct": r.rewards[0].correct}
@@ -84,6 +91,12 @@ def main(argv=None) -> int:
         "max_new_tokens": args.max_new_tokens, **result, "seconds": round(time.time() - started, 1),
     }
 
+    if args.out:
+        os.makedirs(os.path.dirname(args.out) or ".", exist_ok=True)
+        with open(args.out, "w", encoding="utf-8") as fh:
+            json.dump(result, fh, ensure_ascii=False, indent=2)
+    # Written before anything is printed: a reader that closes the pipe early (`| head -1`) must
+    # not be able to cost the result file.
     print(
         f"{result['items']} tasks: accuracy {result['accuracy']:.3f}, format {result['format_rate']:.3f}, "
         f"hack {result['hack_rate']:.3f}, length {result['completion_len']:.1f} ({result['seconds']}s)"
@@ -91,9 +104,6 @@ def main(argv=None) -> int:
     for key, row in result["by_group"].items():
         print(f"  {key:>16}: {row['accuracy']:.3f} of {row['items']}")
     if args.out:
-        os.makedirs(os.path.dirname(args.out) or ".", exist_ok=True)
-        with open(args.out, "w", encoding="utf-8") as fh:
-            json.dump(result, fh, ensure_ascii=False, indent=2)
         print(f"wrote {args.out}")
     return 0
 

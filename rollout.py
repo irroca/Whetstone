@@ -24,7 +24,7 @@ from typing import Optional, Sequence
 import torch
 
 from envs.base import Reward, Task, TaskEnv
-from losses import token_logprobs
+from losses import token_entropy, token_logprobs
 
 
 @dataclass
@@ -245,23 +245,32 @@ def compute_logprobs(
     targets: torch.Tensor,
     micro_batch_size: int,
     ctx=None,
-) -> torch.Tensor:
-    """Frozen-graph token log-probs for a whole rollout batch, in micro-batches."""
+    return_entropy: bool = False,
+):
+    """Frozen-graph token log-probs for a whole rollout batch, in micro-batches.
+
+    With ``return_entropy`` it also returns the policy's per-position entropy, from the same
+    forward pass, so measuring it costs nothing extra.
+    """
     ctx = ctx if ctx is not None else nullcontext()
     was_training = model.training
     model.eval()
-    chunks = []
+    chunks, entropies = [], []
     try:
         with torch.no_grad():
             for start in range(0, input_ids.size(0), micro_batch_size):
                 stop = start + micro_batch_size
                 with ctx:
                     logits = model(input_ids[start:stop]).logits
-                chunks.append(token_logprobs(logits.float(), targets[start:stop]))
+                logits = logits.float()
+                chunks.append(token_logprobs(logits, targets[start:stop]))
+                if return_entropy:
+                    entropies.append(token_entropy(logits))
     finally:
         if was_training:
             model.train()
-    return torch.cat(chunks, dim=0)
+    logprobs = torch.cat(chunks, dim=0)
+    return (logprobs, torch.cat(entropies, dim=0)) if return_entropy else logprobs
 
 
 def rollout_stats(rollouts: Sequence[Rollout], eps: float = 1e-8) -> dict:

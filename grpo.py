@@ -348,10 +348,24 @@ def main():
         )
         record = {"step": step, "lr": lr, **rollout_stats(rollouts)}
 
+        dropped = []
         if args.filter_zero_variance:
             keep = ~zero_variance_groups(torch.stack([r.reward_tensor for r in rollouts]))
+            dropped = select_rollouts(rollouts, ~keep)
             rollouts = select_rollouts(rollouts, keep)
         record["groups_used"] = len(rollouts)
+        # ``entropy`` below covers only the groups the update used. This one covers every group
+        # sampled, from the weights the batch was sampled with, so a filtered run can be compared
+        # with an unfiltered one.
+        entropy_sum, entropy_tokens = 0.0, 0.0
+        if dropped:
+            gone = collate_rollouts(dropped, tokenizer.pad_token_id)
+            _, token_ent = compute_logprobs(
+                policy, gone.input_ids, gone.targets, resolve_micro_batch(gone.n_sequences, args.micro_batch_size),
+                ctx, return_entropy=True,
+            )
+            entropy_sum += float((token_ent * gone.mask).sum())
+            entropy_tokens += float(gone.mask.sum())
 
         if not rollouts:
             # Every group agreed, so every advantage is zero: nothing to learn from.
@@ -365,7 +379,11 @@ def main():
                 batch.rewards, normalize_std=args.normalize_advantage_std
             ).reshape(-1)
             micro = resolve_micro_batch(batch.n_sequences, args.micro_batch_size)
-            old_logprobs = compute_logprobs(policy, batch.input_ids, batch.targets, micro, ctx)
+            old_logprobs, token_ent = compute_logprobs(
+                policy, batch.input_ids, batch.targets, micro, ctx, return_entropy=True
+            )
+            entropy_sum += float((token_ent * batch.mask).sum())
+            entropy_tokens += float(batch.mask.sum())
             ref_logprobs = (
                 compute_logprobs(ref, batch.input_ids, batch.targets, micro, ctx)
                 if ref is not None
@@ -376,6 +394,8 @@ def main():
                     policy, optimizer, scaler, batch, advantages, old_logprobs, ref_logprobs, args, ctx
                 )
             )
+
+        record["entropy_all"] = entropy_sum / max(entropy_tokens, 1.0)
 
         # Completion tokens, not prompt tokens: the prompt is re-read every
         # rollout, so counting it would make throughput look better than it is.
@@ -393,7 +413,7 @@ def main():
                 f"acc={record['accuracy']:.2f} fmt={record['format_rate']:.2f} "
                 f"hack={record['hack_rate']:.2f} silent={record['silent_group_frac']:.2f} "
                 f"len={record['completion_len']:.1f} kl={record['kl']:.4f} "
-                f"ent={record['entropy']:.3f} |adv|={record['adv_abs_mean']:.3f} "
+                f"ent={record['entropy']:.3f} ent_all={record['entropy_all']:.3f} |adv|={record['adv_abs_mean']:.3f} "
                 f"gnorm={record['grad_norm']:.4f} lr={lr:.2e} ({record['sec']}s)"
             )
             if "eval_accuracy" in record:
