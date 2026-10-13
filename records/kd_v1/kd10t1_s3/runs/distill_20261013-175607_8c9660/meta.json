@@ -1,0 +1,94 @@
+{
+  "run_id": "distill_20261013-175607_8c9660",
+  "stage": "distill",
+  "started_at": "2026-10-13T17:56:07",
+  "command": "distill.py --teacher_path results/posttrain_v1/dapo_lite_s1/grpo_final.pth --student_path results/ablation_v1/zh30_v32k/pretrain_final.pth --tokenizer_path tokenizer/v1_32k --data_path datasets/arith_v1/sft.jsonl --max_seq_len 192 --epochs 3 --batch_size 32 --learning_rate 1e-4 --dtype bfloat16 --seed 3 --alpha 1.0 --temperature 1.0 --save_step 0 --save_dir results/kd_v1/kd10t1_s3",
+  "args": {
+    "save_dir": "results/kd_v1/kd10t1_s3",
+    "epochs": 3,
+    "batch_size": 32,
+    "learning_rate": 0.0001,
+    "weight_decay": 0.1,
+    "adam_beta1": 0.9,
+    "adam_beta2": 0.95,
+    "max_steps": 0,
+    "device": "mps",
+    "use_wandb": false,
+    "wandb_project": "Whetstone-Distill",
+    "dtype": "bfloat16",
+    "num_workers": 0,
+    "accumulation_steps": 1,
+    "grad_clip": 1.0,
+    "log_step": 1,
+    "save_step": 0,
+    "max_seq_len": 192,
+    "data_path": "datasets/arith_v1/sft.jsonl",
+    "val_data_path": "",
+    "val_every": 200,
+    "val_batches": 20,
+    "resume_from": null,
+    "seed": 3,
+    "tokenizer_path": "tokenizer/v1_32k",
+    "dim": null,
+    "n_layers": null,
+    "n_heads": null,
+    "n_kv_heads": null,
+    "hidden_dim": null,
+    "multiple_of": null,
+    "norm_eps": null,
+    "rope_theta": null,
+    "dropout": null,
+    "teacher_path": "results/posttrain_v1/dapo_lite_s1/grpo_final.pth",
+    "student_path": "results/ablation_v1/zh30_v32k/pretrain_final.pth",
+    "alpha": 1.0,
+    "temperature": 1.0,
+    "total_steps": 375
+  },
+  "env": {
+    "python": "3.12.13",
+    "torch": "2.14.0",
+    "platform": "macOS-26.5.2-arm64-arm-64bit",
+    "machine": "arm64",
+    "hostname": "redacted",
+    "device": "mps",
+    "accelerator": "arm"
+  },
+  "git": {
+    "commit": "070805f5f9410fc67ccb03acccfea3502e6912d6",
+    "branch": "kd-v1",
+    "dirty": true
+  },
+  "data": [
+    {
+      "path": "datasets/arith_v1/sft.jsonl",
+      "bytes": 1585493,
+      "modified": "2026-10-12T15:55:35",
+      "head_sha": "e5615b77d1876297d0a0b9cc5470c71c"
+    }
+  ],
+  "extra": {
+    "teacher": {
+      "path": "results/posttrain_v1/dapo_lite_s1/grpo_final.pth",
+      "dim": 768,
+      "n_layers": 12,
+      "n_heads": 12,
+      "n_kv_heads": 3
+    },
+    "kd": {
+      "alpha": 1.0,
+      "temperature": 1.0
+    }
+  },
+  "model": {
+    "dim": 512,
+    "n_layers": 8,
+    "n_heads": 8,
+    "n_kv_heads": 8,
+    "hidden_dim": 1408,
+    "vocab_size": 32768,
+    "max_seq_len": 192,
+    "dropout": 0.0,
+    "rope_theta": 1000000.0,
+    "params": 42476032
+  }
+}

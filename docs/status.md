@@ -906,8 +906,9 @@ python3 pretrain.py --dim 768 --n_layers 12 --n_heads 12 --n_kv_heads 3 \
    `dr_grpo`、`dapo_lite` 各补 2 个种子、`grpo` 补第 3 个，跑 600 步（曲线还在升），再用 `paired.py` 和 Welch t 一起看。
    Mac 上每个 300 步的跑次 45–70 分钟；长时间连跑会把内存换页换满（25GB swap，一步几分钟），一次排两三个跑次、中间留空
 4. ~~**`eval_env.py` 输出逐题对错**~~ ✅ 已做：结果 JSON 有 `per_item`，`python3 paired.py A.json B.json` 做配对 McNemar 精确检验
-5. **KD**：老师用 dev 上最好的 `dapo_lite_s1`，学生用同词表的小模型（`ablation-v1` 里词表 32k 的 42.5M
-   消融模型），看蒸馏能把多少准确率带到小模型上
+5. ~~**KD**~~ ✅ 已做（Mac，见 `docs/experiments.md` 的 Distillation 一节）：老师 `dapo_lite_s1`，学生 `ablation-v1` 里
+   词表 32k 的 42.5M 模型。金标准数据上的 logit KD 没有超过 SFT（test 0.475 对 0.384–0.451），学生上的 GRPO 300 步到
+   0.538 / 0.556（每个变体一个种子）。没做：序列级蒸馏、学生上更长的 RL、预训练更多的学生
 6. **代码环境**（§5 阶段 B）：环境和沙箱已合并（#27）。冷启动要小心：SFT 在所有族上训到 loss 0 时，见过的族 1.000、没见过的
    0.000，RL 没有可改善的；只在一部分族上 SFT，其余族是 0%，GRPO 的 `grad_norm` 恰好为 0；每个其余族给 3 条示例才有信号
    （采样准确率约 0.3）。`scripts/mac_pyfunc_v2.sh` 跑这个设置（SFT 12 族 + 10 族各 3 条，GRPO 在那 10 族上，4 个族谁都没见过
