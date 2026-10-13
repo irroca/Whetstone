@@ -354,6 +354,13 @@ rather than duplicating commands here.
   `dataset.PretrainDataset`) before tokenizing, so PPL is computed on the same input distribution
   the model was trained on — don't strip that wrapping when touching `calculate_ppl`.
 - **GRPO/RLVR specifics (`envs/`, `rollout.py`, `grpo.py`)**:
+  - **`envs/pyfunc.py` is a code environment whose reward is a sandboxed test run** (`envs/sandbox.py`: child process in its own
+    session, wall timeout, per-case alarm, `RLIMIT_CPU`/`RLIMIT_FSIZE`, `subprocess`/`socket`/`os.system` blocked, empty env). It
+    is **not a security boundary** and says so. Tests are `[args, expected]` JSON cases drawn from a reference solution, so tasks
+    round-trip through JSONL (`meta.cases`). Accuracy is all-or-nothing and `partial_weight` is 0 on purpose (a function that
+    always returns the commonest output collects ~0.3 of the fraction). `TaskEnv.score_many` scores a group of completions of one
+    task; `run_rollouts` calls it, and `PyFuncEnv` overrides it with a thread pool, since one sandbox process is ~25 ms.
+    Problems are templated (26 families), so use `--exclude_families` for a transfer measurement; `eval_env.py --group_by family`.
   - A rollout group is *one prompt repeated `--group_size` times*. The model applies RoPE from
     `start_pos` and has no left-padding offset, so mixed-length prompts cannot share a `generate`
     call; `run_rollouts` buckets prompts **by length** and generates up to `max_rows` (128) rows of

@@ -193,7 +193,7 @@ def run_rollouts(
                 completions=completions,
                 completion_mask=mask,
                 texts=texts,
-                rewards=[env.score(text, task) for text in texts],
+                rewards=env.score_many(texts, task),
                 truncated=truncated,
             )
         )

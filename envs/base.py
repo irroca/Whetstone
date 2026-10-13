@@ -15,6 +15,7 @@ from __future__ import annotations
 import abc
 import json
 import random
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 from typing import Any, Mapping
 
@@ -73,6 +74,11 @@ class TaskEnv(abc.ABC):
     @abc.abstractmethod
     def score(self, completion: str, task: Task) -> Reward:
         """Score one raw completion string against the task's ground truth."""
+
+    def score_many(self, completions: Sequence[str], task: Task) -> list[Reward]:
+        """Score a group of completions of one task. Envs whose scoring is slow (code execution)
+        override this to run them concurrently."""
+        return [self.score(text, task) for text in completions]
 
     def sample(self, n: int) -> list[Task]:
         return [self.sample_task() for _ in range(n)]

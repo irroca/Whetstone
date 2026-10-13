@@ -920,6 +920,11 @@ Fellows 那类岗位明确在做的「creating RL environments」。
 要点：沙箱执行（子进程 + 超时 + 资源限制）、测试用例来源（`PRIME-RL/Eurus-2-RL-Data` 已经带
 测试用例，`fetch_evals` 里已注册）、部分通过的奖励整形（pass@k 还是通过率）。
 
+**环境和沙箱已写好**（`envs/pyfunc.py`、`envs/sandbox.py`，未训练过）：26 个模板族、隐藏用例由参考解生成、
+全过才算对、部分得分默认关；沙箱的限制和它**不是**安全边界见 `envs/sandbox.py` 的文档。还没做的是用它训练：
+`generate_data --env pyfunc` 造 SFT 数据，SFT 之后看 GRPO 在见过的和没见过的模板族上各提升多少。100M 模型离 HumanEval
+很远，所以环境是模板化的，HumanEval/MBPP 仍然只用来去污染。
+
 ### 阶段 C：算法侧的消融与技术博客
 现在都是开关，可以直接跑：
 - ~~Dr. GRPO（去 std 归一化 + 常数分母）vs GRPO~~、~~DAPO（token-level loss + clip-higher + dynamic sampling）~~

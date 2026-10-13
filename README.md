@@ -646,6 +646,26 @@ SFT 集会包含 500 条评测集里 55% 的题。`--exclude` 去掉给定题集
 `scripts/arith_data.sh` 用固定种子造出全套：test（只在最后报一次）、dev（训练中看、用来选模型），以及不含这两者的
 SFT、DPO 和 GRPO 题库。
 
+第二个环境 `PyFuncEnv`（`--env pyfunc`）的奖励是**跑单元测试**：给一句话的规格和一个示例，策略要在一个
+```` ```python ```` 代码块里写出函数 `solve`，代码在 `envs/sandbox.py` 的子进程里对隐藏的 `[参数, 期望值]`
+用例运行。
+
+| 奖励 | 判定 | 默认权重 |
+|------|------|----------|
+| accuracy | 全部隐藏用例通过 | 1.0 |
+| format | 一个闭合的代码块，里面定义了 `solve` | 0.2 |
+| partial（`partial_weight`） | 通过用例的比例 | 0（关） |
+
+题目来自 26 个带参数的模板族（阈值、除数、分隔符……），所以这衡量的是「RL 能不能把会写的变成稳定写对」，
+以及对没见过的模板族的迁移（`--families` / `--exclude_families`），不是通用编程能力。部分得分默认关闭：
+6 个用例下，永远返回最常见输出的函数就能拿到约 0.3，策略会先找到它。沙箱是子进程 + 超时 + CPU/文件大小限制 +
+禁用进程和网络模块，**不是安全边界**；策略或题源不可信时请在一次性容器里跑。造数据和打分：
+
+```bash
+python3 -m envs.generate_data --env pyfunc --split eval --n 300 --seed 777 --exclude_families gcd,fib,is_prime --distinct --out datasets/pyfunc_eval.jsonl
+python3 eval_env.py --env pyfunc --group_by family --checkpoint results/sft_final.pth --eval_path datasets/pyfunc_eval.jsonl --tokenizer_path tokenizer/v1_32k --max_new_tokens 160
+```
+
 ### 算法（`losses.py` + `rollout.py`）
 
 对每个 prompt 采 \(G\) 条回复，用组内均值当 baseline（这就是 GRPO 省掉 critic 的地方）：
