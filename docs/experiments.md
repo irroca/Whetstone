@@ -620,3 +620,101 @@ Next if this is pursued: more RL steps (and seeds) on the student; distilling on
 teacher's sampled completions (sequence-level KD) rather than on gold prefixes; and the same KD on a student with more
 pretraining than 0.3B tokens, since a 42.5M model that has seen little text may be limited by that rather than by the
 teacher signal.
+
+## Seed grid on the 3-digit task (RTX 4090, 600 steps): the seeds spread more than the variants, and four runs stopped writing EOS
+
+`scripts/mac_posttrain_v3.sh` (it takes `PYTHON`/`OUT`/`SFT` from the environment and ran on a 4090 here) at commit
+`edce4d9`, 2026-10-13 19:53 → 10-14 02:30 (6.6 h): GRPO, Dr. GRPO and DAPO-lite × seeds 1 2 3, each **600 steps** from
+the same 1–2 digit SFT policy (dev 0.300 / test 0.290, identical to the Mac's score), 32 prompts × 8 samples,
+`--learning_rate 2e-5`, `--max_new_tokens 120`, micro-batch 32. Records: `records/posttrain_v4/`;
+`records/posttrain_v4/summarize.py` recomputes every number below. Test is the 500-item greedy score.
+
+| Run | dev | test | mean completion length (greedy, test) | steps until length > 100 | seconds / step |
+|---|---|---|---|---|---|
+| GRPO s1 | 0.702 | 0.724 | 40.4 | never | 3.3 |
+| GRPO s2 | 0.688 | 0.716 | 39.2 | never | 3.1 |
+| GRPO s3 | 0.632 | 0.618 | **120.0** | 55 | 6.3 |
+| Dr. GRPO s1 | 0.680 | 0.718 | **119.4** | 226 | 5.4 |
+| Dr. GRPO s2 | 0.728 | **0.760** | 40.0 | never | 3.2 |
+| Dr. GRPO s3 | 0.636 | 0.618 | **120.0** | 204 | 5.5 |
+| DAPO-lite s1 | 0.708 | 0.752 | 39.9 | never | 2.7 |
+| DAPO-lite s2 | 0.678 | 0.676 | **120.0** | 135 | 5.2 |
+| DAPO-lite s3 | 0.696 | 0.744 | 40.3 | never | 2.8 |
+
+| Variant | dev mean | test mean | test sd over seeds | test per seed |
+|---|---|---|---|---|
+| GRPO | 0.674 | 0.686 | 0.059 | 0.724 / 0.716 / 0.618 |
+| Dr. GRPO | 0.681 | 0.699 | 0.073 | 0.718 / 0.760 / 0.618 |
+| DAPO-lite | 0.694 | 0.724 | 0.042 | 0.752 / 0.676 / 0.744 |
+
+1. **The variants are not separated, and now the seeds say why.** The seed standard deviation within a variant is
+   4–7 points; the variants' means span 2.2 points (0.686–0.724). Paired McNemar on the same seed gives opposite verdicts
+   for the same pair: GRPO vs DAPO-lite is +33 −19 (p 0.07) at seed 1, +13 −33 (p 0.005) at seed 2 and +75 −12 (p 3e-12) at
+   seed 3; Dr. GRPO vs DAPO-lite flips the same way. Those p-values count items, so a large one at one seed is a statement
+   about that run, not about the variant. This closes the question the harder-task section left open: the 4-point lead of
+   Dr. GRPO and DAPO-lite over GRPO measured on the Mac at 300 steps (one seed each) is not reproduced here
+   (+1.3 and +3.8 points of means, inside the spread).
+2. **600 steps reach a lot further than 300.** The best runs are at 0.75–0.76 against 0.54–0.59 on the Mac at 300 steps
+   (not the same hardware or seeds). Per type, mean over seeds, test: 1d/2d +/− are 0.85–1.00 for every variant, 3-digit
+   addition 0.45–0.55 and 3-digit subtraction 0.54–0.59, so the remaining error is the 3-digit problems; DAPO-lite is ahead on
+   3d + (0.548 against 0.452 / 0.456) and behind on 1d − (0.852 against 0.877 / 0.938), each of them one type among six.
+3. **Four of nine runs stopped emitting EOS and write to the token limit.** In GRPO s3, Dr. GRPO s1 and s3, and DAPO-lite
+   s2 the completion length jumped from about 40 tokens to the 120-token limit and stayed there: in the last 100 steps 99–100% of
+   samples were truncated. A sample looks like
+   `<think>73 - 4 = 69。</think><answer>69</answer>6</answer>6</answer>6</answer>6…` (the answer is right and the format
+   check passes, since it reads the first answer span). It is not specific to a variant (one GRPO, two Dr. GRPO, one DAPO-lite),
+   it can start early or late (step 55 to 226), and the switch is abrupt: GRPO s3 went from 39.6 to 119.4 tokens between steps
+   45 and 50 and never came back. The runs cost about twice as much per step. Teacher-forced on each policy's own greedy
+   completion cut after the first `</answer>` (`probe_eos.py`, 300 test items), the probability of the EOS token there is
+   1.0000 for the SFT policy and 0.9998–1.0000 for the three runs without runaway that I probed (GRPO s1, Dr. GRPO s2, DAPO-lite s1), and **0.0000 / 0.0108 / 0.0000 / 0.0000** for
+   the four with it (`records/posttrain_v4/eos_probe.json`): the policies unlearned to stop.
+4. **What I do and do not know about it.** The reward does not depend on anything after the first `</answer>`, and a truncated
+   sample is not penalised by the environment, so nothing pushes back once EOS probability has dropped. I do not know what
+   pushes it down in the first place, or why it is abrupt; I did not test any cause. The four runaway runs average test 0.657 and
+   the five others 0.739 (0.618 and 0.618 for the two seed-3 runs), but the seeds are confounded with the runaway, so I would not say
+   the runaway costs accuracy. What it clearly does is cost time and wreck the length statistics: a length-based comparison of
+   Dr. GRPO or DAPO-lite with GRPO, the thing those variants are about, is meaningless in these four runs.
+   Fixes, in the order I would try them: score a sample without EOS as wrong (tried, next section), a length
+   penalty on the tokens after `</answer>`, or stopping generation at `</answer>` (not tried).
+
+Limits: three seeds per variant, one SFT start, one learning rate, and a GRPO run on CUDA is not bitwise repeatable either. The weights of the nine runs are not in an artifact group yet.
+
+### The fix: score a completion without EOS as wrong (`grpo.py --truncated_reward 0`)
+
+`run_rollouts(..., truncated_reward=0.0)` replaces the reward of every sampled completion that never emitted EOS by 0 and
+marks it wrong and not well-formed; evaluation does not use it, so dev and test scores stay comparable with every earlier
+run (`tests/test_rollout.py` covers it). I reran the four cells that ran away with the same variant, seed, SFT start and
+600 steps (`records/posttrain_v5/`, `records/posttrain_v5/summarize.py`; 4090, 10-14):
+
+| Run | test, v4 (no fix) | test, fix | dev, v4 → fix | length, v4 → fix | truncated in steps 501–600, v4 → fix | seconds / step, fix |
+|---|---|---|---|---|---|---|
+| GRPO s3 | 0.618 | 0.646 | 0.632 → 0.648 | 120.0 → 39.3 | 1.00 → 0.00 | 3.15 |
+| Dr. GRPO s1 | 0.718 | 0.714 | 0.680 → 0.678 | 119.4 → 40.8 | 0.99 → 0.00 | 3.13 |
+| Dr. GRPO s3 | 0.618 | **0.740** | 0.636 → 0.706 | 120.0 → 41.4 | 1.00 → 0.00 | 3.24 |
+| DAPO-lite s2 | 0.676 | 0.708 | 0.678 → 0.696 | 120.0 → 40.7 | 1.00 → 0.00 | 2.67 |
+| GRPO s1 (never ran away) | 0.724 | 0.724 | 0.702 → 0.702 | 40.4 → 40.4 | 0.00 → 0.00 | 3.26 |
+
+1. **The runaway is gone in all four cells**: completions stay at about 40 tokens, no sample is truncated in the last
+   100 steps, and the steps are back to 2.7–3.2 s. It never came back at any step of these runs (`first_over` in
+   `summarize.py`). The reward component that mattered is small: a truncated completion is nearly always wrong already (it
+   rambles), so the penalty only changes a sample when the answer was right and EOS was missing. That is also why GRPO s1,
+   which had truncated samples in 22 steps, came out **identical item for item** (+0 −0 on test): on CUDA a run repeats
+   exactly when no reward changes.
+2. **Accuracy went up in three of the four, by 3–12 points, and stayed level in one** (paired on test: +77 −16 for Dr. GRPO s3,
+   +32 −16 for DAPO-lite s2, +30 −16 for GRPO s3 (p 0.054), +12 −14 for Dr. GRPO s1). One run per cell on each side, and the
+   rerun diverges from the original at the first step where a reward differs, so this is a comparison of two runs, not a paired
+   experiment; but all four moved the right way or stayed.
+3. **The seed spread shrinks.** With the fix in place for the four cells (the five that never ran away were not rerun):
+
+   | Variant | test mean | sd over seeds | per seed (* = rerun with the fix) |
+   |---|---|---|---|
+   | GRPO | 0.695 | 0.043 | 0.724* / 0.716 / 0.646* |
+   | Dr. GRPO | **0.738** | 0.023 | 0.714* / 0.760 / 0.740* |
+   | DAPO-lite | 0.735 | 0.023 | 0.752 / 0.708* / 0.744 |
+
+   The standard deviation drops from 4–7 to 2–4 points, so the runaway was a large part of the seed noise that hid the variant
+   differences above. Dr. GRPO and DAPO-lite are now about 4 points above GRPO, which is what the Mac showed at 300 steps. With three
+   seeds and a standard deviation of 2–4 points the difference is about 1.5 standard errors (Dr. GRPO vs GRPO: difference 0.043,
+   standard error about 0.028), so it is the same lead, still not established. A fair statement: the variants are not separated by
+   this grid, a fix for a failure mode that hit a third of the runs moved the picture more than any variant did, and the
+   next seed grid should run with the fix on in every cell.

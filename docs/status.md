@@ -39,7 +39,17 @@ DAPO-lite 比 GRPO 高约 4 点，但 GRPO 自己两个种子就差 3.2 点（0.
 `pyfunc` 也跑通了（Mac，每个变体一个种子，200 步）：在 RL 训练的 10 个族上 test 从 0.410 升到 GRPO 0.743 / DAPO-lite 0.703，
 是整族整族地从 0 变成 1（3 个族 0 → 1.00）；从没训练过的 4 个族不变（0.02）；GRPO 还把只在 SFT 里见过的族从 1.000 忘到 0.850
 （DAPO-lite 0.980）。详见 `docs/experiments.md` 的 Harder tasks 一节。
-**下一步**（步骤 7 末尾）：补种子，把变体之间的差距和种子噪声分开；KD。
+蒸馏也做了（10-13，Mac）：100M 的 `dapo_lite_s1` 当老师、42.5M 的消融模型当学生，3 个种子，logit KD 没有超过纯 SFT
+（test 0.475；T=1 的 KD 0.445–0.451，T=2 的 0.384–0.388）；在学生的 SFT 模型上直接做 GRPO 300 步则到 0.538 / 0.556（每个变体一个种子）。
+详见 `docs/experiments.md` 的 Distillation 一节。
+种子网格也做了（10-13 夜，新租的 4090，三位数加减法，3 变体 × 3 种子 × 600 步，6.6 小时，`records/posttrain_v4/`）：
+test 均值 GRPO 0.686、Dr. GRPO 0.699、DAPO-lite 0.724，同一变体的种子标准差 4–7 点，比变体之间的差距大，所以三个变体分不出高低。
+意外发现：9 个跑次里有 4 个在训练中途突然不再输出 EOS，回答一直写到 token 上限（`</answer>6</answer>6…`），EOS 概率从 1.0
+掉到约 0；三个变体都出现过。加了 `--truncated_reward 0`（没有 EOS 的采样按错处理，只用于训练）后重跑这 4 个格子：全部不再失控，
+步时回到 3 秒左右，准确率 3 升 1 平（最大 +12 点）；种子标准差降到 2–4 点，Dr. GRPO 0.738 / DAPO-lite 0.735 / GRPO 0.695，
+又回到 Mac 上看到的「比 GRPO 高约 4 点」，但三个种子下约 1.5 个标准误，仍然不能下结论。详见 `docs/experiments.md` 末节、
+`records/posttrain_v4/`、`records/posttrain_v5/`。
+**下一步**（步骤 7 末尾）：下一轮种子网格每个格子都带 `--truncated_reward 0`，种子加到 5 个；学生上更长的 RL、序列级蒸馏。
 
 基座模型的起点：4-shot 一位数加法 22%、两位数 2%。目标能力是两位数算术 + 简单 Python，算术这一半
 这一轮已经做到。除了正式预训练和这一轮后训练的结果，仓库里其余数字都是 29M 玩具规模的**实现验证**，
@@ -902,8 +912,9 @@ python3 pretrain.py --dim 768 --n_layers 12 --n_heads 12 --n_kv_heads 3 \
 2. ~~**换更难的题**~~ ✅ 已做（10-13）：`MAX_DIGITS=3 bash scripts/arith_data.sh datasets/arith_v2`，SFT 起点 test 0.290（三位数
    0.038），开局 72% 的题组零方差（第一轮末尾是 90%）。GRPO 300 步到 0.54–0.59，曲线还在升。还没做：按策略自己的解题率选题、乘法
 3. **让变体之间分得出高低**：做了一半。`--ppo_epochs 2` 让截断第一次触发（`clip_frac` 0.1%–1%），但准确率上没有明显收益；
-   过滤前整批的熵现在记成 `entropy_all`（DAPO-lite 的两种熵差不超过 0.003）；回答长度有变化的任务还没有。**缺的是种子**：
-   `dr_grpo`、`dapo_lite` 各补 2 个种子、`grpo` 补第 3 个，跑 600 步（曲线还在升），再用 `paired.py` 和 Welch t 一起看。
+   过滤前整批的熵现在记成 `entropy_all`（DAPO-lite 的两种熵差不超过 0.003）；回答长度有变化的任务还没有。~~**缺的是种子**~~ ✅ 已做（10-13 夜，4090，3 变体 × 3 种子 × 600 步，`records/posttrain_v4/`）：分不出高低，
+   种子标准差 4–7 点大于变体间的 2.2 点；4 个跑次中途停止输出 EOS，用 `--truncated_reward 0` 重跑后消失，
+   Dr. GRPO / DAPO-lite 回到比 GRPO 高约 4 点（约 1.5 个标准误，见 `docs/experiments.md` 末节）。下一轮带着修复补种子到 5 个
    Mac 上每个 300 步的跑次 45–70 分钟；长时间连跑会把内存换页换满（25GB swap，一步几分钟），一次排两三个跑次、中间留空
 4. ~~**`eval_env.py` 输出逐题对错**~~ ✅ 已做：结果 JSON 有 `per_item`，`python3 paired.py A.json B.json` 做配对 McNemar 精确检验
 5. ~~**KD**~~ ✅ 已做（Mac，见 `docs/experiments.md` 的 Distillation 一节）：老师 `dapo_lite_s1`，学生 `ablation-v1` 里
