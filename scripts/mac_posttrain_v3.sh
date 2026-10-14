@@ -4,7 +4,6 @@
 # only slows both) and skips a finished run, so the command is safe to repeat after the machine was
 # switched off. grpo.py cannot resume: an unfinished run is moved aside and started over.
 #   GRPO_EXTRA='--truncated_reward 0' adds flags to every grpo.py call (the EOS-runaway fix, docs/experiments.md).
-#   GRPO_EXTRA='--truncated_reward 0' adds flags to every grpo.py call (the EOS-runaway fix, docs/experiments.md).
 #   PYTHON=.venv/bin/python VARIANTS="grpo dapo_lite" SEEDS="1 2" STEPS=300 bash scripts/mac_posttrain_v3.sh
 # Needs datasets/arith_v2 (MAX_DIGITS=3 bash scripts/arith_data.sh datasets/arith_v2) and the SFT
 # weights at results/posttrain_v1/sft/sft_final.pth (scripts/fetch_artifacts.sh posttrain-v1-sft).
@@ -24,6 +23,8 @@ py=${PYTHON:-python3}
 variant_flags() {
   case $1 in
     grpo) flags=() ;;
+    grpo_cur) flags=(--curriculum stratum) ;;
+    dapo_lite_cur) flags=(--filter_zero_variance True --clip_eps_high 0.28 --aggregation token_mean --curriculum stratum) ;;
     grpo_p2) flags=(--ppo_epochs 2) ;;
     dr_grpo) flags=(--normalize_advantage_std False --aggregation dr_grpo) ;;
     dapo_lite) flags=(--filter_zero_variance True --clip_eps_high 0.28 --aggregation token_mean) ;;
@@ -59,7 +60,7 @@ for seed in ${SEEDS:-1}; do
         --data_path $data/grpo_prompts.jsonl --eval_path $data/dev.jsonl --eval_size 500 --eval_every ${EVAL_EVERY:-25} \
         --rl_steps ${STEPS:-300} --batch_size 32 --group_size 8 --micro_batch_size 32 \
         --max_new_tokens $new --max_seq_len 200 --env_max_digits 3 --learning_rate ${LR:-2e-5} --dtype bfloat16 \
-        --log_step 10 --save_step 0 --save_dir $run ${flags[@]+"${flags[@]}"} ${GRPO_EXTRA:-} ${GRPO_EXTRA:-} || echo "=== $variant seed $seed failed"
+        --log_step 10 --save_step 0 --save_dir $run ${flags[@]+"${flags[@]}"} ${GRPO_EXTRA:-} || echo "=== $variant seed $seed failed"
     fi
     if [ -f $run/grpo_final.pth ]; then score $run/grpo_final.pth; fi
   done
