@@ -225,6 +225,13 @@ def main():
     parser.add_argument("--normalize_advantage_std", type=str2bool, default=True)
     parser.add_argument("--filter_zero_variance", type=str2bool, default=False)
     parser.add_argument(
+        "--curriculum", type=str, default="none", choices=("none", "stratum"),
+        help="stratum: sample prompt strata by a running solve-rate estimate (curriculum.py); needs --data_path",
+    )
+    parser.add_argument("--curriculum_keys", type=str, default="op,n_digits", help="task metadata that defines a stratum")
+    parser.add_argument("--curriculum_floor", type=float, default=0.05)
+    parser.add_argument("--curriculum_decay", type=float, default=0.8)
+    parser.add_argument(
         "--truncated_reward", type=float, default=None,
         help="reward for a sampled completion that never emits EOS (scored as wrong); unset = the env scores the text only",
     )
@@ -268,6 +275,16 @@ def main():
 
     # Prompts come from the env generator unless a fixed pool is supplied.
     prompt_pool = load_tasks(args.data_path) if args.data_path else None
+    sampler = None
+    if args.curriculum == "stratum":
+        if not prompt_pool:
+            raise SystemExit("--curriculum stratum needs --data_path")
+        from curriculum import StratumSampler
+
+        sampler = StratumSampler(
+            prompt_pool, [k for k in args.curriculum_keys.split(",") if k],
+            floor=args.curriculum_floor, decay=args.curriculum_decay,
+        )
     if args.eval_path:
         eval_tasks = load_tasks(args.eval_path)[: args.eval_size]
     else:
@@ -333,7 +350,9 @@ def main():
         for pg in optimizer.param_groups:
             pg["lr"] = lr
 
-        if prompt_pool:
+        if sampler is not None:
+            tasks = sampler.sample(args.batch_size, rng)
+        elif prompt_pool:
             idx = torch.randint(len(prompt_pool), (args.batch_size,), generator=rng).tolist()
             tasks = [prompt_pool[i] for i in idx]
         else:
@@ -352,6 +371,9 @@ def main():
             truncated_reward=args.truncated_reward,
         )
         record = {"step": step, "lr": lr, **rollout_stats(rollouts)}
+        if sampler is not None:
+            sampler.update(rollouts)
+            record.update({f"cur_w[{name}]": round(w, 4) for name, w in sampler.weights().items()})
 
         dropped = []
         if args.filter_zero_variance:

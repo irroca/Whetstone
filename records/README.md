@@ -133,3 +133,14 @@ transformers 5.19.0、Ubuntu 22.04、RTX 4090 24GB）。AutoDL 面板的监控�
 | `onpolicy_heldout_pairs.jsonl`、`.stats.json` | 548 对 on-policy 的留出对：同样的挖法，题取 `grpo_prompts.jsonl` 的第 3001–3800 道，`--seed 5` |
 | `pref_accuracy.py` | 给定检查点和一份偏好对，算 DPO 自己的准确率（对 SFT 参考的隐式奖励差）和不需要参考的原始排序准确率（chosen 的序列对数概率是否更高）：`PYTHONPATH=. python3 records/posttrain_v2/pref_accuracy.py --pairs <对> <检查点>...` |
 | `pref_accuracy.json`、`pref_accuracy_onpolicy.json` | 上面的输出：各个 DPO 检查点在两份留出对上的结果（SFT 作参考行） |
+
+## curriculum_v1/、curriculum_v1_600/、pyfunc_v3/：难度课程与带修复的 5 种子网格、pyfunc 混合 RL 池（2026-10-14，一张 RTX 5090）
+
+`docs/experiments.md` 末两节由这些记录得出。每个跑次目录有 `dev.json`、`test.json`（`eval_env.py` 逐题）、`grpo_metrics.jsonl`、`runs/`；
+`sft_dev.json` / `sft_test.json` 是起点（三位数加减法，SFT 权重是 `posttrain-v1-sft`）。权重没有存档（每个 0.4GB，实例已释放），`scripts/autodl/parallel_grid.sh` 可以重跑。
+
+| 目录 | 是什么 |
+|---|---|
+| `curriculum_v1/` | 三位数加减法、300 步、全部带 `--truncated_reward 0`：`grpo`、`dr_grpo`、`dapo_lite`、`grpo_cur`、`dapo_lite_cur` 各 5 个种子。`python3 records/curriculum_v1/summarize.py` 算均值、种子标准差、零方差组比例、三位数层的采样占比、配对 McNemar |
+| `curriculum_v1_600/` | 同样设置 600 步，只有 `grpo_cur`、`dapo_lite_cur` 的 3 个种子；基线取 `posttrain_v5`（有修复重跑的格子）和 `posttrain_v4`（没失控的格子）：`python3 records/curriculum_v1/summarize.py records/curriculum_v1_600` |
+| `pyfunc_v3/` | pyfunc 第二轮，`sft/` 是起点（A 族 SFT + B 族各 3 条），`grpo_B_s*` 只用 B 族 prompt，`grpo_AB_s*` 把 40% 换成 A 族 prompt，200 步、3 个种子：`python3 records/pyfunc_v3/summarize.py` |
