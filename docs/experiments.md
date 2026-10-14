@@ -666,7 +666,7 @@ the same 1–2 digit SFT policy (dev 0.300 / test 0.290, identical to the Mac's 
    it can start early or late (step 55 to 226), and the switch is abrupt: GRPO s3 went from 39.6 to 119.4 tokens between steps
    45 and 50 and never came back. The runs cost about twice as much per step. Teacher-forced on each policy's own greedy
    completion cut after the first `</answer>` (`probe_eos.py`, 300 test items), the probability of the EOS token there is
-   1.0000 for the SFT policy and 0.9998–1.0000 for the five runs without runaway, and **0.0000 / 0.0108 / 0.0000 / 0.0000** for
+   1.0000 for the SFT policy and 0.9998–1.0000 for the three runs without runaway that I probed (GRPO s1, Dr. GRPO s2, DAPO-lite s1), and **0.0000 / 0.0108 / 0.0000 / 0.0000** for
    the four with it (`records/posttrain_v4/eos_probe.json`): the policies unlearned to stop.
 4. **What I do and do not know about it.** The reward does not depend on anything after the first `</answer>`, and a truncated
    sample is not penalised by the environment, so nothing pushes back once EOS probability has dropped. I do not know what
@@ -677,5 +677,4 @@ the same 1–2 digit SFT policy (dev 0.300 / test 0.290, identical to the Mac's 
    Untested fixes, in the order I would try them: score a sample without EOS as wrong (or drop it from the group), a length
    penalty on the tokens after `</answer>`, or stopping generation at `</answer>`.
 
-Limits: three seeds per variant, one SFT start, one learning rate; MPS-free (CUDA) but not bitwise reproducible across
-runs of GRPO either, since rollouts sample. The weights of the nine runs are not in an artifact group yet.
+Limits: three seeds per variant, one SFT start, one learning rate, and a GRPO run on CUDA is not bitwise repeatable either. The weights of the nine runs are not in an artifact group yet.
