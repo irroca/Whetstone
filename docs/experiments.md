@@ -674,7 +674,47 @@ the same 1–2 digit SFT policy (dev 0.300 / test 0.290, identical to the Mac's 
    the five others 0.739 (0.618 and 0.618 for the two seed-3 runs), but the seeds are confounded with the runaway, so I would not say
    the runaway costs accuracy. What it clearly does is cost time and wreck the length statistics: a length-based comparison of
    Dr. GRPO or DAPO-lite with GRPO, the thing those variants are about, is meaningless in these four runs.
-   Untested fixes, in the order I would try them: score a sample without EOS as wrong (or drop it from the group), a length
-   penalty on the tokens after `</answer>`, or stopping generation at `</answer>`.
+   Fixes, in the order I would try them: score a sample without EOS as wrong (tried, next section), a length
+   penalty on the tokens after `</answer>`, or stopping generation at `</answer>` (not tried).
 
 Limits: three seeds per variant, one SFT start, one learning rate, and a GRPO run on CUDA is not bitwise repeatable either. The weights of the nine runs are not in an artifact group yet.
+
+### The fix: score a completion without EOS as wrong (`grpo.py --truncated_reward 0`)
+
+`run_rollouts(..., truncated_reward=0.0)` replaces the reward of every sampled completion that never emitted EOS by 0 and
+marks it wrong and not well-formed; evaluation does not use it, so dev and test scores stay comparable with every earlier
+run (`tests/test_rollout.py` covers it). I reran the four cells that ran away with the same variant, seed, SFT start and
+600 steps (`records/posttrain_v5/`, `records/posttrain_v5/summarize.py`; 4090, 10-14):
+
+| Run | test, v4 (no fix) | test, fix | dev, v4 → fix | length, v4 → fix | truncated in steps 501–600, v4 → fix | seconds / step, fix |
+|---|---|---|---|---|---|---|
+| GRPO s3 | 0.618 | 0.646 | 0.632 → 0.648 | 120.0 → 39.3 | 1.00 → 0.00 | 3.15 |
+| Dr. GRPO s1 | 0.718 | 0.714 | 0.680 → 0.678 | 119.4 → 40.8 | 0.99 → 0.00 | 3.13 |
+| Dr. GRPO s3 | 0.618 | **0.740** | 0.636 → 0.706 | 120.0 → 41.4 | 1.00 → 0.00 | 3.24 |
+| DAPO-lite s2 | 0.676 | 0.708 | 0.678 → 0.696 | 120.0 → 40.7 | 1.00 → 0.00 | 2.67 |
+| GRPO s1 (never ran away) | 0.724 | 0.724 | 0.702 → 0.702 | 40.4 → 40.4 | 0.00 → 0.00 | 3.26 |
+
+1. **The runaway is gone in all four cells**: completions stay at about 40 tokens, no sample is truncated in the last
+   100 steps, and the steps are back to 2.7–3.2 s. It never came back at any step of these runs (`first_over` in
+   `summarize.py`). The reward component that mattered is small: a truncated completion is nearly always wrong already (it
+   rambles), so the penalty only changes a sample when the answer was right and EOS was missing. That is also why GRPO s1,
+   which had truncated samples in 22 steps, came out **identical item for item** (+0 −0 on test): on CUDA a run repeats
+   exactly when no reward changes.
+2. **Accuracy went up in three of the four, by 3–12 points, and stayed level in one** (paired on test: +77 −16 for Dr. GRPO s3,
+   +32 −16 for DAPO-lite s2, +30 −16 for GRPO s3 (p 0.054), +12 −14 for Dr. GRPO s1). One run per cell on each side, and the
+   rerun diverges from the original at the first step where a reward differs, so this is a comparison of two runs, not a paired
+   experiment; but all four moved the right way or stayed.
+3. **The seed spread shrinks.** With the fix in place for the four cells (the five that never ran away were not rerun):
+
+   | Variant | test mean | sd over seeds | per seed (* = rerun with the fix) |
+   |---|---|---|---|
+   | GRPO | 0.695 | 0.043 | 0.724* / 0.716 / 0.646* |
+   | Dr. GRPO | **0.738** | 0.023 | 0.714* / 0.760 / 0.740* |
+   | DAPO-lite | 0.735 | 0.023 | 0.752 / 0.708* / 0.744 |
+
+   The standard deviation drops from 4–7 to 2–4 points, so the runaway was a large part of the seed noise that hid the variant
+   differences above. Dr. GRPO and DAPO-lite are now about 4 points above GRPO, which is what the Mac showed at 300 steps. With three
+   seeds and a standard deviation of 2–4 points the difference is about 1.5 standard errors (Dr. GRPO vs GRPO: difference 0.043,
+   standard error about 0.028), so it is the same lead, still not established. A fair statement: the variants are not separated by
+   this grid, a fix for a failure mode that hit a third of the runs moved the picture more than any variant did, and the
+   next seed grid should run with the fix on in every cell.
