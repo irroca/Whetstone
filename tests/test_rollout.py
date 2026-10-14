@@ -279,6 +279,68 @@ def test_run_rollouts_scores_decoded_text_with_the_env():
     assert not rollouts[0].truncated.any()
 
 
+def test_truncated_reward_scores_a_completion_without_eos_as_wrong():
+    """A correct answer followed by no EOS is truncated: with ``truncated_reward`` it must not earn the reward."""
+    tokenizer = _tokenizer()
+    env = ArithmeticEnv(seed=0)
+    task = env.sample_task()
+    gold_ids = tokenizer(env.gold_completion(task), add_special_tokens=False).input_ids
+    rows = {"stops": gold_ids + [EOS, PAD], "runs_on": gold_ids + gold_ids[-2:]}
+
+    class StubPolicy:
+        training = False
+
+        def eval(self):
+            return self
+
+        def train(self):
+            return self
+
+        def generate(self, input_ids, **kwargs):
+            return torch.tensor([rows["stops"], rows["runs_on"]] * (input_ids.size(0) // 2), dtype=torch.long)
+
+    kwargs = dict(group_size=2, max_new_tokens=len(rows["stops"]))
+    plain = run_rollouts(StubPolicy(), tokenizer, env, [task], **kwargs)[0]
+    penalised = run_rollouts(StubPolicy(), tokenizer, env, [task], truncated_reward=0.0, **kwargs)[0]
+
+    assert plain.truncated.tolist() == [False, True]
+    assert plain.rewards[0].correct and plain.rewards[1].correct  # the env alone cannot tell
+    assert penalised.rewards[0] == plain.rewards[0]  # a completion that stops is untouched
+    assert not penalised.rewards[1].correct and not penalised.rewards[1].format_ok
+    assert penalised.rewards[1].total == 0.0
+
+
+def test_truncated_reward_scores_a_completion_without_eos_as_wrong():
+    """A correct answer followed by no EOS is truncated: with ``truncated_reward`` it must not earn the reward."""
+    tokenizer = _tokenizer()
+    env = ArithmeticEnv(seed=0)
+    task = env.sample_task()
+    gold_ids = tokenizer(env.gold_completion(task), add_special_tokens=False).input_ids
+    rows = {"stops": gold_ids + [EOS, PAD], "runs_on": gold_ids + gold_ids[-2:]}
+
+    class StubPolicy:
+        training = False
+
+        def eval(self):
+            return self
+
+        def train(self):
+            return self
+
+        def generate(self, input_ids, **kwargs):
+            return torch.tensor([rows["stops"], rows["runs_on"]] * (input_ids.size(0) // 2), dtype=torch.long)
+
+    kwargs = dict(group_size=2, max_new_tokens=len(rows["stops"]))
+    plain = run_rollouts(StubPolicy(), tokenizer, env, [task], **kwargs)[0]
+    penalised = run_rollouts(StubPolicy(), tokenizer, env, [task], truncated_reward=0.0, **kwargs)[0]
+
+    assert plain.truncated.tolist() == [False, True]
+    assert plain.rewards[0].correct and plain.rewards[1].correct  # the env alone cannot tell
+    assert penalised.rewards[0] == plain.rewards[0]  # a completion that stops is untouched
+    assert not penalised.rewards[1].correct and not penalised.rewards[1].format_ok
+    assert penalised.rewards[1].total == 0.0
+
+
 def test_run_rollouts_generates_equal_length_prompts_together():
     """Prompts of one token count share generate calls of at most max_rows rows, and every group
     still gets the completions generated from its own prompt."""

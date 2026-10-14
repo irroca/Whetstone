@@ -3,6 +3,7 @@
 # problems and so gets ~3% of the 3-digit ones. Runs the variants one after another (a second MPS job
 # only slows both) and skips a finished run, so the command is safe to repeat after the machine was
 # switched off. grpo.py cannot resume: an unfinished run is moved aside and started over.
+#   GRPO_EXTRA='--truncated_reward 0' adds flags to every grpo.py call (the EOS-runaway fix, docs/experiments.md).
 #   PYTHON=.venv/bin/python VARIANTS="grpo dapo_lite" SEEDS="1 2" STEPS=300 bash scripts/mac_posttrain_v3.sh
 # Needs datasets/arith_v2 (MAX_DIGITS=3 bash scripts/arith_data.sh datasets/arith_v2) and the SFT
 # weights at results/posttrain_v1/sft/sft_final.pth (scripts/fetch_artifacts.sh posttrain-v1-sft).
@@ -57,7 +58,7 @@ for seed in ${SEEDS:-1}; do
         --data_path $data/grpo_prompts.jsonl --eval_path $data/dev.jsonl --eval_size 500 --eval_every ${EVAL_EVERY:-25} \
         --rl_steps ${STEPS:-300} --batch_size 32 --group_size 8 --micro_batch_size 32 \
         --max_new_tokens $new --max_seq_len 200 --env_max_digits 3 --learning_rate ${LR:-2e-5} --dtype bfloat16 \
-        --log_step 10 --save_step 0 --save_dir $run ${flags[@]+"${flags[@]}"} || echo "=== $variant seed $seed failed"
+        --log_step 10 --save_step 0 --save_dir $run ${flags[@]+"${flags[@]}"} ${GRPO_EXTRA:-} || echo "=== $variant seed $seed failed"
     fi
     if [ -f $run/grpo_final.pth ]; then score $run/grpo_final.pth; fi
   done

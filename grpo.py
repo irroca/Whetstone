@@ -224,6 +224,10 @@ def main():
     parser.add_argument("--aggregation", type=str, default="seq_mean", choices=list(AGGREGATIONS))
     parser.add_argument("--normalize_advantage_std", type=str2bool, default=True)
     parser.add_argument("--filter_zero_variance", type=str2bool, default=False)
+    parser.add_argument(
+        "--truncated_reward", type=float, default=None,
+        help="reward for a sampled completion that never emits EOS (scored as wrong); unset = the env scores the text only",
+    )
 
     parser.add_argument("--env", type=str, default="arithmetic", choices=available_envs())
     parser.add_argument("--env_ops", type=str, default="+,-")
@@ -345,6 +349,7 @@ def main():
             temperature=args.temperature,
             top_p=args.top_p,
             device=args.device,
+            truncated_reward=args.truncated_reward,
         )
         record = {"step": step, "lr": lr, **rollout_stats(rollouts)}
 
