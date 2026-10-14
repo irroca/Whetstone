@@ -57,7 +57,8 @@ DAPO-lite 0.536（都比不带课程低 3–4 点），600 步下 GRPO 0.718（�
 DAPO-lite 自带的在线过滤零方差组才是便宜的版本。代码环境把 SFT 过的族按 40% 混进 RL 的 prompt 池后，test_A 保持 1.000（只用 B 族是 0.953），
 B 族 0.767 对 0.734，遗忘消失，迁移（test_C）仍为 0。详见 `docs/experiments.md` 末两节、`records/curriculum_v1/`、`records/curriculum_v1_600/`、
 `records/pyfunc_v3/`。
-**下一步**：项目的实验部分基本做完；剩下的是收尾（见 §4 步骤 7 末尾和 TODO 清单）：把博客写出来、权重/记录归档、可选的序列级蒸馏。
+**项目收尾**：实验部分和博客初稿都做完了，README 有结果一览表。剩下的都是可选项：权重归档（`v3_grid`/`v3_trunc` 约 5.3GB，5090 上的权重没存）、
+序列级蒸馏、学生上更长的 RL、只给格式奖励和宽松解析两行消融。
 
 基座模型的起点：4-shot 一位数加法 22%、两位数 2%。目标能力是两位数算术 + 简单 Python，算术这一半
 这一轮已经做到。除了正式预训练和这一轮后训练的结果，仓库里其余数字都是 29M 玩具规模的**实现验证**，
@@ -918,11 +919,11 @@ python3 pretrain.py --dim 768 --n_layers 12 --n_heads 12 --n_kv_heads 3 \
    DPO 只是拉大一个已经够大的差。换成 `mine_pairs.py` 从 SFT 策略自己的采样里挖的 2022 对（对的作 chosen、错的作 rejected），
    lr 1e-6 的 dev 0.648、test 0.576：排序准确率 0.821 → 0.849，生成准确率没有跟着动。分析在 `docs/experiments.md`
 2. ~~**换更难的题**~~ ✅ 已做（10-13）：`MAX_DIGITS=3 bash scripts/arith_data.sh datasets/arith_v2`，SFT 起点 test 0.290（三位数
-   0.038），开局 72% 的题组零方差（第一轮末尾是 90%）。GRPO 300 步到 0.54–0.59，曲线还在升。还没做：按策略自己的解题率选题、乘法
+   0.038），开局 72% 的题组零方差（第一轮末尾是 90%）。GRPO 300 步到 0.54–0.59，曲线还在升。~~按策略自己的解题率选题~~ ✅ 做了，没有帮助（10-14，`docs/experiments.md` 末两节）。还没做：乘法
 3. **让变体之间分得出高低**：做了一半。`--ppo_epochs 2` 让截断第一次触发（`clip_frac` 0.1%–1%），但准确率上没有明显收益；
    过滤前整批的熵现在记成 `entropy_all`（DAPO-lite 的两种熵差不超过 0.003）；回答长度有变化的任务还没有。~~**缺的是种子**~~ ✅ 已做（10-13 夜，4090，3 变体 × 3 种子 × 600 步，`records/posttrain_v4/`）：分不出高低，
    种子标准差 4–7 点大于变体间的 2.2 点；4 个跑次中途停止输出 EOS，用 `--truncated_reward 0` 重跑后消失，
-   Dr. GRPO / DAPO-lite 回到比 GRPO 高约 4 点（约 1.5 个标准误，见 `docs/experiments.md` 末节）。下一轮带着修复补种子到 5 个
+   Dr. GRPO / DAPO-lite 回到比 GRPO 高约 4 点（约 1.5 个标准误，见 `docs/experiments.md` 末节）。下一轮带着修复补种子到 5 个 ✅ 已做（10-14，5090，300 步 × 5 种子 + 600 步课程臂，`records/curriculum_v1*/`）：DAPO-lite 0.580 对 GRPO 0.544（Welch p 0.04），Dr. GRPO 与 GRPO 持平
    Mac 上每个 300 步的跑次 45–70 分钟；长时间连跑会把内存换页换满（25GB swap，一步几分钟），一次排两三个跑次、中间留空
 4. ~~**`eval_env.py` 输出逐题对错**~~ ✅ 已做：结果 JSON 有 `per_item`，`python3 paired.py A.json B.json` 做配对 McNemar 精确检验
 5. ~~**KD**~~ ✅ 已做（Mac，见 `docs/experiments.md` 的 Distillation 一节）：老师 `dapo_lite_s1`，学生 `ablation-v1` 里
@@ -932,7 +933,7 @@ python3 pretrain.py --dim 768 --n_layers 12 --n_heads 12 --n_kv_heads 3 \
    0.000，RL 没有可改善的；只在一部分族上 SFT，其余族是 0%，GRPO 的 `grad_norm` 恰好为 0；每个其余族给 3 条示例才有信号
    （采样准确率约 0.3）。`scripts/mac_pyfunc_v2.sh` 跑这个设置（SFT 12 族 + 10 族各 3 条，GRPO 在那 10 族上，4 个族谁都没见过
    用来测迁移）。结果：见 `docs/experiments.md`（GRPO 在 RL 族上 0.410 → 0.743，没见过的族不迁移，只在 SFT 见过的族被遗忘）。
-   下一次重跑要在 RL 的 prompt 池里混一些 SFT 族，或加一点 KL，看遗忘能否避免
+   ~~混一些 SFT 族进 RL 的 prompt 池~~ ✅ 已做（10-14，`scripts/pyfunc_v3.sh`，`records/pyfunc_v3/`）：test_A 保持 1.000（只用 B 族是 0.953），RL 族 0.767 对 0.734；KL 项没试
 
 ---
 
@@ -962,12 +963,12 @@ Fellows 那类岗位明确在做的「creating RL environments」。
 - ~~Dr. GRPO（去 std 归一化 + 常数分母）vs GRPO~~、~~DAPO（token-level loss + clip-higher + dynamic sampling）~~
   第一轮已跑（§4 步骤 7）：在一两位数算术上分不出高低，原因是截断不触发、长度不变、尺度被 AdamW 吸收。
   要让它们分出高低，得换成 `--ppo_epochs > 1`、长度会变的任务
-- 难度课程（用 `big_math` 的 `llama8b_solve_rate` 筛中等难度题，避开零方差组）——第一轮后期九成题组零方差，
-  这一条现在最值得做
+- ~~难度课程（按解题率选题，避开零方差组）~~ ✅ 做了，是负结果（10-14）：按层动态采样比不用低 3–4 点，零方差组比例没降；
+  `big_math` 的 `llama8b_solve_rate` 没用（题库不是自己的算术题）
 - 熵下界 vs KL 锚定，验证崩溃是 KL 问题还是一般的探索问题（100M 上从 63% 的冷启动出发没有崩溃，
   要在更难、冷启动更弱的任务上看）
 
-博客建议题目仍然偏现象而不是教程，例如《在小模型上，GRPO 学会的是计算还是格式？》。素材已经够了：
+~~博客~~ ✅ 初稿在 `docs/blog/whetstone-rl-on-a-100m-model.md`。当初的建议是题目偏现象而不是教程，例如《在小模型上，GRPO 学会的是计算还是格式？》。素材已经够了：
 29M 上只学会格式（§1 那三条结论），100M 冷启动够强时学会了计算，以及四种变体为什么在这里分不出高低。
 
 ### 明确不做

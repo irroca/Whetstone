@@ -11,13 +11,29 @@ RL 部分不依赖 TRL/veRL：可验证奖励环境、组相对优势、clipped 
 > 本仓库定位是**可深挖的学习/研究项目**，不是生产级大模型平台。无多卡并行、无推理服务、
 > 无量化实现、无 PPO critic。规模刻意做小，为的是把算法和训练现象看清楚。
 
-**当前状态**：算法链路和数据管线完成且有单测覆盖；语料方案已定（见
-[`docs/corpus-plan.md`](docs/corpus-plan.md)），目标模型 ~100M / ~10B token，正式训练尚未开始。
-仓库里的 GRPO 实验结果是 29M 玩具规模的**实现验证**，不是能力声明（见
-[`docs/experiments.md`](docs/experiments.md)）。
+**当前状态（2026-10-14）**：全链路已经跑通并有记录——语料构建（99.1 亿 token）→ 正式预训练（99.5M 参数）→ SFT →
+GRPO，以及 DPO、蒸馏、代码环境、种子网格和课程学习的对照实验。每个数字都能从 `records/` 重算；
+这是一个 100M 规模的**可验证任务试验台**，不是能力声明。写成文章的版本在
+[`docs/blog/`](docs/blog/whetstone-rl-on-a-100m-model.md)。
 
-> 接手开发请先读 [`docs/status.md`](docs/status.md)：项目状态、待办、长期路线，以及
-> **正式训练之前必须先解决的三件工程问题**。
+### 结果一览
+
+| 阶段 / 实验 | 设置 | 结果 | 详情 |
+|---|---|---|---|
+| 预训练 | 99.5M 参数，9.914B token，1×H800 PCIe 8.29 小时 | 验证 loss 2.554（ppl 12.86），无 loss 尖峰；基座 4-shot 一位数加法 22%、两位数 2% | `docs/experiments.md` 首节 |
+| 数据消融 | 25.7M 代理模型，中文占比 × 词表大小 | 中文 20%、词表 32k | `docs/status.md` §4 步骤 4 |
+| SFT → GRPO，1–2 位加减法 | 4 变体 × 3 种子，500 步 | test 0.628（SFT）→ **0.938–0.962**，格式 1.000；四个变体分不出高低（截断不触发、长度不变、Adam 吸收尺度）| experiments「Ablation grid」 |
+| DPO 单独使用 | 手工损坏的对 / on-policy 的对 | test 0.626 / 0.576，SFT 是 0.628：没有提升（SFT 策略已把手工对 100% 排对）| experiments「DPO alone」 |
+| 蒸馏 | 100M RL 老师 → 42.5M 学生，3 种子 | 纯 SFT 0.475；logit KD 0.445–0.451（T=1）/ 0.384–0.388（T=2）：没赢；学生上 GRPO 0.538 / 0.556（各 1 种子）| experiments「Distillation」 |
+| 3 位加减法，EOS 失控 | 3 变体 × 3 种子 × 600 步 | 9 个跑次里 4 个中途不再输出 EOS，回答写到上限；`--truncated_reward 0` 修复后种子标准差 4–7 → 2–4 点 | experiments「Seed grid」 |
+| 带修复的 5 种子网格 | 3 位加减法，300 步 × 5 种子 | test GRPO 0.544 / Dr. GRPO 0.548 / **DAPO-lite 0.580**（Welch p 0.04）；600 步 × 3 种子：0.695 / 0.738 / 0.735 | experiments「Difficulty curriculum…」|
+| 难度课程（按解题率选题）| 按层动态采样，5 种子 | **没有帮助**：300 步低 3–4 点，600 步 DAPO-lite 低 8 点，零方差组比例没降 | 同上 |
+| 代码环境 `pyfunc` | 26 个模板族，沙箱跑单测当奖励 | RL 族 test 0.410 → 0.743（GRPO，1 种子）；没见过的族不迁移（0.02）；只在 SFT 见过的族被忘掉（1.000 → 0.850）；把它们按 40% 混进 RL 池后保持 1.000，RL 族 0.767（3 种子）| experiments「Harder tasks」「Code environment」 |
+
+局限：算术是模板化的 1–3 位加减法，答案唯一；多数对比每格 3–5 个种子，种子之间的差距常与变体之间的差距同量级；
+100M 模型离 HumanEval 很远。完整的局限、踩过的坑和数字的出处见 [`docs/lessons.md`](docs/lessons.md)。
+
+> 接手开发请先读 [`docs/status.md`](docs/status.md)：项目状态、已做的决定、可选的后续方向。
 
 ## 环境
 
@@ -68,6 +84,7 @@ config.py  model.py  dataset.py  losses.py  train_utils.py  trainer.py  rollout.
 pretrain.py  sft.py  distill.py  dpo.py  grpo.py                         # 五个训练阶段
 eval_ppl.py  eval_env.py  paired.py  chat.py  analyze_grpo.py  train_tokenizer.py  bench_train.py  # 评估与工具
 run_ablation.py  probes.py                                               # 数据消融
+select_prompts.py  curriculum.py  probe_eos.py  mine_pairs.py                # 选题 / 课程、EOS 探针、DPO 的 on-policy 对
 datatools/   envs/   configs/   tests/   docs/   tokenizer/   scripts/   records/
 ```
 
@@ -90,6 +107,7 @@ datatools/   envs/   configs/   tests/   docs/   tokenizer/   scripts/   records
 | `configs/` | 配比 spec（正式 `mixture_v2.json`，消融用的基础配比 `mixture_v1.json`）、消融 spec（`ablation_v1.json`）|
 | `docs/corpus-plan.md` | 语料候选清单、许可证、配比与消融计划 |
 | `docs/experiments.md` | 实验协议与已记录的跑批结果 |
+| `docs/lessons.md` / `docs/blog/` | 踩坑与发现的索引；写成文章的版本 |
 | `records/` | 重要运行的原始记录（正式预训练、H800 吞吐、消融、语料构建报告），每个文件的说明在 `records/README.md` |
 | `docs/artifacts.md` / `scripts/fetch_artifacts.sh` | 权重和语料等大文件存在哪、每个文件是什么、给谁用；取回并校验的脚本 |
 | `scripts/autodl/` | 在 AutoDL 上传数据、预检、量吞吐、正式预训练和后训练的脚本 |
@@ -844,8 +862,7 @@ LLMConfig(dim=512, n_layers=8, n_heads=8, n_kv_heads=8, vocab_size=6400, max_seq
 - **`--top_p < 1` 时训练数据严格来说是 off-policy 的**：采样分布被截断过，而重要性比用的是
   策略自身分布。默认 `--top_p 1.0` 就是为了避免这个偏差。
 - **GRPO 的 `loss` 不是进度指标**：on-policy 且 `seq_mean` 聚合时它恒等于 0，看 `grad_norm`。
-- **`tokenizer/zh_6400` 只在中文上训过**，代码压缩率 2.23 字符/token。双语 + 代码正式训练前
-  必须重训词表（见「分词器」）。用旧词表训出来的 checkpoint 与新词表**不兼容**，
+- **`tokenizer/zh_6400` 只在中文上训过**，代码压缩率 2.23 字符/token，只留给 CPU 测试；正式词表是 `tokenizer/v1_32k`（见「分词器」）。用旧词表训出来的 checkpoint 与新词表**不兼容**，
   `resolve_model_config` 会在 `vocab_size` 不匹配时直接报错。
 - **`datatools.dedup` 的近重复去重有内存上界**（每条文档约 1KB 签名，约 100–200 万条），
   所以 `prepare` 内联只做流式精确去重，近重复要按源分文件单独跑。
