@@ -718,3 +718,77 @@ run (`tests/test_rollout.py` covers it). I reran the four cells that ran away wi
    standard error about 0.028), so it is the same lead, still not established. A fair statement: the variants are not separated by
    this grid, a fix for a failure mode that hit a third of the runs moved the picture more than any variant did, and the
    next seed grid should run with the fix on in every cell.
+
+## Difficulty curriculum by solve rate, and a 5-seed grid with the EOS fix (RTX 5090, 10-14)
+
+The question: a group whose samples all agree has zero reward variance and no gradient, and on the 3-digit task 72–88% of the
+groups are like that (`silent_group_frac`). Can sampling prompts by their solve rate spend the batch where there is a gradient?
+Two ways were built (`select_prompts.py`, `curriculum.py`, `grpo.py --curriculum stratum`; tests in `tests/test_select_prompts.py`,
+`tests/test_curriculum.py`):
+
+- **Static**: sample the SFT policy 8 times on every candidate prompt and keep only the mixed ones. On 512 prompts from the pool,
+  61% were all-wrong, 11% all-right and 28% mixed, and the mixed ones were mostly 2-digit (kept {1: 8, 2: 119, 3: 16} of a pool of
+  {1: 20, 2: 173, 3: 319}). A static filter therefore starves exactly the 3-digit prompts the run is trying to learn, and it goes
+  stale as the policy improves. It is kept as a tool, not run as an arm.
+- **Dynamic, per stratum** (`--curriculum stratum`): keep a running solve-rate estimate `p` for each (op, n_digits) stratum
+  (EMA 0.8 over the batches that drew it) and sample strata with weight `0.05 + 4 p (1 − p)`, normalized. Individual prompts are
+  too noisy to estimate from one draw; a stratum has hundreds of draws.
+
+**Setup.** Everything here is 3-digit +/− from the 1–2-digit SFT policy (test 0.290), lr 2e-5, 32 prompts × 8, `--truncated_reward 0`
+on every run (the fix above), 5090, four processes sharing the card. Records: `records/curriculum_v1/` (300 steps, 5 seeds;
+`python3 records/curriculum_v1/summarize.py`) and `records/curriculum_v1_600/` (600 steps, seeds 1–3 for the curriculum arms; the
+baselines there are the 4090 grid, the fix rerun where there is one: `python3 records/curriculum_v1/summarize.py records/curriculum_v1_600`).
+
+### The grid with the fix, 5 seeds, 300 steps (the first complete grid without runaways)
+
+| Variant | n | test mean | sd | per seed | silent groups, last 100 steps |
+|---|---|---|---|---|---|
+| GRPO | 5 | 0.544 | 0.026 | .562 .548 .504 .570 .536 | 0.81 |
+| Dr. GRPO | 5 | 0.548 | 0.016 | .562 .560 .522 .552 .544 | 0.80 |
+| DAPO-lite | 5 | **0.580** | 0.019 | .606 .594 .562 .566 .570 | 0.81 |
+| GRPO + curriculum | 5 | 0.514 | 0.016 | .502 .520 .516 .496 .538 | 0.83 |
+| DAPO-lite + curriculum | 5 | 0.536 | 0.024 | .516 .518 .524 .570 .552 | 0.84 |
+
+Over seeds (Welch, n = 5 each): DAPO-lite is 3.6 points above GRPO (p 0.04) and 3.2 above Dr. GRPO (p 0.02); Dr. GRPO and GRPO are
+level (p 0.78). That is the first place in this project where a variant separates from GRPO on seeds rather than on pooled items,
+and it is DAPO-lite, the one that drops the silent groups before the update. At 300 steps the Mac's single-seed numbers (GRPO 0.544 /
+0.512, DAPO-lite 0.586) were inside this spread.
+
+### The curriculum does not help, and with DAPO-lite it hurts
+
+1. **At 300 steps it is 3–4 points worse for both variants** (GRPO 0.544 → 0.514, p 0.07 over seeds; DAPO-lite 0.580 → 0.536, p 0.014;
+   pooled paired McNemar p 2e-5 and 8e-9, items as the unit). One Mac run agreed (0.510 against 0.570).
+2. **At 600 steps it is level with GRPO and clearly worse with DAPO-lite**: GRPO 0.695 → 0.718 (+0.023, p 0.54 over seeds, 3 each),
+   DAPO-lite 0.735 → 0.653 (−0.082, p 0.015). Dr. GRPO (0.738) and DAPO-lite stay the best arms.
+3. **It did not reduce the silent groups** (the whole point): 0.81 → 0.83 (GRPO) and 0.81 → 0.84 (DAPO-lite) at 300 steps, and at
+   600 steps 0.875 → 0.868 and 0.869 → 0.882, no better than noise. The weights show why: stratum `p` is an average over prompts of
+   very different difficulty, so a stratum at p = 0.5 is not a stratum whose groups are mixed. In the 600-step GRPO run (seed 1) the
+   three digit-count weights go 0.17/0.17/0.17 → 0.07/0.28/0.12 at step 100 → 0.02/0.27/0.32 at step 300 → 0.02/0.14/0.33 at 600 (summed over
+   + and −): the 3-digit prompts, the target, got less than their uniform share for the first ~150 steps and a share of 0.60–0.78 of the draws
+   only in the last 100. With DAPO-lite the 3-digit work was lost twice, once to the sampler and once to the filter.
+4. What would work is a per-*prompt* signal (the solve rate of that prompt, from its own earlier groups), which needs a prompt pool
+   revisited several times, or a larger group. At 32 × 8 and 300–600 steps a pool of 20k prompts is seen once. DAPO-lite's online
+   filter is the cheap version of the same idea, and it is the one arm that gained from the fix grid. Not pursued further.
+
+## Code environment: mixing the SFT-only families into the RL pool prevents the forgetting (RTX 5090, 10-14)
+
+The first pyfunc round (above) trained RL on the 10 B families only, and GRPO lost some of what SFT had taught on the 12 A families
+(test_A 1.000 → 0.850, GRPO). Round two (`scripts/pyfunc_v3.sh`, `records/pyfunc_v3/`, `python3 records/pyfunc_v3/summarize.py`):
+same SFT policy (A families, plus 3 examples of each B family), GRPO 200 steps, lr 1e-5, 3 seeds, `--truncated_reward 0`; arm **B** uses
+the B prompts only (the control, the same as round one except for the fix), arm **AB** replaces 40% of the pool by A prompts
+(12000 B + 8000 A, fresh instances, test items excluded).
+
+| | test_B (RL families) | test_A (SFT families) | test_C (unseen families) |
+|---|---|---|---|
+| SFT policy | 0.410 | 1.000 | 0.023 |
+| GRPO, B only (3 seeds) | 0.734 ± 0.057 | 0.953 ± 0.029 | 0.019 |
+| GRPO, A + B (3 seeds) | **0.767 ± 0.058** | **1.000 ± 0.000** | 0.003 |
+
+1. **Forgetting is gone**: test_A stays at 1.000 in all three seeds, while B-only lost up to 0.67 on one family (`count_vowels`
+   0.33 mean over seeds) and 4.7 points of test_A overall. Mixing in 40% prompts the policy already solves cost nothing on the B
+   families (0.767 against 0.734; per seed .70/.80/.80 against .70/.80/.70, so it is the same families fixed, plus one more in seed 3).
+2. The A prompts are all-right groups: they carry no gradient, they only keep the policy's behaviour on those templates in the
+   sampled data when the update would otherwise drift. That makes this a cheap anchor and an argument for always keeping an
+   old-skill slice in the RL pool, not a mechanism that was isolated: a KL term was not tried.
+3. **Transfer is still absent** (test_C 0.00–0.02): RL fixes the templates it is shown, it does not teach a skill across them.
+   That is a property of 26 templated families, a 100M model and a 3-example cold start, not a statement about RLVR.
