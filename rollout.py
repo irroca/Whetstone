@@ -17,6 +17,7 @@ policy assigned to them. Three things make this fiddly and they all live here:
 
 from __future__ import annotations
 
+import dataclasses
 from contextlib import nullcontext
 from dataclasses import dataclass, field
 from typing import Optional, Sequence
@@ -142,6 +143,7 @@ def run_rollouts(
     top_p: float = 1.0,
     device: str = "cpu",
     max_rows: int = 128,
+    truncated_reward: Optional[float] = None,
 ) -> list[Rollout]:
     """Sample a group of completions per task and score them with the env.
 
@@ -149,6 +151,12 @@ def run_rollouts(
     rows: decoding a 100M model is bound by per-step overhead (on MPS a step took 11 ms at 1 row,
     18 ms at 32 and 47 ms at 128). ``max_rows`` bounds the prefill, which computes logits at every
     prompt position: 128 rows of a 71-token prompt at vocab 32768 is 1.2GB in fp32.
+
+    ``truncated_reward``: when set, a completion that never emitted EOS is scored as a failure
+    (total reward = this value, wrong, not well-formed) whatever it contains. Without it the env
+    scores the text only, so a policy that stops emitting EOS after its answer is never told:
+    on the 3-digit grid four of nine runs ended up writing ``</answer>6</answer>6...`` to the token
+    limit (docs/experiments.md). Leave it unset for evaluation, which then matches every earlier run.
     """
     was_training = model.training
     model.eval()
@@ -186,6 +194,13 @@ def run_rollouts(
             tokenizer.decode(row[m.bool()].tolist(), skip_special_tokens=True)
             for row, m in zip(completions, mask)
         ]
+        rewards = env.score_many(texts, task)
+        if truncated_reward is not None:
+            rewards = [
+                dataclasses.replace(r, total=truncated_reward, accuracy=0.0, format=0.0, format_ok=False, correct=False)
+                if bool(t) else r
+                for r, t in zip(rewards, truncated)
+            ]
         rollouts.append(
             Rollout(
                 task=task,
@@ -193,7 +208,7 @@ def run_rollouts(
                 completions=completions,
                 completion_mask=mask,
                 texts=texts,
-                rewards=env.score_many(texts, task),
+                rewards=rewards,
                 truncated=truncated,
             )
         )
